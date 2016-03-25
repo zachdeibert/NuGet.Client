@@ -56,7 +56,6 @@ namespace NuGet.PackageManagement.UI
 
         public override void Refresh()
         {
-            UpdateInstalledVersion();
             CreateVersions();
         }
 
@@ -66,6 +65,7 @@ namespace NuGet.PackageManagement.UI
                 StringComparer.OrdinalIgnoreCase.Equals(p.Id, id));
         }
 
+
         protected override void CreateVersions()
         {
             _versions = new List<DisplayVersion>();
@@ -74,24 +74,24 @@ namespace NuGet.PackageManagement.UI
                 .OrderByDescending(p => p.VersionRange.MinVersion)
                 .FirstOrDefault();
 
-            // installVersion is null if the package is not installed
-            var installedVersion = installedDependency?.VersionRange?.MinVersion;
+            UpdateInstalledVersion();
 
             var allVersions = _allPackageVersions.OrderByDescending(v => v);
             var latestPrerelease = allVersions.FirstOrDefault(v => v.IsPrerelease);
             var latestStableVersion = allVersions.FirstOrDefault(v => !v.IsPrerelease);
 
+
             // Add lastest prerelease if neeeded
             if (latestPrerelease != null
                 && (latestStableVersion == null || latestPrerelease > latestStableVersion) &&
-                !latestPrerelease.Equals(installedVersion))
+                !latestPrerelease.Equals(InstalledVersion))
             {
                 _versions.Add(new DisplayVersion(latestPrerelease, Resources.Version_LatestPrerelease));
             }
 
-            // Add latest stable if needed
-            if (latestStableVersion != null && 
-                !latestStableVersion.Equals(installedVersion))
+            // Add latest stable if it exists and it is not the Installed Version
+            if (latestStableVersion != null &&
+                !latestStableVersion.Equals(InstalledVersion))
             {
                 _versions.Add(new DisplayVersion(latestStableVersion, Resources.Version_LatestStable));
             }
@@ -104,15 +104,29 @@ namespace NuGet.PackageManagement.UI
 
             foreach (var version in allVersions)
             {
-                if (!version.Equals(installedVersion))
+                if (version != InstalledVersion)
                 {
                     _versions.Add(new DisplayVersion(version, string.Empty));
+                }
+                else
+                {
+                    // TODO: should we localize this new string -- likely yes.
+                    var displayVersionForInstalledVersion = new DisplayVersion(version, "  ( \u2605 " + Resources.Version_Installed + " )", displayAfterVersion: true);
+                    _versions.Add(displayVersionForInstalledVersion);
                 }
             }
 
             SelectVersion();
 
             OnPropertyChanged(nameof(Versions));
+        }
+
+        protected override void SelectVersion()
+        {
+            if (_versions.Count > 0)
+            {
+                SelectedVersion = _versions[0];
+            }
         }
 
         private NuGetVersion _installedVersion;

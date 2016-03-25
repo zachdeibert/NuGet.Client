@@ -9,22 +9,13 @@ using System.Windows.Data;
 namespace NuGet.PackageManagement.UI
 {
     /// <summary>
-    /// Returns true if the selectedVersion and installedVersion are not null and are not the same.
+    /// Converts not null to true, null to false.
     /// </summary>
-    internal class NotEqualToInstalledVersion : IValueConverter
+    internal class NotNullToBooleanConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value != null && parameter != null)
-            {
-                var selectedVersion = (Versioning.NuGetVersion)value;
-                var installedVersion = (Versioning.NuGetVersion)parameter;
-                return installedVersion != selectedVersion;
-            }
-            else
-            {
-                return false;
-            }
+            return value != null ? true : false;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

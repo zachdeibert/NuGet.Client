@@ -169,6 +169,29 @@ namespace NuGet.PackageManagement.UI
             OnPropertyChanged("Versions");
         }
 
+        protected override void SelectVersion()
+        {
+            if (_versions.Count == 0)
+            {
+                // there's nothing to select
+                return;
+            }
+
+            // In the solution model, we want to search for the installed version...and use that if we find it.
+            DisplayVersion versionToSelect = _versions
+                    .Where(v => v != null && v.Version.Equals(_searchResultPackage.Version))
+                    .FirstOrDefault();
+
+            if (versionToSelect == null)
+            {
+                versionToSelect = _versions[0];
+            }
+
+            if (versionToSelect != null)
+            {
+                SelectedVersion = versionToSelect;
+            }
+        }
         // the count of different installed versions
         private int _installedVersionsCount;
 

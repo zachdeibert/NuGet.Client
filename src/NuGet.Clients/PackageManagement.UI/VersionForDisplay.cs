@@ -16,14 +16,16 @@ namespace NuGet.PackageManagement.UI
 
         public DisplayVersion(
             NuGetVersion version,
-            string additionalInfo)
-            : this(GetRange(version), additionalInfo)
+            string additionalInfo,
+            bool displayAfterVersion = false)
+            : this(GetRange(version), additionalInfo, displayAfterVersion)
         {
         }
 
         public DisplayVersion(
             VersionRange range,
-            string additionalInfo)
+            string additionalInfo,
+            bool displayAfterVersion = false)
         {
             Range = range;
             _additionalInfo = additionalInfo;
@@ -33,9 +35,21 @@ namespace NuGet.PackageManagement.UI
             // Display a single version if the range is locked
             if (range.HasLowerAndUpperBounds && range.MinVersion == range.MaxVersion)
             {
-                _toString = string.IsNullOrEmpty(_additionalInfo) ?
-                    Version.ToNormalizedString() :
-                    _additionalInfo + " " + Version.ToNormalizedString();
+                if (string.IsNullOrEmpty(_additionalInfo))
+                {
+                    _toString = Version.ToNormalizedString();
+                }
+                else
+                {
+                    if (displayAfterVersion)
+                    {
+                        _toString = Version.ToNormalizedString() + " " + _additionalInfo;
+                    }
+                    else
+                    {
+                        _toString = _additionalInfo + " " + Version.ToNormalizedString();
+                    }
+                }
             }
             else
             {
