@@ -36,6 +36,23 @@ namespace NuGet.PackageManagement
             IEnumerable<Packaging.PackageReference> packagesConfig,
             IEnumerable<PackageDependencyInfo> availablePackages)
         {
+            // Throw for the first conflicting entry
+            foreach (var entry in GetConflictingAllowedVersionEntries(targets, packagesConfig, availablePackages))
+            {
+                // Unable to resolve '{0}'. An additional constraint {1} defined in {2} prevents this operation.
+                throw new InvalidOperationException(
+                    String.Format(CultureInfo.CurrentCulture,
+                        Strings.PackagesConfigAllowedVersionConflict,
+                        entry.PackageIdentity.Id,
+                        entry.AllowedVersions.PrettyPrint(),
+                        "packages.config"));
+            }
+        }
+
+        public static IEnumerable<Packaging.PackageReference> GetConflictingAllowedVersionEntries(IEnumerable<string> targets,
+            IEnumerable<Packaging.PackageReference> packagesConfig,
+            IEnumerable<PackageDependencyInfo> availablePackages)
+        {
             foreach (var target in targets)
             {
                 var configEntry = packagesConfig.FirstOrDefault(reference => reference.HasAllowedVersions
@@ -48,16 +65,12 @@ namespace NuGet.PackageManagement
                     // check if package versions exist, but none satisfy the allowed range
                     if (packagesForId.Any() && !packagesForId.Any(package => configEntry.AllowedVersions.Satisfies(package.Version)))
                     {
-                        // Unable to resolve '{0}'. An additional constraint {1} defined in {2} prevents this operation.
-                        throw new InvalidOperationException(
-                            String.Format(CultureInfo.CurrentCulture,
-                                Strings.PackagesConfigAllowedVersionConflict,
-                                target,
-                                configEntry.AllowedVersions.PrettyPrint(),
-                                "packages.config"));
+                        yield return configEntry;
                     }
                 }
             }
+
+            yield break;
         }
 
         /// <summary>

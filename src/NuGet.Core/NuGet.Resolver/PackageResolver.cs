@@ -23,6 +23,14 @@ namespace NuGet.Resolver
         /// </summary>
         public IEnumerable<PackageIdentity> Resolve(PackageResolverContext context, CancellationToken token)
         {
+            return Resolve(context, diagnoseFailures: true, token: token);
+        }
+
+        /// <summary>
+        /// Resolve a package closure
+        /// </summary>
+        public IEnumerable<PackageIdentity> Resolve(PackageResolverContext context, bool diagnoseFailures, CancellationToken token)
+        {
             token.ThrowIfCancellationRequested();
 
             if (context == null)
@@ -35,7 +43,15 @@ namespace NuGet.Resolver
             {
                 if (!context.AvailablePackages.Any(p => StringComparer.OrdinalIgnoreCase.Equals(p.Id, requiredId)))
                 {
-                    throw new NuGetResolverInputException(String.Format(CultureInfo.CurrentCulture, Strings.MissingDependencyInfo, requiredId));
+                    if (diagnoseFailures)
+                    {
+                        throw new NuGetResolverInputException(String.Format(CultureInfo.CurrentCulture, Strings.MissingDependencyInfo, requiredId));
+                    }
+                    else
+                    {
+                        // this cannot be resolved, exit here
+                        return null;
+                    }
                 }
             }
 
@@ -148,9 +164,14 @@ namespace NuGet.Resolver
                 }
             }
 
-            // no solution was found, throw an error with a diagnostic message
-            var message = ResolverUtility.GetDiagnosticMessage(bestSolution, context.AvailablePackages, context.PackagesConfig, context.TargetIds, context.PackageSources);
-            throw new NuGetResolverConstraintException(message);
+            if (diagnoseFailures)
+            {
+                // no solution was found, throw an error with a diagnostic message
+                var message = ResolverUtility.GetDiagnosticMessage(bestSolution, context.AvailablePackages, context.PackagesConfig, context.TargetIds, context.PackageSources);
+                throw new NuGetResolverConstraintException(message);
+            }
+
+            return null;
         }
 
         /// <summary>

@@ -10,6 +10,7 @@ using NuGet.Configuration;
 using NuGet.Frameworks;
 using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.Types;
+using NuGet.Resolver;
 using NuGet.Versioning;
 
 namespace NuGet.PackageManagement
@@ -20,15 +21,18 @@ namespace NuGet.PackageManagement
         private readonly List<SourceResource> _primaryResources = new List<SourceResource>();
         private readonly List<SourceResource> _allResources = new List<SourceResource>();
         private DependencyInfoResource _packagesFolderResource;
-        private readonly Queue<GatherRequest> _gatherRequests = new Queue<GatherRequest>();
         private readonly GatherCache _cache;
         private readonly List<Task<GatherResult>> _workerTasks;
         private int _lastRequestId = -1;
         private readonly List<GatherResult> _results = new List<GatherResult>();
         private readonly HashSet<string> _idsSearched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private int _maxDegreeOfParallelism;
+        private readonly Queue<GatherRequest> _gatherRequests = new Queue<GatherRequest>();
+        private readonly Dictionary<string, List<GatherRequest>> _requestsById
+            = new Dictionary<string, List<GatherRequest>>(StringComparer.OrdinalIgnoreCase);
+        private HashSet<string> _allPrimaryTargets;
 
-        private ResolverGather(GatherContext context)
+        public ResolverGather(GatherContext context)
         {
             _context = context;
 
@@ -62,55 +66,199 @@ namespace NuGet.PackageManagement
         /// </summary>
         public TimeSpan RequestTimeout { get; set; }
 
-        /// <summary>
-        /// Gather packages
-        /// </summary>
-        public static async Task<HashSet<SourcePackageDependencyInfo>> GatherAsync(
-            GatherContext context,
-            CancellationToken token)
-        {
-            var engine = new ResolverGather(context);
-            return await engine.GatherAsync(token);
-        }
-
-        private async Task<HashSet<SourcePackageDependencyInfo>> GatherAsync(CancellationToken token)
+        public async Task<HashSet<SourcePackageDependencyInfo>> GatherIdealAsync(CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
 
             // get a distinct set of packages from all repos
             var combinedResults = new HashSet<SourcePackageDependencyInfo>(PackageIdentity.Comparer);
 
-            // Initialize dependency info resources in parallel
-            await InitializeResourcesAsync(token);
+            // Init resources and queue up targets
+            // This will noop if it has already been done
+            await Initialize(token);
 
-            var allPrimaryTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var selectedTargets = new Dictionary<string, SourcePackageDependencyInfo>(
+                StringComparer.OrdinalIgnoreCase);
+            var completedTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // resolve primary targets only from primary sources
-            foreach (var primaryTarget in _context.PrimaryTargets)
+            // Comparer used to find the best match
+            var resolverComparer = new ResolverComparer(
+                _context.ResolutionContext.DependencyBehavior,
+                new HashSet<PackageIdentity>(_context.InstalledPackages),
+                _allPrimaryTargets);
+
+            while (true)
             {
-                // Add the id to the search list to block searching for all versions
-                _idsSearched.Add(primaryTarget.Id);
-                allPrimaryTargets.Add(primaryTarget.Id);
+                token.ThrowIfCancellationRequested();
 
-                QueueWork(_primaryResources, primaryTarget, ignoreExceptions: false, isInstalledPackage: false);
-            }
+                // Start tasks for queued requests and process finished results.
+                await StartTasksAndProcessWork(token);
 
-            // null can occur for scenarios with PackageIdentities only
-            if (_context.PrimaryTargetIds != null)
-            {
-                foreach (var primaryTargetId in _context.PrimaryTargetIds)
+                foreach (var targetId in _allPrimaryTargets)
                 {
-                    allPrimaryTargets.Add(primaryTargetId);
-                    var identity = new PackageIdentity(primaryTargetId, version: null);
-                    QueueWork(_primaryResources, identity, ignoreExceptions: false, isInstalledPackage: false);
+                    // Walk the target if it is incomplete and we have all source info for it.
+                    SourcePackageDependencyInfo target;
+                    if (!completedTargets.Contains(targetId)
+                        && (selectedTargets.TryGetValue(targetId, out target) 
+                            || AreRequestsComplete(targetId)))
+                    {
+                        if (target == null)
+                        {
+                            target = GetHighestTarget(targetId);
+
+                            if (target == null)
+                            {
+                                // The target could not be found in the primary sources.
+                                var allPrimarySources = String.Join(",",
+                                    _primaryResources.Select(src => src.Source.PackageSource.Source));
+
+                                string message = String.Format(Strings.PackageNotFoundInPrimarySources, targetId, allPrimarySources);
+                                throw new InvalidOperationException(message);
+                            }
+                            else
+                            {
+                                selectedTargets.Add(targetId, target);
+                            }
+                        }
+
+                        // Walk each target
+                        var dependencies = new HashSet<SourcePackageDependencyInfo>(PackageIdentity.Comparer);
+                        var complete = WalkAndQueueDependencies(dependencies, target, resolverComparer, depth: 0);
+
+                        if (complete)
+                        {
+                            combinedResults.UnionWith(dependencies);
+                            completedTargets.Add(targetId);
+                        }
+                    }
+                }
+
+                // We are done when the queue is empty, and the number of finished requests matches the total request count
+                if (_gatherRequests.Count < 1
+                    && _workerTasks.Count < 1
+                    && completedTargets.Count == _allPrimaryTargets.Count
+                    && _context.InstalledPackages.All(reference => AreRequestsComplete(reference.Id)))
+                {
+                    break;
                 }
             }
 
-            // Start fetching the primary targets
-            StartWorkerTasks(token);
+            // Add in the existing packages if they were not targets
+            foreach (var installed in _context.InstalledPackages)
+            {
+                if (!_allPrimaryTargets.Contains(installed.Id))
+                {
+                    var currentPackage = GetResultPackages(installed.Id)
+                        .SingleOrDefault(package => PackageIdentity.Comparer.Equals(installed, package));
 
-            // Gather installed packages
-            await GatherInstalledPackagesAsync(_context.InstalledPackages, allPrimaryTargets, token);
+                    if (currentPackage != null)
+                    {
+                        combinedResults.Add(currentPackage);
+                    }
+                }
+            }
+
+            return combinedResults;
+        }
+
+        private SourcePackageDependencyInfo GetHighestTarget(string targetId)
+        {
+            SourcePackageDependencyInfo target;
+            // Find the highest for each target
+            var targetPackages = GetResultPackages(targetId);
+
+            var primaryIdentity = _context.PrimaryTargets.SingleOrDefault(package =>
+                targetId.Equals(package.Id, StringComparison.OrdinalIgnoreCase));
+
+            if (primaryIdentity != null)
+            {
+                target = targetPackages.FirstOrDefault(package =>
+                    PackageIdentity.Comparer.Equals(package, primaryIdentity));
+            }
+            else
+            {
+                var installedPackage = _context.InstalledPackages
+                    .SingleOrDefault(package =>
+                    package.Id.Equals(targetId, StringComparison.OrdinalIgnoreCase));
+
+                var allowPrelease = (installedPackage?.Version.IsPrerelease == true)
+                    || _context.ResolutionContext.IncludePrerelease;
+
+                target = targetPackages
+                    .Where(package => (package.Listed || _context.ResolutionContext.IncludeUnlisted)
+                        && (allowPrelease || !package.Version.IsPrerelease))
+                    .OrderByDescending(package => package.Version)
+                    .FirstOrDefault();
+            }
+
+            return target;
+        }
+
+        private bool WalkAndQueueDependencies(
+            HashSet<SourcePackageDependencyInfo> packageSet,
+            SourcePackageDependencyInfo package,
+            ResolverComparer resolverComparer,
+            int depth)
+        {
+            var complete = true;
+            depth++;
+
+            // Add the current package to the set
+            packageSet.Add(package);
+
+            // Avoid circular dependencies and stack overflows
+            if (depth < 100)
+            {
+                foreach (var dependency in package.Dependencies)
+                {
+                    // Queue work if needed, this will noop otherwise.
+                    QueueWork(_allResources, dependency.Id, ignoreExceptions: true);
+
+                    if (AreRequestsComplete(dependency.Id))
+                    {
+                        var dependencyPackages = GetResultPackages(dependency.Id);
+
+                        // Find the best match
+                        var inRange = dependencyPackages
+                            .Where(dependencyPackage =>
+                                dependency.VersionRange == null
+                                || dependency.VersionRange.Satisfies(dependencyPackage.Version));
+
+                        var bestMatch = inRange.Select(dependencyPackage =>
+                                new ResolverPackage(dependencyPackage, dependencyPackage.Listed, absent: false))
+                            .OrderBy(dependencyPackage => dependencyPackage, resolverComparer)
+                            .FirstOrDefault();
+
+                        if (bestMatch != null)
+                        {
+                            var bestMatchPackage = inRange
+                                .Single(dependencyPackage => 
+                                    PackageIdentity.Comparer.Equals(dependencyPackage, bestMatch));
+
+                            complete &= WalkAndQueueDependencies(packageSet, bestMatchPackage, resolverComparer, depth);
+                        }
+                    }
+                    else
+                    {
+                        // unable to complete the walk until the package requests finish
+                        complete = false;
+                    }
+                }
+            }
+
+            return complete;
+        }
+
+        public async Task<HashSet<SourcePackageDependencyInfo>> GatherAsync(CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+
+            // get a distinct set of packages from all repos
+            var combinedResults = new HashSet<SourcePackageDependencyInfo>(PackageIdentity.Comparer);
+
+            // Init resources and queue up targets
+            // This will noop if it has already been done
+            await Initialize(token);
 
             // walk the dependency graph both upwards and downwards for the new package
             // this is done in multiple passes to find the complete closure when
@@ -185,20 +333,15 @@ namespace NuGet.PackageManagement
                 combinedResults.UnionWith(result.Packages);
             }
 
-            List<String> allPrimarySourcesList = new List<string>();
-            foreach (var src in _primaryResources)
-            {
-                allPrimarySourcesList.Add(src.Source.PackageSource.Source);
-            }
-
-            var allPrimarySources = String.Join(",", allPrimarySourcesList);
-
             // Throw if a primary target was not found
             // The primary package may be missing if there are network issues and the sources were unreachable
-            foreach (var targetId in allPrimaryTargets)
+            foreach (var targetId in _allPrimaryTargets)
             {
                 if (!combinedResults.Any(package => string.Equals(package.Id, targetId, StringComparison.OrdinalIgnoreCase)))
                 {
+                    var allPrimarySources = String.Join(",",
+                        _primaryResources.Select(src => src.Source.PackageSource.Source));
+                
                     string packageIdentity = targetId;
 
                     foreach (var pid in _context.PrimaryTargets)
@@ -216,6 +359,47 @@ namespace NuGet.PackageManagement
             }
 
             return combinedResults;
+        }
+
+        private async Task Initialize(CancellationToken token)
+        {
+            if (_allPrimaryTargets == null)
+            {
+                _allPrimaryTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                // Initialize dependency info resources in parallel
+                await InitializeResourcesAsync(token);
+
+                // resolve primary targets only from primary sources
+                foreach (var primaryTarget in _context.PrimaryTargets)
+                {
+                    // Add the id to the search list to block searching for all versions
+                    _idsSearched.Add(primaryTarget.Id);
+                    _allPrimaryTargets.Add(primaryTarget.Id);
+
+                    QueueWork(_primaryResources, primaryTarget, ignoreExceptions: false, isInstalledPackage: false);
+                }
+
+                // null can occur for scenarios with PackageIdentities only
+                if (_context.PrimaryTargetIds != null)
+                {
+                    foreach (var primaryTargetId in _context.PrimaryTargetIds)
+                    {
+                        _allPrimaryTargets.Add(primaryTargetId);
+                        var identity = new PackageIdentity(primaryTargetId, version: null);
+                        QueueWork(_primaryResources, identity, ignoreExceptions: false, isInstalledPackage: false);
+                    }
+                }
+
+                // Start fetching the primary targets
+                StartWorkerTasks(token);
+
+                // Gather installed packages
+                if (!_gatherRequests.Any(request => request.IsInstalledPackage))
+                {
+                    await GatherInstalledPackagesAsync(_context.InstalledPackages, _allPrimaryTargets, token);
+                }
+            }
         }
 
         /// <summary>
@@ -280,6 +464,15 @@ namespace NuGet.PackageManagement
                         var result = new GatherResult(request, packages);
 
                         _results.Add(result);
+
+                        List<GatherRequest> requests;
+                        if (!_requestsById.TryGetValue(installedPackage.Id, out requests))
+                        {
+                            requests = new List<GatherRequest>(1);
+                            _requestsById.Add(installedPackage.Id, requests);
+                        }
+
+                        requests.Add(request);
                     }
                     else
                     {
@@ -414,7 +607,7 @@ namespace NuGet.PackageManagement
                             if (request.Package.HasVersion)
                             {
                                 _cache.AddPackageFromSingleVersionLookup(
-                                    packageSource, 
+                                    packageSource,
                                     request.Package,
                                     _context.TargetFramework,
                                     packages.FirstOrDefault());
@@ -526,10 +719,41 @@ namespace NuGet.PackageManagement
 
                     var request = new GatherRequest(source, package, ignoreExceptions, requestId, isInstalledPackage);
 
+                    // Index the request
+                    List<GatherRequest> idRequests;
+                    if (!_requestsById.TryGetValue(package.Id, out idRequests))
+                    {
+                        idRequests = new List<GatherRequest>(1);
+                        _requestsById.Add(package.Id, idRequests);
+                    }
+
+                    idRequests.Add(request);
+
                     // Order is important here
                     _gatherRequests.Enqueue(request);
                 }
             }
+        }
+
+        private bool AreRequestsComplete(string packageId)
+        {
+            var expected = _requestsById[packageId];
+
+            var currentResults = _results.ToArray();
+            var complete = expected.Intersect(currentResults.Select(result => result.Request));
+
+            return expected.Count == complete.Count();
+        }
+
+        private HashSet<SourcePackageDependencyInfo> GetResultPackages(string packageId)
+        {
+            var currentItems = _results.ToArray();
+            return new HashSet<SourcePackageDependencyInfo>(
+                    currentItems
+                        .Where(item => packageId.Equals(item.Request.Package.Id, StringComparison.OrdinalIgnoreCase))
+                        .OrderBy(item => item.Request.Order)
+                        .SelectMany(item => item.Packages),
+                    PackageIdentity.Comparer);
         }
 
         private async Task InitializeResourcesAsync(CancellationToken token)
@@ -600,7 +824,6 @@ namespace NuGet.PackageManagement
                     }
                 }
 
-
                 // Installed packages resource
                 _packagesFolderResource = await _context.PackagesFolderSource.GetResourceAsync<DependencyInfoResource>(token);
             }
@@ -610,7 +833,6 @@ namespace NuGet.PackageManagement
                 string message = String.Format(Strings.ExceptionWhenTryingToAddSource, ex.GetType().ToString(), currentSource);
                 throw new InvalidOperationException(message, ex);
             }
-
         }
 
         /// <summary>

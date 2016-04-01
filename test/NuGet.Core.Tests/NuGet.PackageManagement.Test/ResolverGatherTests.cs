@@ -61,7 +61,8 @@ namespace NuGet.Test
             // Act and Assert
             await Assert.ThrowsAsync(typeof(InvalidOperationException), async () =>
             {
-                await ResolverGather.GatherAsync(context, cts.Token);
+                var resolverGather = new ResolverGather(context);
+                await resolverGather.GatherAsync(cts.Token);
             });
         }
 
@@ -108,7 +109,8 @@ namespace NuGet.Test
             var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(5000));
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, cts.Token);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(cts.Token);
 
             // Assert
             Assert.Equal(1, results.Count);
@@ -155,7 +157,8 @@ namespace NuGet.Test
             };
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             // Assert
             Assert.Equal(1, results.Count);
@@ -200,7 +203,8 @@ namespace NuGet.Test
             // Act and Assert
             await Assert.ThrowsAsync(typeof(InvalidOperationException), async () =>
             {
-                await ResolverGather.GatherAsync(context, CancellationToken.None);
+                var resolverGather = new ResolverGather(context);
+                var results = await resolverGather.GatherAsync(CancellationToken.None);
             });
         }
 
@@ -250,7 +254,8 @@ namespace NuGet.Test
             // Run the first time
             try
             {
-                await ResolverGather.GatherAsync(context, CancellationToken.None);
+                var resolverGather = new ResolverGather(context);
+                var results = await resolverGather.GatherAsync(CancellationToken.None);
             }
             catch (InvalidOperationException)
             {
@@ -263,7 +268,8 @@ namespace NuGet.Test
 
             try
             {
-                await ResolverGather.GatherAsync(contextAOnly, CancellationToken.None);
+                var resolverGather = new ResolverGather(contextAOnly);
+                var results = await resolverGather.GatherAsync(CancellationToken.None);
             }
             catch (InvalidOperationException ex)
             {
@@ -342,11 +348,13 @@ namespace NuGet.Test
             contextAOnly.ResolutionContext = resolutionContext;
 
             // Run the first time
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             // Act
             // Run again
-            results = await ResolverGather.GatherAsync(contextAOnly, CancellationToken.None);
+            var resolverGatherAOnly = new ResolverGather(contextAOnly);
+            results = await resolverGatherAOnly.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -420,11 +428,13 @@ namespace NuGet.Test
             contextAOnly.PackagesFolderSource = CreateRepo("installed", repoInstalled);
 
             // Run the first time
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             // Act
             // Run again
-            results = await ResolverGather.GatherAsync(contextAOnly, CancellationToken.None);
+            var resolverGatherAOnly = new ResolverGather(contextAOnly);
+            results = await resolverGatherAOnly.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -475,7 +485,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = CreateRepo("installed", repoInstalled);
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -531,7 +542,8 @@ namespace NuGet.Test
             context.ResolutionContext = new ResolutionContext(DependencyBehavior.Ignore, true, true, VersionConstraints.None);
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -589,7 +601,8 @@ namespace NuGet.Test
             context.AllowDowngrades = true;
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -646,7 +659,8 @@ namespace NuGet.Test
             context.AllowDowngrades = false;
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -701,7 +715,8 @@ namespace NuGet.Test
                 {
                     try
                     {
-                        await ResolverGather.GatherAsync(context, CancellationToken.None);
+                        var resolverGather = new ResolverGather(context);
+                        await resolverGather.GatherAsync(CancellationToken.None);
                     }
                     catch (AggregateException ex)
                     {
@@ -755,7 +770,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = CreateRepo("installed", repoInstalled);
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -813,7 +829,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = CreateRepo("installed", repoInstalled);
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -874,7 +891,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = CreateRepo("installed", repoInstalled);
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -932,7 +950,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = CreateRepo("installed", repoInstalled);
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -991,7 +1010,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = CreateRepo("installed", repoInstalled);
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -1078,7 +1098,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = CreateRepo("installed", repoInstalled);
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.GroupBy(e => e.Id).OrderBy(e => e.Key).ToList();
 
@@ -1155,7 +1176,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = repos[2];
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.OrderBy(e => e.Id).ToList();
 
@@ -1219,7 +1241,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = repos[2];
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.OrderBy(e => e.Id).ToList();
 
@@ -1282,7 +1305,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = repos[2];
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.OrderBy(e => e.Id).ToList();
 
@@ -1347,7 +1371,8 @@ namespace NuGet.Test
             context.PackagesFolderSource = repos[2];
 
             // Act
-            var results = await ResolverGather.GatherAsync(context, CancellationToken.None);
+            var resolverGather = new ResolverGather(context);
+            var results = await resolverGather.GatherAsync(CancellationToken.None);
 
             var check = results.OrderBy(e => e.Id).ToList();
 
