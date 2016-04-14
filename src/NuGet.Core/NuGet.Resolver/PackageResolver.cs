@@ -9,6 +9,8 @@ using System.Threading;
 using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
+using NuGet.Common;
+using System.Diagnostics;
 
 namespace NuGet.Resolver
 {
@@ -23,6 +25,7 @@ namespace NuGet.Resolver
         /// </summary>
         public IEnumerable<PackageIdentity> Resolve(PackageResolverContext context, CancellationToken token)
         {
+            var stopWatch = new Stopwatch();
             token.ThrowIfCancellationRequested();
 
             if (context == null)
@@ -146,7 +149,11 @@ namespace NuGet.Resolver
                             String.Join(" => ", circularReferences.Select(package => $"{package.Id} {package.Version.ToNormalizedString()}"))));
                     }
 
-                    // solution found!                    
+                    // solution found!
+                    stopWatch.Stop();
+                    string type = string.Empty;
+                    var timeDiff = DatetimeUtility.ToReadableTimeFormat(stopWatch.Elapsed, out type);
+                    context.Log.LogMinimal(string.Format("Resolve dependency information took {0:0.##} {1}", timeDiff, type));
                     return sortedSolution.ToArray();
                 }
             }
