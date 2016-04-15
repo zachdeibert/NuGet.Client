@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using NuGet.Commands;
 using NuGet.Common;
 using NuGet.Configuration;
-using NuGet.Logging;
 using NuGet.PackageManagement;
 using NuGet.Packaging;
 using NuGet.Protocol.Core.Types;
@@ -118,9 +117,12 @@ namespace NuGet.CommandLine
                                         globalPackagesFolder);
 
                     // Providers
+                    // Use the settings loaded above in ReadSettings(restoreInputs)
                     restoreContext.RequestProviders.Add(new MSBuildCachedRequestProvider(
                         providerCache,
-                        restoreInputs.ProjectReferenceLookup));
+                        restoreInputs.ProjectReferenceLookup,
+                        Settings));
+
                     restoreContext.RequestProviders.Add(new MSBuildP2PRestoreRequestProvider(providerCache));
                     restoreContext.RequestProviders.Add(new ProjectJsonRestoreRequestProvider(providerCache));
 

@@ -28,15 +28,16 @@ namespace NuGet.Protocol.VisualStudio
             V2Client = repo;
         }
 
-        public async override Task<IEnumerable<IPackageSearchMetadata>> SearchAsync(string searchTerm, SearchFilter filters, int skip, int take, Logging.ILogger log, CancellationToken cancellationToken)
+        public async override Task<IEnumerable<IPackageSearchMetadata>> SearchAsync(string searchTerm, SearchFilter filters, int skip, int take, Common.ILogger log, CancellationToken cancellationToken)
         {
             return await Task.Run(() =>
             {
                 // Check if source is available.
                 if (!IsHttpSource(V2Client.Source) && !IsLocalOrUNC(V2Client.Source))
                 {
-                    throw new InvalidOperationException(
-                        Strings.FormatProtocol_Search_LocalSourceNotFound(V2Client.Source));
+                    throw new InvalidOperationException(string.Format(
+                        Strings.Protocol_Search_LocalSourceNotFound,
+                        V2Client.Source));
                 }
 
                 var query = V2Client.Search(
@@ -92,14 +93,23 @@ namespace NuGet.Protocol.VisualStudio
                 .ToArray();
 
             IEnumerable<VersionInfo> versions = packages
-                .Select(p => new VersionInfo(V2Utilities.SafeToNuGetVer(p.Version), p.DownloadCount))
+                .Select(p => new VersionInfo(V2Utilities.SafeToNuGetVer(p.Version), p.DownloadCount)
+                {
+                    PackageSearchMetadata = new PackageSearchMetadata(package)
+                })
                 .OrderByDescending(v => v.Version, VersionComparer.VersionRelease);
 
             var packageVersion = V2Utilities.SafeToNuGetVer(package.Version);
+
             if (!versions.Any(v => v.Version == packageVersion))
             {
-                versions = versions.Concat(
-                    new[] { new VersionInfo(packageVersion, package.DownloadCount) });
+                versions = versions.Concat(new[]
+                {
+                    new VersionInfo(packageVersion, package.DownloadCount)
+                    {
+                        PackageSearchMetadata = new PackageSearchMetadata(package)
+                    }
+                });
             }
 
             return versions;

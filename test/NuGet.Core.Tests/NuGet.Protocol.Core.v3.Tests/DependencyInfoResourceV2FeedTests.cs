@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using NuGet.Common;
 using NuGet.Frameworks;
-using NuGet.Logging;
 using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
@@ -22,7 +22,7 @@ namespace NuGet.Protocol.Core.v3.Tests
             var serviceAddress = TestUtility.CreateServiceAddress();
 
             var responses = new Dictionary<string, string>();
-            responses.Add(serviceAddress + "FindPackagesById()?Id='WindowsAzure.Storage'",
+            responses.Add(serviceAddress + "FindPackagesById()?id='WindowsAzure.Storage'",
                  TestUtility.GetResource("NuGet.Protocol.Core.v3.Tests.compiler.resources.WindowsAzureStorageFindPackagesById.xml", GetType()));
             responses.Add(serviceAddress, string.Empty);
 
@@ -47,7 +47,7 @@ namespace NuGet.Protocol.Core.v3.Tests
             var serviceAddress = TestUtility.CreateServiceAddress();
 
             var responses = new Dictionary<string, string>();
-            responses.Add(serviceAddress + "FindPackagesById()?Id='WindowsAzure.Storage'",
+            responses.Add(serviceAddress + "FindPackagesById()?id='WindowsAzure.Storage'",
                  TestUtility.GetResource("NuGet.Protocol.Core.v3.Tests.compiler.resources.WindowsAzureStorageFindPackagesById.xml", GetType()));
             responses.Add(serviceAddress + "Packages(Id='WindowsAzure.Storage',Version='4.3.2-preview')",
                  TestUtility.GetResource("NuGet.Protocol.Core.v3.Tests.compiler.resources.WindowsAzureStorageGetPackages.xml", GetType()));
@@ -89,7 +89,7 @@ namespace NuGet.Protocol.Core.v3.Tests
             var dep2 = new PackageIdentity("xunit.assert", NuGetVersion.Parse("2.1.0-beta1-build2945"));
 
             // Act
-            var result = await dependencyInfoResource.ResolvePackage(package, NuGetFramework.Parse("net45"), Logging.NullLogger.Instance, CancellationToken.None);
+            var result = await dependencyInfoResource.ResolvePackage(package, NuGetFramework.Parse("net45"), Common.NullLogger.Instance, CancellationToken.None);
 
             // Assert
             Assert.Equal(package, result, PackageIdentity.Comparer);
@@ -105,7 +105,7 @@ namespace NuGet.Protocol.Core.v3.Tests
             var serviceAddress = TestUtility.CreateServiceAddress();
 
             var responses = new Dictionary<string, string>();
-            responses.Add(serviceAddress + "FindPackagesById()?Id='xunit'",
+            responses.Add(serviceAddress + "FindPackagesById()?id='xunit'",
                  TestUtility.GetResource("NuGet.Protocol.Core.v3.Tests.compiler.resources.XunitFindPackagesById.xml", GetType()));
             responses.Add(serviceAddress, string.Empty);
 
@@ -119,7 +119,7 @@ namespace NuGet.Protocol.Core.v3.Tests
             var filterRange = new VersionRange(NuGetVersion.Parse("2.0.0-rc4-build2924"), true, NuGetVersion.Parse("2.1.0-beta1-build2945"), true);
 
             // Act
-            var results = await dependencyInfoResource.ResolvePackages("xunit", NuGetFramework.Parse("net45"), Logging.NullLogger.Instance, CancellationToken.None);
+            var results = await dependencyInfoResource.ResolvePackages("xunit", NuGetFramework.Parse("net45"), Common.NullLogger.Instance, CancellationToken.None);
 
             var filtered = results.Where(result => filterRange.Satisfies(result.Version));
 
@@ -140,7 +140,7 @@ namespace NuGet.Protocol.Core.v3.Tests
 
             var responses = new Dictionary<string, string>();
             responses.Add(serviceAddress + "Packages(Id='xunit',Version='1.0.0-notfound')", string.Empty);
-            responses.Add(serviceAddress + "FindPackagesById()?Id='xunit'",
+            responses.Add(serviceAddress + "FindPackagesById()?id='xunit'",
                 TestUtility.GetResource("NuGet.Protocol.Core.v3.Tests.compiler.resources.XunitFindPackagesById.xml", GetType()));
             responses.Add(serviceAddress, string.Empty);
 
@@ -152,7 +152,7 @@ namespace NuGet.Protocol.Core.v3.Tests
             var package = new PackageIdentity("xunit", NuGetVersion.Parse("1.0.0-notfound"));
 
             // Act
-            var result = await dependencyInfoResource.ResolvePackage(package, NuGetFramework.Parse("net45"), Logging.NullLogger.Instance, CancellationToken.None);
+            var result = await dependencyInfoResource.ResolvePackage(package, NuGetFramework.Parse("net45"), Common.NullLogger.Instance, CancellationToken.None);
 
             // Assert
             Assert.Null(result);
@@ -165,7 +165,7 @@ namespace NuGet.Protocol.Core.v3.Tests
             var serviceAddress = TestUtility.CreateServiceAddress();
 
             var responses = new Dictionary<string, string>();
-            responses.Add(serviceAddress + "FindPackagesById()?Id='not-found'",
+            responses.Add(serviceAddress + "FindPackagesById()?id='not-found'",
                 TestUtility.GetResource("NuGet.Protocol.Core.v3.Tests.compiler.resources.NotFoundFindPackagesById.xml", GetType()));
             responses.Add(serviceAddress, string.Empty);
 
@@ -174,7 +174,7 @@ namespace NuGet.Protocol.Core.v3.Tests
             var dependencyInfoResource = await repo.GetResourceAsync<DependencyInfoResource>();
 
             // Act
-            var results = await dependencyInfoResource.ResolvePackages("not-found", NuGetFramework.Parse("net45"), Logging.NullLogger.Instance, CancellationToken.None);
+            var results = await dependencyInfoResource.ResolvePackages("not-found", NuGetFramework.Parse("net45"), Common.NullLogger.Instance, CancellationToken.None);
 
             // Assert
             Assert.Equal(0, results.Count());
@@ -198,7 +198,7 @@ namespace NuGet.Protocol.Core.v3.Tests
             var package = new PackageIdentity("DotNetOpenAuth.Core", NuGetVersion.Parse("4.3.2.13293"));
 
             // Act
-            var result = await dependencyInfoResource.ResolvePackage(package, NuGetFramework.Parse("net45"), Logging.NullLogger.Instance, CancellationToken.None);
+            var result = await dependencyInfoResource.ResolvePackage(package, NuGetFramework.Parse("net45"), Common.NullLogger.Instance, CancellationToken.None);
 
             // Assert
             Assert.Equal(1, result.Dependencies.Count());

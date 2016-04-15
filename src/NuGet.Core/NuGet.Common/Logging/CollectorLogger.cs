@@ -4,7 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace NuGet.Logging
+namespace NuGet.Common
 {
     public class CollectorLogger : ICollectorLogger
     {
@@ -13,7 +13,7 @@ namespace NuGet.Logging
 
         /// <summary>
         /// Initializes an instance of the <see cref="CollectorLogger"/>, while still
-        /// delegating all log messages to the <see cref="innerLogger"/>.
+        /// delegating all log messages to the <param name="innerLogger" />.
         /// </summary>
         public CollectorLogger(ILogger innerLogger)
         {

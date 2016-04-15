@@ -4,7 +4,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using NuGet.Logging;
+using NuGet.Common;
 using NuGet.Test.Utility;
 using Xunit;
 
@@ -747,6 +747,42 @@ namespace NuGet.Packaging.Test
                     Assert.True(File.Exists(Path.Combine(root, "A", "2.0.3", "A.2.0.3.nupkg")));
                     Assert.True(File.Exists(Path.Combine(root, "A", "2.0.3", "A.nuspec")));
                     Assert.False(File.Exists(Path.Combine(root, "A", "2.0.3", "lib", "net45", "A.dll")));
+                }
+            }
+        }
+
+        [Fact]
+        public async Task PackageExtractor_PreservesZipEntryTime()
+        {
+            // Arrange
+            using (TestDirectory root = TestFileSystemUtility.CreateRandomTestFolder())
+            {
+                DateTime time = DateTime.Parse("2084-09-26T01:23:00Z",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AdjustToUniversal);
+
+                FileInfo packageFileInfo = await TestPackages.GeneratePackageAsync(root, "A", "2.0.3", time.ToLocalTime(), "lib/net45/A.dll");
+
+                using (FileStream packageStream = File.OpenRead(packageFileInfo.FullName))
+                {
+                    var packageExtractionContext = new PackageExtractionContext
+                    {
+                        PackageSaveMode = PackageSaveMode.Nuspec | PackageSaveMode.Files
+                    };
+
+                    // Act
+                    PackageExtractor.ExtractPackage(
+                        packageStream,
+                        new PackagePathResolver(root),
+                        packageExtractionContext,
+                        CancellationToken.None);
+
+                    string outputDll = Path.Combine(root, "A.2.0.3", "lib", "net45", "A.dll");
+                    DateTime outputTime = File.GetLastWriteTimeUtc(outputDll);
+
+                    // Assert
+                    Assert.True(File.Exists(outputDll));
+                    Assert.Equal(time, outputTime);
                 }
             }
         }

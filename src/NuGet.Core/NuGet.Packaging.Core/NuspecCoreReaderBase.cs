@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Xml;
@@ -151,7 +152,10 @@ namespace NuGet.Packaging.Core
 
                     if (_metadataNode == null)
                     {
-                        throw new PackagingException(Strings.FormatMissingMetadataNode(Metadata));
+                        throw new PackagingException(string.Format(
+                            CultureInfo.CurrentCulture,
+                            Strings.MissingMetadataNode,
+                            Metadata));
                     }
                 }
 
@@ -174,15 +178,16 @@ namespace NuGet.Packaging.Core
 
         private static XDocument LoadXml(Stream stream, bool leaveStreamOpen)
         {
-            var xmlReader = XmlReader.Create(stream, new XmlReaderSettings()
+            using (var xmlReader = XmlReader.Create(stream, new XmlReaderSettings
             {
                 CloseInput = !leaveStreamOpen,
                 IgnoreWhitespace = true,
                 IgnoreComments = true,
                 IgnoreProcessingInstructions = true
-            });
-
-            return XDocument.Load(xmlReader, LoadOptions.None);
+            }))
+            {
+                return XDocument.Load(xmlReader, LoadOptions.None);
+            }
         }
     }
 }

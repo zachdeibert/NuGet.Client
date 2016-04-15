@@ -21,13 +21,13 @@ namespace NuGet.PackageManagement.UI
         private readonly IEnumerable<SourceRepository> _sourceRepositories;
         private readonly SourceRepository _localRepository;
         private readonly SourceRepository _globalLocalRepository;
-        private readonly Logging.ILogger _logger;
+        private readonly Common.ILogger _logger;
 
         public MultiSourcePackageMetadataProvider(
             IEnumerable<SourceRepository> sourceRepositories,
             SourceRepository optionalLocalRepository,
             SourceRepository optionalGlobalLocalRepository,
-            Logging.ILogger logger)
+            Common.ILogger logger)
         {
             if (sourceRepositories == null)
             {
@@ -76,7 +76,8 @@ namespace NuGet.PackageManagement.UI
             bool includePrerelease, CancellationToken cancellationToken)
         {
             var tasks = _sourceRepositories
-                .Select(r => r.GetLatestPackageMetadataAsync(identity.Id, includePrerelease, cancellationToken));
+                .Select(r => r.GetLatestPackageMetadataAsync(identity.Id, includePrerelease, cancellationToken))
+                .ToArray();
 
             var ignored = tasks
                 .Select(task => task.ContinueWith(LogError, TaskContinuationOptions.OnlyOnFaulted))
@@ -96,7 +97,8 @@ namespace NuGet.PackageManagement.UI
         public async Task<IEnumerable<IPackageSearchMetadata>> GetPackageMetadataListAsync(string packageId, bool includePrerelease, bool includeUnlisted, CancellationToken cancellationToken)
         {
             var tasks = _sourceRepositories
-                .Select(r => r.GetPackageMetadataListAsync(packageId, includePrerelease, includeUnlisted, cancellationToken));
+                .Select(r => r.GetPackageMetadataListAsync(packageId, includePrerelease, includeUnlisted, cancellationToken))
+                .ToArray();
 
             var ignored = tasks
                 .Select(task => task.ContinueWith(LogError, TaskContinuationOptions.OnlyOnFaulted))
@@ -134,8 +136,8 @@ namespace NuGet.PackageManagement.UI
                 .Concat(new[] { new VersionInfo(identity.Version) });
 
             return allVersions
-                .GroupBy(v => v.Version, v => v.DownloadCount)
-                .Select(g => new VersionInfo(g.Key, g.Max()))
+                .GroupBy(v => v.Version)
+                .Select(g => g.OrderBy(v => v.DownloadCount).First())
                 .ToArray();
         }
 

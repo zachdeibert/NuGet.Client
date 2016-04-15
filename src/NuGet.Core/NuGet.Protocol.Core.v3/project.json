@@ -11,13 +11,18 @@
     "nuget protocol"
   ],
   "compilationOptions": {
-    "warningsAsErrors": true
+    "warningsAsErrors": true,
+    "xmlDoc": true,
+    "nowarn": [
+      "CS1591",
+      "CS1573"
+    ]
   },
   "compile": [
     "../NuGet.Shared/*.cs"
   ],
   "dependencies": {
-    "NuGet.Logging": {
+    "NuGet.Common": {
       "target": "project"
     },
     "NuGet.Packaging": {

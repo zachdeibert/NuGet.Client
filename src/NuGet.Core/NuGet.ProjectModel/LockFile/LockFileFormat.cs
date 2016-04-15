@@ -8,8 +8,8 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NuGet.Common;
 using NuGet.Frameworks;
-using NuGet.Logging;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
 using NuGet.Versioning;
@@ -251,7 +251,7 @@ namespace NuGet.ProjectModel
 
             WritePathArray(json, FilesProperty, library.Files, WriteString);
             return new JProperty(
-                library.Name + "/" + library.Version.ToString(),
+                library.Name + "/" + library.Version.ToNormalizedString(),
                 json);
         }
 

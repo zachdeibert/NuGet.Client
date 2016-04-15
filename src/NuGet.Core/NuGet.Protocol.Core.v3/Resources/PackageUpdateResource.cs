@@ -9,11 +9,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Common;
 using NuGet.Configuration;
-using NuGet.Logging;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.v3;
 using NuGet.Versioning;
+using Strings = NuGet.Protocol.Core.v3.Strings;
 
 namespace NuGet.Protocol.Core.Types
 {
@@ -34,6 +34,11 @@ namespace NuGet.Protocol.Core.Types
         {
             _source = source;
             _httpSource = httpSource;
+        }
+
+        public Uri SourceUri
+        {
+            get { return UriUtility.CreateSourceUri(_source); }
         }
 
         public async Task Push(

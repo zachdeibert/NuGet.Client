@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -30,7 +31,7 @@ namespace NuGet.Protocol
         public override async Task<IEnumerable<string>> IdStartsWith(
             string packageIdPrefix,
             bool includePrerelease,
-            Logging.ILogger log,
+            Common.ILogger log,
             CancellationToken token)
         {
             var searchUrl = _serviceIndex[ServiceTypes.SearchAutocompleteService].FirstOrDefault();
@@ -43,7 +44,7 @@ namespace NuGet.Protocol
             // Construct the query
             var queryUrl = new UriBuilder(searchUrl.AbsoluteUri);
             var queryString =
-                "q=" + packageIdPrefix + "&includePrerelease=" + includePrerelease;
+                "q=" + WebUtility.UrlEncode(packageIdPrefix) + "&includePrerelease=" + includePrerelease.ToString().ToLowerInvariant();
 
             queryUrl.Query = queryString;
 
@@ -51,7 +52,7 @@ namespace NuGet.Protocol
             var results = await _client.GetJObjectAsync(
                 uri: queryUri,
                 ignoreNotFounds: false,
-                log: Logging.NullLogger.Instance,
+                log: Common.NullLogger.Instance,
                 token: token);
             token.ThrowIfCancellationRequested();
             if (results == null)
@@ -81,11 +82,11 @@ namespace NuGet.Protocol
             string packageId,
             string versionPrefix,
             bool includePrerelease,
-            Logging.ILogger log,
+            Common.ILogger log,
             CancellationToken token)
         {
             //*TODOs : Take prerelease as parameter. Also it should return both listed and unlisted for powershell ?
-            var packages = await _regResource.GetPackageMetadata(packageId, includePrerelease, false, Logging.NullLogger.Instance, token);
+            var packages = await _regResource.GetPackageMetadata(packageId, includePrerelease, false, Common.NullLogger.Instance, token);
             var versions = new List<NuGetVersion>();
             foreach (var package in packages)
             {

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,12 +37,13 @@ namespace NuGet.Protocol.Core.v3
             _searchEndpoints = searchEndpoints.ToArray();
         }
 
-        public virtual async Task<JObject> SearchPage(string searchTerm, SearchFilter filters, int skip, int take, Logging.ILogger log, CancellationToken cancellationToken)
+        public virtual async Task<JObject> SearchPage(string searchTerm, SearchFilter filters, int skip, int take, Common.ILogger log, CancellationToken cancellationToken)
         {
             for (var i = 0; i < _searchEndpoints.Length; i++)
             {
                 var endpoint = _searchEndpoints[i];
 
+                // The search term comes in already encoded from VS
                 var queryUrl = new UriBuilder(endpoint.AbsoluteUri);
                 var queryString =
                     "q=" + searchTerm +
@@ -109,7 +111,7 @@ namespace NuGet.Protocol.Core.v3
             throw new FatalProtocolException(Strings.Protocol_MissingSearchService);
         }
 
-        public virtual async Task<IEnumerable<JObject>> Search(string searchTerm, SearchFilter filters, int skip, int take, Logging.ILogger log, CancellationToken cancellationToken)
+        public virtual async Task<IEnumerable<JObject>> Search(string searchTerm, SearchFilter filters, int skip, int take, Common.ILogger log, CancellationToken cancellationToken)
         {
             var results = await SearchPage(searchTerm, filters, skip, take, log, cancellationToken);
 

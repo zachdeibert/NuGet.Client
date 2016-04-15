@@ -6,10 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Common;
 using NuGet.Configuration;
-using NuGet.Logging;
 using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.Types;
 using NuGet.Protocol.Core.v3;
+using Strings = NuGet.Protocol.Core.v3.Strings;
 
 namespace NuGet.Protocol
 {

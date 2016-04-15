@@ -5,6 +5,8 @@ namespace NuGet.Configuration
 {
     public static class NuGetConstants
     {
+        public static readonly string NuGetHostName = "nuget.org";
+
         public static readonly string V3FeedUrl = "https://api.nuget.org/v3/index.json";
         public static readonly string V2FeedUrl = "https://www.nuget.org/api/v2/";
         public static readonly string V2LegacyOfficialPackageSourceUrl = "https://nuget.org/api/v2/";
@@ -23,6 +25,8 @@ namespace NuGet.Configuration
         public static readonly string PackageReferenceFile = "packages.config";
 
         public static readonly string FeedName = "nuget.org";
+
+        public static readonly string AddV3TrackFile = "nugetorgadd.trk";
 
         public static readonly string DefaultConfigContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <configuration>

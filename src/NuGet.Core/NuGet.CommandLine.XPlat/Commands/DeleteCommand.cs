@@ -3,8 +3,8 @@ using System.Globalization;
 using System.IO;
 using Microsoft.Dnx.Runtime.Common.CommandLine;
 using NuGet.Commands;
+using NuGet.Common;
 using NuGet.Configuration;
-using NuGet.Logging;
 
 namespace NuGet.CommandLine.XPlat
 {
@@ -15,6 +15,11 @@ namespace NuGet.CommandLine.XPlat
             app.Command("delete", delete =>
             {
                 delete.Description = Strings.Delete_Description;
+
+                delete.Option(
+                    CommandConstants.ForceEnglishOutputOption,
+                    Strings.ForceEnglishOutput_Description,
+                    CommandOptionType.NoValue);
 
                 var source = delete.Option(
                     "-s|--source <source>",

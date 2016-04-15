@@ -3,8 +3,8 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Dnx.Runtime.Common.CommandLine;
 using NuGet.Commands;
+using NuGet.Common;
 using NuGet.Configuration;
-using NuGet.Logging;
 
 namespace NuGet.CommandLine.XPlat
 {
@@ -15,6 +15,11 @@ namespace NuGet.CommandLine.XPlat
             app.Command("push", push =>
             {
                 push.Description = Strings.Push_Description;
+
+                push.Option(
+                    CommandConstants.ForceEnglishOutputOption,
+                    Strings.ForceEnglishOutput_Description,
+                    CommandOptionType.NoValue);
 
                 var source = push.Option(
                     "-s|--source <source>",

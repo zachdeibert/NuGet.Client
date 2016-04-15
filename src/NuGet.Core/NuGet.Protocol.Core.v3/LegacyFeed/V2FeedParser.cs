@@ -10,13 +10,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
+using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Frameworks;
-using NuGet.Logging;
 using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.Types;
-using NuGet.Protocol.Core.v3;
 using NuGet.Versioning;
+using Strings = NuGet.Protocol.Core.v3.Strings;
 
 namespace NuGet.Protocol
 {
@@ -29,7 +29,7 @@ namespace NuGet.Protocol
         private const string W3Atom = "http://www.w3.org/2005/Atom";
         private const string MetadataNS = "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata";
         private const string DataServicesNS = "http://schemas.microsoft.com/ado/2007/08/dataservices";
-        private const string FindPackagesByIdFormat = "/FindPackagesById()?Id='{0}'";
+        private const string FindPackagesByIdFormat = "/FindPackagesById()?id='{0}'";
         private const string SearchEndPointFormat = "/Search()?$filter={0}&searchTerm='{1}'&targetFramework='{2}'&includePrerelease={3}&$skip={4}&$top={5}";
         private const string GetPackagesFormat = "/Packages(Id='{0}',Version='{1}')";
         private const string IsLatestVersionFilterFlag = "IsLatestVersion";
@@ -67,7 +67,7 @@ namespace NuGet.Protocol
         /// <summary>
         /// Creates a V2 parser
         /// </summary>
-        /// <param name="httpHandler">Message handler containing auth/proxy support</param>
+        /// <param name="httpSource">HttpSource and message handler containing auth/proxy support</param>
         /// <param name="baseAddress">base address for all services from this OData service</param>
         public V2FeedParser(HttpSource httpSource, string baseAddress)
             : this(httpSource, baseAddress, new PackageSource(baseAddress))
@@ -77,7 +77,7 @@ namespace NuGet.Protocol
         /// <summary>
         /// Creates a V2 parser
         /// </summary>
-        /// <param name="httpHandler">Message handler containing auth/proxy support</param>
+        /// <param name="httpSource">HttpSource and message handler containing auth/proxy support</param>
         /// <param name="baseAddress">base address for all services from this OData service</param>
         /// <param name="source">PackageSource useful for reporting meaningful errors that relate back to the configuration</param>
         public V2FeedParser(HttpSource httpSource, string baseAddress, PackageSource source)
@@ -132,11 +132,11 @@ namespace NuGet.Protocol
                 throw new ArgumentNullException(nameof(token));
             }
 
-            var uri = String.Format(
+            var uri = string.Format(
                 CultureInfo.InvariantCulture,
                 GetPackagesFormat,
-                package.Id,
-                package.Version.ToNormalizedString());
+                UriUtility.UrlEncodeOdataParameter(package.Id),
+                UriUtility.UrlEncodeOdataParameter(package.Version.ToNormalizedString()));
 
             // Try to find the package directly
             // Set max count to -1, get all packages 
@@ -186,7 +186,7 @@ namespace NuGet.Protocol
                 throw new ArgumentNullException(nameof(token));
             }
 
-            var uri = string.Format(CultureInfo.InvariantCulture, FindPackagesByIdFormat, id);
+            var uri = string.Format(CultureInfo.InvariantCulture, FindPackagesByIdFormat, UriUtility.UrlEncodeOdataParameter(id));
             // Set max count to -1, get all packages
             var packages = await QueryV2Feed(
                 uri,
@@ -216,10 +216,11 @@ namespace NuGet.Protocol
 
             var shortFormTargetFramework = NuGetFramework.Parse(targetFramework).GetShortFolderName();
 
-            var uri = String.Format(CultureInfo.InvariantCulture, SearchEndPointFormat,
+            // The search term comes in already encoded from VS
+            var uri = string.Format(CultureInfo.InvariantCulture, SearchEndPointFormat,
                                     filters.IncludePrerelease ? IsAbsoluteLatestVersionFilterFlag : IsLatestVersionFilterFlag,
-                                    searchTerm,
-                                    shortFormTargetFramework,
+                                    UriUtility.UrlEncodeOdataParameter(searchTerm),
+                                    UriUtility.UrlEncodeOdataParameter(shortFormTargetFramework),
                                     filters.IncludePrerelease.ToString().ToLowerInvariant(),
                                     skip,
                                     take);
@@ -424,7 +425,7 @@ namespace NuGet.Protocol
 
             return results;
         }
-        
+
         internal async Task<XDocument> LoadXmlAsync(
             string uri,
             bool ignoreNotFounds,
@@ -432,11 +433,11 @@ namespace NuGet.Protocol
             CancellationToken token)
         {
             return await _httpSource.ProcessResponseAsync(
-                () => 
+                () =>
                 {
                     var request = new HttpRequestMessage(HttpMethod.Get, uri);
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/atom+xml"));
-                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/xml"));                    
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/xml"));
                     return request;
                 },
                 async response =>
