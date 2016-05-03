@@ -75,6 +75,7 @@ namespace NuGet.Frameworks
                             new KeyValuePair<string, string>(FrameworkConstants.FrameworkIdentifiers.MonoMac, "monomac"),
                             new KeyValuePair<string, string>(FrameworkConstants.FrameworkIdentifiers.XamarinIOs, "xamarinios"),
                             new KeyValuePair<string, string>(FrameworkConstants.FrameworkIdentifiers.XamarinMac, "xamarinmac"),
+                            new KeyValuePair<string, string>(FrameworkConstants.FrameworkIdentifiers.XamarinMacNet, "xamarinmacnet"),
                             new KeyValuePair<string, string>(FrameworkConstants.FrameworkIdentifiers.XamarinPlayStation3, "xamarinpsthree"),
                             new KeyValuePair<string, string>(FrameworkConstants.FrameworkIdentifiers.XamarinPlayStation4, "xamarinpsfour"),
                             new KeyValuePair<string, string>(FrameworkConstants.FrameworkIdentifiers.XamarinPlayStationVita, "xamarinpsvita"),
@@ -328,6 +329,22 @@ namespace NuGet.Frameworks
                                 new NuGetFramework(FrameworkConstants.FrameworkIdentifiers.WinRT, FrameworkConstants.EmptyVersion),
                                 new NuGetFramework(FrameworkConstants.FrameworkIdentifiers.WinRT, new Version(4, 5, 0, 0)))),
 
+                        // All XamarinMacNet projects support up to Net45
+                        new OneWayCompatibilityMappingEntry(new FrameworkRange(
+                            new NuGetFramework(FrameworkConstants.FrameworkIdentifiers.XamarinMacNet, FrameworkConstants.EmptyVersion),
+                            new NuGetFramework(FrameworkConstants.FrameworkIdentifiers.XamarinMacNet, FrameworkConstants.MaxVersion)),
+                            new FrameworkRange(
+                                new NuGetFramework(FrameworkConstants.FrameworkIdentifiers.Net, FrameworkConstants.EmptyVersion),
+                                FrameworkConstants.CommonFrameworks.Net45)),
+
+                        // All XamarinMacNet projects support all XamarinMac2
+                        new OneWayCompatibilityMappingEntry(new FrameworkRange(
+                            new NuGetFramework(FrameworkConstants.FrameworkIdentifiers.XamarinMacNet, FrameworkConstants.EmptyVersion),
+                            new NuGetFramework(FrameworkConstants.FrameworkIdentifiers.XamarinMacNet, FrameworkConstants.MaxVersion)),
+                            new FrameworkRange(
+                                new NuGetFramework(FrameworkConstants.FrameworkIdentifiers.XamarinMac, FrameworkConstants.EmptyVersion),
+                                new NuGetFramework(FrameworkConstants.FrameworkIdentifiers.XamarinMac, new Version(2, 0, 0, 0)))),
+
                         // NetCoreApp projects support NetStandard
                         CreateStandardMapping(
                             FrameworkConstants.CommonFrameworks.NetCoreApp10,
@@ -440,6 +457,11 @@ namespace NuGet.Frameworks
                                 FrameworkConstants.CommonFrameworks.NetStandard16),
 
                             CreateGenerationAndStandardMappingForAllVersions(
+                                FrameworkConstants.FrameworkIdentifiers.XamarinMacNet,
+                                FrameworkConstants.CommonFrameworks.DotNet56,
+                                FrameworkConstants.CommonFrameworks.NetStandard16),
+
+                            CreateGenerationAndStandardMappingForAllVersions(
                                 FrameworkConstants.FrameworkIdentifiers.XamarinPlayStation3,
                                 FrameworkConstants.CommonFrameworks.DotNet56,
                                 FrameworkConstants.CommonFrameworks.NetStandard16),
@@ -535,6 +557,7 @@ namespace NuGet.Frameworks
                 {
                     _nonPackageBasedFrameworkPrecedence = new[]
                     {
+                        FrameworkConstants.FrameworkIdentifiers.XamarinMac, // For XamarinMacNet, prefer XamarinMac over Net
                         FrameworkConstants.FrameworkIdentifiers.Net,
                         FrameworkConstants.FrameworkIdentifiers.NetCore,
                         FrameworkConstants.FrameworkIdentifiers.Windows,
