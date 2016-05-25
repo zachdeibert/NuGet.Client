@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.OLE.Interop;
@@ -29,7 +30,9 @@ using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGetConsole;
 using NuGetConsole.Implementation;
+using ICredentialProvider = NuGet.Credentials.ICredentialProvider;
 using IMachineWideSettings = NuGet.Configuration.IMachineWideSettings;
+using IServiceProvider = System.IServiceProvider;
 using ISettings = NuGet.Configuration.ISettings;
 using Resx = NuGet.PackageManagement.UI.Resources;
 using Strings = NuGet.PackageManagement.VisualStudio.Strings;
@@ -349,7 +352,7 @@ namespace NuGetVSExtension
             _vsSourceControlTracker = ServiceLocator.GetInstanceSafe<IVsSourceControlTracker>();
 
             // This instantiates a decoupled ICommand instance responsible to locate and display output pane by a UI control
-            var serviceProvider = ServiceLocator.GetInstanceSafe<System.IServiceProvider>();
+            var serviceProvider = ServiceLocator.GetInstanceSafe<IServiceProvider>();
             UI.Commands.ShowErrorsCommand = new ShowErrorsCommand(serviceProvider);
         }
 
@@ -375,13 +378,13 @@ namespace NuGetVSExtension
             };
         }
 
-        private IEnumerable<NuGet.Credentials.ICredentialProvider> GetCredentialProviders()
+        private IEnumerable<ICredentialProvider> GetCredentialProviders()
         {
             var packageSourceProvider = new PackageSourceProvider(new SettingsToLegacySettings(Settings));
-            var credentialProviders = new List<NuGet.Credentials.ICredentialProvider>();
+            var credentialProviders = new List<ICredentialProvider>();
 
             credentialProviders.Add(
-                new CredentialProviderAdapter(new SettingsCredentialProvider(NuGet.NullCredentialProvider.
+                new CredentialProviderAdapter(new SettingsCredentialProvider(NullCredentialProvider.
                     Instance, packageSourceProvider)));
 
             Action<string> errorDelegate = (error) =>
@@ -655,7 +658,7 @@ namespace NuGetVSExtension
             if (nugetProject == null)
             {
                 throw new InvalidOperationException(
-                    string.Format(Resources.ProjectHasAnInvalidNuGetConfiguration, project.Name));
+                    String.Format(Resources.ProjectHasAnInvalidNuGetConfiguration, project.Name));
             }
 
             // load packages.config. This makes sure that an exception will get thrown if there
@@ -704,7 +707,7 @@ namespace NuGetVSExtension
                     ref guidCommandUI,
                     null,
                     caption,
-                    string.Empty,
+                    String.Empty,
                     null,
                     out windowFrame);
             }
@@ -727,7 +730,57 @@ namespace NuGetVSExtension
 
         private void ExecuteConvertPackagesConfigCommand(object sender, EventArgs e)
         {
+            if (!ShowConvertPackagesConfigIntroDialog())
+            {
+                return;
+            }
         }
+
+        public bool ShowConvertPackagesConfigIntroDialog()
+        {
+            var result = false;
+            Application.Current.Dispatcher.Invoke(() => { result = ShowConvertPackagesConfigIntroDialogImpl(); });
+            return result;
+        }
+
+        private bool ShowConvertPackagesConfigIntroDialogImpl()
+        {
+            var convertWindow = new ConvertPackagesConfigIntroWindow(Settings) {DataContext = this};
+            var dialogResult = convertWindow.ShowModal();
+            return dialogResult ?? false;
+        }
+
+        public bool CollapseDependencies
+        {
+            get
+            {
+                var settingsValue = Settings.GetValue("convertPackagesConfig", "collapseDependencies") ?? string.Empty;
+                return IsSet(settingsValue, true);
+            }
+            set
+            {
+                Settings.SetValue("convertPackagesConfig", "collapseDependencies", value.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        private static bool IsSet(string value, bool defaultValue)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return defaultValue;
+            }
+
+            value = value.Trim();
+
+            bool boolResult;
+            int intResult;
+
+            var result = ((bool.TryParse(value, out boolResult) && boolResult) ||
+                          (int.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out intResult) && (intResult == 1)));
+
+            return result;
+        }
+
 
         private void ShowManageLibraryPackageDialog(object sender, EventArgs e)
         {
@@ -922,7 +975,7 @@ namespace NuGetVSExtension
                     ref guidCommandUI,
                     null,
                     caption,
-                    string.Empty,
+                    String.Empty,
                     null,
                     out windowFrame);
             }
@@ -980,7 +1033,7 @@ namespace NuGetVSExtension
         /// <param name="searchText">Search text.</param>
         private void Search(IVsWindowFrame windowFrame, string searchText)
         {
-            if (string.IsNullOrWhiteSpace(searchText))
+            if (String.IsNullOrWhiteSpace(searchText))
             {
                 return;
             }
@@ -1083,14 +1136,14 @@ namespace NuGetVSExtension
             }
 
             var selectedFileName = GetSelectedFileName();
-            return !string.IsNullOrEmpty(selectedFileName) && Path.GetFileName(selectedFileName).ToLower() == "packages.config";
+            return !String.IsNullOrEmpty(selectedFileName) && Path.GetFileName(selectedFileName).ToLower() == "packages.config";
         }
 
         private string GetSelectedFileName()
         {
             if (VsMonitorSelection == null)
             {
-                return string.Empty;
+                return String.Empty;
             }
 
             IntPtr hHierarchy = IntPtr.Zero;
@@ -1101,16 +1154,16 @@ namespace NuGetVSExtension
                 uint itemId;
                 if (VsMonitorSelection.GetCurrentSelection(out hHierarchy, out itemId, out multiItemSelect, out hContainer) != 0)
                 {
-                    return string.Empty;
+                    return String.Empty;
                 }
                 if (itemId >= VSConstants.VSITEMID_SELECTION)
                 {
-                    return string.Empty;
+                    return String.Empty;
                 }
                 IVsHierarchy hierarchy = Marshal.GetUniqueObjectForIUnknown(hHierarchy) as IVsHierarchy;
                 if (hierarchy == null)
                 {
-                    return string.Empty;
+                    return String.Empty;
                 }
                 string fileName;
                 hierarchy.GetCanonicalName(itemId, out fileName);

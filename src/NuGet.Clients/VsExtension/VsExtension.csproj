@@ -281,6 +281,7 @@
     <Reference Include="System.Design">
       <Private>False</Private>
     </Reference>
+    <Reference Include="System.Xaml" />
     <Reference Include="WindowsBase">
       <Private>False</Private>
     </Reference>
