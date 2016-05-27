@@ -55,6 +55,12 @@ namespace NuGet.TeamFoundationServer
         [SuppressMessage("Microsoft.Reliability", "CA2000")]
         public override Stream CreateFile(string fullPath, INuGetProjectContext nuGetProjectContext)
         {
+            ProcessPendingDeleteChanges(fullPath);
+            return FileSystemUtility.CreateFile(fullPath);
+        }
+
+        public override void ProcessPendingDeleteChanges(string fullPath)
+        {
             // See if there are any pending changes for this file
             var pendingChanges = PrivateWorkspace.GetPendingChanges(fullPath, RecursionType.None).ToArray();
             var pendingDeletes = pendingChanges.Where(c => c.IsDelete).ToArray();
@@ -75,15 +81,6 @@ namespace NuGet.TeamFoundationServer
                 // If the file exists, but there is not pending edit then edit the file (if it is under source control)
                 requiresEdit = PrivateWorkspace.PendEdit(fullPath) > 0;
             }
-
-            var fileStream = FileSystemUtility.CreateFile(fullPath);
-            // If we didn't have to edit the file, this must be a new file.
-            if (!sourceControlBound)
-            {
-                PrivateWorkspace.PendAdd(fullPath);
-            }
-
-            return fileStream;
         }
 
         public override void PendAddFiles(IEnumerable<string> fullPaths, string root, INuGetProjectContext nuGetProjectContext)

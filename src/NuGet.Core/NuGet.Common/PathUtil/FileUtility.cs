@@ -44,6 +44,38 @@ namespace NuGet.Common
         }
 
         /// <summary>
+        /// Copy a file with overwrite and retries
+        /// </summary>
+        public static void Copy(string sourceFileName, string destFileName, bool overwrite)
+        {
+            if (sourceFileName == null)
+            {
+                throw new ArgumentNullException(nameof(sourceFileName));
+            }
+
+            if (destFileName == null)
+            {
+                throw new ArgumentNullException(nameof(destFileName));
+            }
+
+            // Run up to 3 times
+            for (int i = 0; i < MaxTries; i++)
+            {
+                // Ignore exceptions for the first attempts
+                try
+                {
+                    File.Copy(sourceFileName, destFileName, overwrite);
+
+                    break;
+                }
+                catch (Exception ex) when ((i < (MaxTries - 1)) && (ex is UnauthorizedAccessException || ex is IOException))
+                {
+                    Sleep(100);
+                }
+            }
+        }
+
+        /// <summary>
         /// Delete a file with retries.
         /// </summary>
         public static void Delete(string path)

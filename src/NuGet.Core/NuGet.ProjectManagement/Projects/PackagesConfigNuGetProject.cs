@@ -65,6 +65,7 @@ namespace NuGet.ProjectManagement
 
             var projectName = GetMetadata<string>(NuGetProjectMetadataKeys.Name);
             PackagesProjectNameConfigPath = Path.Combine(folderPath, "packages." + projectName + ".config");
+
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2202:Do not dispose objects multiple times")]
@@ -88,6 +89,14 @@ namespace NuGet.ProjectManagement
             var newPackageReference = new PackageReference(packageIdentity, TargetFramework, userInstalled: true, developmentDependency: isDevelopmentDependency, requireReinstallation: false);
             var installedPackagesList = GetInstalledPackagesList();
 
+            var sourceControlManager = SourceControlUtility.GetSourceControlManager(nuGetProjectContext);
+            Action<string> sourceControlAction = p => { };
+
+            if (sourceControlManager != null)
+            {
+                sourceControlAction = sourceControlManager.ProcessPendingDeleteChanges;
+            }
+
             try
             {
                 // Avoid modifying the packages.config file while it is being read
@@ -110,14 +119,14 @@ namespace NuGet.ProjectManagement
                             }
 
                             // Higher version of an installed package is being installed. Remove old and add new
-                            using (var writer = new PackagesConfigWriter(FullPath, createNew: false))
+                            using (var writer = new PackagesConfigWriter(FullPath, createNew: false, sourceControlAction: sourceControlAction))
                             {
                                 writer.UpdatePackageEntry(packageReferenceWithSameId, newPackageReference);
                             }
                         }
                         else
                         {
-                            using (var writer = new PackagesConfigWriter(FullPath, createNew: false))
+                            using (var writer = new PackagesConfigWriter(FullPath, createNew: false, sourceControlAction: sourceControlAction))
                             {
 
                                 if (nuGetProjectContext.OriginalPackagesConfig == null)
@@ -136,7 +145,7 @@ namespace NuGet.ProjectManagement
                     // Create new packages.config file and add the package entry
                     else
                     {
-                        using (var writer = new PackagesConfigWriter(FullPath, createNew: true))
+                        using (var writer = new PackagesConfigWriter(FullPath, createNew: true, sourceControlAction: sourceControlAction))
                         {
                             if (nuGetProjectContext.OriginalPackagesConfig == null)
                             {

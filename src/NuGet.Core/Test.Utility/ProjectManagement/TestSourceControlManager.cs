@@ -42,5 +42,10 @@ namespace Test.Utility
                 PendDeletedFiles.Add(path);
             }
         }
+
+        public override void ProcessPendingDeleteChanges(string fullPath)
+        {
+
+        }
     }
 }

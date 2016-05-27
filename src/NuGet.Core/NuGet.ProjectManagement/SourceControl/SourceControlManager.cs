@@ -56,5 +56,7 @@ namespace NuGet.ProjectManagement
         {
             return !SourceControlUtility.IsSourceControlDisabled(Settings);
         }
+
+        public abstract void ProcessPendingDeleteChanges(string fullPath); 
     }
 }

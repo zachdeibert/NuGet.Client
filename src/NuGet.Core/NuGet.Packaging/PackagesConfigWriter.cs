@@ -24,6 +24,7 @@ namespace NuGet.Packaging
         private NuGetVersion _minClientVersion;
         private IFrameworkNameProvider _frameworkMappings;
         private XDocument _xDocument;
+        private Action<string> _sourceControlAction;
 
         /// <summary>
         /// Create a packages.config writer using file path
@@ -31,7 +32,12 @@ namespace NuGet.Packaging
         /// <param name="fullPath">The full path to write the XML packages.config file into, or load existing packages.config from</param>
         /// <param name="createNew">Whether to create a new packages.config file, or load an existing one</param>
         public PackagesConfigWriter(string fullPath, bool createNew)
-            : this(fullPath, createNew, DefaultFrameworkNameProvider.Instance)
+            : this(fullPath, createNew, DefaultFrameworkNameProvider.Instance, p => { })
+        {
+        }
+
+        public PackagesConfigWriter(string fullPath, bool createNew, Action<string> sourceControlAction)
+           : this(fullPath, createNew, DefaultFrameworkNameProvider.Instance, sourceControlAction)
         {
         }
 
@@ -41,7 +47,11 @@ namespace NuGet.Packaging
         /// <param name="fullPath">The full path to write the XML packages.config file into, or load existing packages.config from</param>
         /// <param name="createNew">Whether to create a new packages.config file, or load an existing one</param>
         /// <param name="frameworkMappings">Framework mappings</param>
-        public PackagesConfigWriter(string fullPath, bool createNew, IFrameworkNameProvider frameworkMappings)
+        public PackagesConfigWriter(
+            string fullPath, 
+            bool createNew, 
+            IFrameworkNameProvider frameworkMappings, 
+            Action<string> sourceControlAction)
         {
             if (fullPath == null)
             {
@@ -50,6 +60,7 @@ namespace NuGet.Packaging
 
             _frameworkMappings = frameworkMappings;
             _filePath = fullPath;
+            _sourceControlAction = sourceControlAction;
 
             if (createNew)
             {
@@ -558,8 +569,11 @@ namespace NuGet.Packaging
                         _xDocument.Save(tempConfigStream);
                     }
 
+                    _sourceControlAction(fullPath);
+
                     // Rename the temporary file to packages.config file
-                    FileUtility.Move(configFileNewPath, fullPath);
+                    FileUtility.Copy(configFileNewPath, fullPath, true);
+                    FileUtility.Delete(configFileNewPath);
                 }
                 catch
                 {
