@@ -80,10 +80,17 @@
     <Compile Include="Converters\EnumDescriptionValueConverter.cs" />
     <Compile Include="Converters\NotNullOrTrueToBooleanConverter.cs" />
     <Compile Include="DisplayVersion.cs" />
+    <Compile Include="Converters\InverseBooleanConverter.cs" />
     <Compile Include="ExperimentalFeatures.cs" />
     <Compile Include="Models\LoadingStatusViewModel.cs" />
     <Compile Include="Models\PackageSearchMetadataCache.cs" />
     <Compile Include="Models\PackageSearchStatus.cs" />
+    <Compile Include="Models\PackageUpgradeIssue.cs" />
+    <Compile Include="Models\PackageUpgradeIssues.cs" />
+    <Compile Include="Models\UpgradeDependencyItem.cs" />
+    <Compile Include="Models\UpgradeInformationWindowModel.cs" />
+    <Compile Include="Models\UpgradeIssueSeverity.cs" />
+    <Compile Include="Models\UpgradePackageStatus.cs" />
     <Compile Include="Resources\Domain.cs" />
     <Compile Include="Resources\Resources.xaml.cs">
       <DependentUpon>Resources.xaml</DependentUpon>
@@ -267,6 +274,9 @@
     <Compile Include="Xamls\UpdateButton.xaml.cs">
       <DependentUpon>UpdateButton.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Xamls\UpgradeInformationWindow.xaml.cs">
+      <DependentUpon>UpgradeInformationWindow.xaml</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <DesignDataWithDesignTimeCreatableTypes Include="Design\LoadingStatusViewModelSampleData.xaml">
@@ -392,6 +402,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Xamls\UpdateButton.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Xamls\UpgradeInformationWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
