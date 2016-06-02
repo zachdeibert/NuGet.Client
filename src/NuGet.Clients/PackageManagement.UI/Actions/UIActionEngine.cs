@@ -12,6 +12,9 @@ using NuGet.Packaging.Core;
 using NuGet.ProjectManagement;
 using NuGet.Protocol.Core.Types;
 using System.Globalization;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+using Task = System.Threading.Tasks.Task;
 
 namespace NuGet.PackageManagement.UI
 {
@@ -85,9 +88,29 @@ namespace NuGet.PackageManagement.UI
             uiService.ProgressWindow.Log(ProjectManagement.MessageLevel.Info, string.Format(CultureInfo.CurrentCulture, Resources.Operation_TotalTime, stopWatch.Elapsed));
         }
 
-        public void UpgradeNuGetProject(INuGetUI uiService, UpgradeInformationWindowModel upgradeInformationWindowModel)
+        public async Task UpgradeNuGetProject(INuGetUI uiService, UpgradeInformationWindowModel upgradeInformationWindowModel)
         {
             var result = uiService.ShowNuGetUpgradeWindow(upgradeInformationWindowModel);
+            if (!result)
+            {
+                return;
+            }
+
+            var waitDialogFactory = Package.GetGlobalService(typeof(SVsThreadedWaitDialogFactory)) as IVsThreadedWaitDialogFactory;
+            using (var waitDialogSession = waitDialogFactory.StartWaitDialog(
+                waitCaption: "NuGet Upgrader",
+                initialProgress: new ThreadedWaitDialogProgressData(
+                    "Upgrading Project",
+                    "This is the progress text",
+                    "This is the status bar text",
+                    isCancelable: true,
+                    currentStep: 0,
+                    totalSteps:0)))
+            {
+                var token = waitDialogSession.UserCancellationToken;
+                var progress = waitDialogSession.Progress;
+                await NuGetProjectUpgrader.DoUpgrade(upgradeInformationWindowModel, progress, token);
+            }
         }
 
         /// <summary>
@@ -214,11 +237,11 @@ namespace NuGet.PackageManagement.UI
                 // preview window
                 if (uiService.DisplayPreviewWindow)
                 {
-                    var shouldContinue = uiService.PromptForPreviewAcceptance(results);
+                    /*var shouldContinue = uiService.PromptForPreviewAcceptance(results);
                     if (!shouldContinue)
                     {
                         return;
-                    }
+                    }*/
                 }
 
                 var accepted = await CheckLicenseAcceptanceAsync(uiService, results, token);

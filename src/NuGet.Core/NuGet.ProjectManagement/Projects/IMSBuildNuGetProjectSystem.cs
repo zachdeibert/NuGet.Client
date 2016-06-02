@@ -22,6 +22,8 @@ namespace NuGet.ProjectManagement
         void RemoveFile(string path);
         bool FileExistsInProject(string path);
 
+        IList<string> SupportedPlatforms { get; }
+
         /// <summary>
         /// Method called when adding an assembly reference to the project.
         /// </summary>

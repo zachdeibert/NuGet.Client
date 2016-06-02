@@ -53,6 +53,7 @@ namespace NuGet.PackageManagement.UI
         // Initial to true so change detection logic is simple (since UI defaults to shown).
         private bool _shouldShowUpgradeProject = true;
         private bool _experimentalFeaturesEnabled;
+        private bool _nuGetProjectUpgradeCollapseDependencies;
 
         public PackageManagerModel Model { get; }
 
@@ -253,7 +254,7 @@ namespace NuGet.PackageManagement.UI
 
         private bool ShouldShowConvertProject()
         {
-            if (!_experimentalFeaturesEnabled)
+            if (!_experimentalFeaturesEnabled && !StandaloneSwitch.IsRunningStandalone)
             {
                 return false;
             }
@@ -1076,14 +1077,12 @@ namespace NuGet.PackageManagement.UI
             RefreshConsolidatablePackagesCount();
         }
 
-        private bool _nuGetProjectUpgradeCollapseDependencies;
-
         private async void UpgradeButton_Click(object sender, RoutedEventArgs e)
         {
             var project = Model.Context.Projects.FirstOrDefault();
             var packageDependencyInfos = await Model.Context.PackageManager.GetInstalledPackagesDependencyInfo(project, CancellationToken.None, includeUnresolved: true);
             var upgradeInformationWindowModel = new UpgradeInformationWindowModel(project, packageDependencyInfos.ToList(), _nuGetProjectUpgradeCollapseDependencies);
-            Model.Context.UIActionEngine.UpgradeNuGetProject(Model.UIController, upgradeInformationWindowModel);
+            await Model.Context.UIActionEngine.UpgradeNuGetProject(Model.UIController, upgradeInformationWindowModel);
             _nuGetProjectUpgradeCollapseDependencies = upgradeInformationWindowModel.CollapseDependencies;
         }
     }

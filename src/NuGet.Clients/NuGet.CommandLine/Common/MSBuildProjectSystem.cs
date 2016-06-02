@@ -34,6 +34,14 @@ namespace NuGet.Common
 
         public INuGetProjectContext NuGetProjectContext { get; private set; }
 
+        public IList<string> SupportedPlatforms {
+            get
+            {
+                // We could get this information from Project, but we don't currently need it in non VS scenarios.
+                throw new NotImplementedException();
+            }
+        }
+
         /// <summary>
         /// This does not contain the filename, just the path to the directory where the project file exists
         /// </summary>

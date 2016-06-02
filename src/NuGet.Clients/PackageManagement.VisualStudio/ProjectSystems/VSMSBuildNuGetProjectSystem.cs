@@ -51,6 +51,15 @@ namespace NuGet.PackageManagement.VisualStudio
 
         public INuGetProjectContext NuGetProjectContext { get; private set; }
 
+        public IList<string> SupportedPlatforms
+        {
+            get
+            {
+                var supportedPlatforms = EnvDTEProject.ConfigurationManager.SupportedPlatforms as object[];
+                return supportedPlatforms?.Cast<string>().ToList() ?? new List<string>();
+            }
+        }
+
         private IScriptExecutor _scriptExecutor;
 
         private IScriptExecutor ScriptExecutor
@@ -664,6 +673,17 @@ namespace NuGet.PackageManagement.VisualStudio
             return ThreadHelper.JoinableTaskFactory.Run(async delegate
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                var list = new Dictionary<string, dynamic>();
+                for (var i = 1; i <= EnvDTEProject.Properties.Count; i++)
+                {
+                    try
+                    {
+                        var property = EnvDTEProject.Properties.Item(i);
+                        list[property.Name] = property.Value;
+                    }
+                    catch (Exception) { }
+                }
 
                 try
                 {

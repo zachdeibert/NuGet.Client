@@ -51,11 +51,11 @@ namespace NuGet.PackageManagement.UI
 
         public bool PromptForLicenseAcceptance(IEnumerable<PackageLicenseInfo> packages)
         {
-            var result = false;
+            //var result = false;
 
-            UIDispatcher.Invoke(() => { result = PromptForLicenseAcceptanceImpl(packages); });
+            //UIDispatcher.Invoke(() => { result = PromptForLicenseAcceptanceImpl(packages); });
 
-            return result;
+            return true;
         }
 
         private static bool PromptForLicenseAcceptanceImpl(

@@ -10,8 +10,6 @@ namespace NuGet.PackageManagement.UI
 {
     public class UpgradeInformationWindowModel : INotifyPropertyChanged
     {
-        private readonly IList<PackageDependencyInfo> _packageDependencyInfos;
-        private readonly NuGetProject _project;
         private IEnumerable<PackageUpgradeIssues> _analysisResults;
         private IEnumerable<UpgradeDependencyItem> _upgradeDependencyItems;
         private IEnumerable<UpgradePackageStatus> _flatPackages;
@@ -20,10 +18,14 @@ namespace NuGet.PackageManagement.UI
 
         public UpgradeInformationWindowModel(NuGetProject project, IList<PackageDependencyInfo> packageDependencyInfos, bool collapseDependencies)
         {
-            _packageDependencyInfos = packageDependencyInfos;
-            _project = project;
+            PackageDependencyInfos = packageDependencyInfos;
+            Project = project;
             _collapseDependencies = collapseDependencies;
         }
+
+        public NuGetProject Project { get; }
+
+        public IList<PackageDependencyInfo> PackageDependencyInfos { get; }
 
         // Changing CollapseDependencies updates the list of included packages
         public bool CollapseDependencies {
@@ -83,11 +85,11 @@ namespace NuGet.PackageManagement.UI
         private IEnumerable<PackageUpgradeIssues> GetNuGetUpgradeIssues()
         {
             var result = new List<PackageUpgradeIssues>();
-            var msBuildNuGetProject = (MSBuildNuGetProject)_project;
+            var msBuildNuGetProject = (MSBuildNuGetProject)Project;
             var framework = msBuildNuGetProject.MSBuildNuGetProjectSystem.TargetFramework;
             var folderNuGetProject = msBuildNuGetProject.FolderNuGetProject;
 
-            foreach (var packageIdentity in _packageDependencyInfos)
+            foreach (var packageIdentity in PackageDependencyInfos)
             {
                 // Confirm package exists
                 var packagePath = folderNuGetProject.GetInstalledPackageFilePath(packageIdentity);
@@ -110,8 +112,8 @@ namespace NuGet.PackageManagement.UI
 
         private IEnumerable<UpgradeDependencyItem> GetUpgradeDependencyItems()
         {
-            var upgradeDependencyItems = _packageDependencyInfos.Select(p => new UpgradeDependencyItem(new PackageIdentity(p.Id, p.Version))).ToList();
-            foreach (var packageDependencyInfo in _packageDependencyInfos)
+            var upgradeDependencyItems = PackageDependencyInfos.Select(p => new UpgradeDependencyItem(new PackageIdentity(p.Id, p.Version))).ToList();
+            foreach (var packageDependencyInfo in PackageDependencyInfos)
             {
                 foreach (var dependency in packageDependencyInfo.Dependencies)
                 {

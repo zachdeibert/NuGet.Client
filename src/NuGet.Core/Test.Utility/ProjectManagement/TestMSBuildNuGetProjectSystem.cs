@@ -121,6 +121,11 @@ namespace Test.Utility
 
         public NuGetFramework TargetFramework { get; }
 
+        public IList<string> SupportedPlatforms
+        {
+            get { throw new NotImplementedException(); }
+        }
+
         public void SetNuGetProjectContext(INuGetProjectContext nuGetProjectContext)
         {
             NuGetProjectContext = nuGetProjectContext;
