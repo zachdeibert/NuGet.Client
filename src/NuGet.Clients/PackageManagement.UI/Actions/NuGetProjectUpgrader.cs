@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
-using Microsoft.VisualStudio.Shell;
 using Newtonsoft.Json.Linq;
 using NuGet.ProjectManagement;
 using Task = System.Threading.Tasks.Task;
@@ -10,10 +9,10 @@ namespace NuGet.PackageManagement.UI
 {
     internal static class NuGetProjectUpgrader
     {
-        internal static async Task DoUpgrade(UpgradeInformationWindowModel upgradeInformationWindowModel, IProgress<ThreadedWaitDialogProgressData> progress, CancellationToken token)
+        internal static async Task DoUpgrade(UpgradeInformationWindowModel upgradeInformationWindowModel, IProgress<ProgressDialogData> progress, CancellationToken token)
         {
             // 1. Uninstall all packages currently in packages.config
-            var progressData = new ThreadedWaitDialogProgressData("Upgrading Project", "Uninstalling packages from packages.config", string.Empty, false, 0, 0);
+            var progressData = new ProgressDialogData("Upgrading Project", "Uninstalling packages from packages.config");
             progress.Report(progressData);
 
             var nuGetProject = upgradeInformationWindowModel.Project;
@@ -24,7 +23,7 @@ namespace NuGet.PackageManagement.UI
             }
 
             // 2. Create stub project.json file
-            progressData = new ThreadedWaitDialogProgressData("Upgrading Project", "Creating project.json", string.Empty, false, 0, 0);
+            progressData = new ProgressDialogData("Upgrading Project", "Creating project.json");
             progress.Report(progressData);
 
             JObject json = new JObject();

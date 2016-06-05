@@ -96,7 +96,15 @@ namespace NuGet.PackageManagement.UI
                 return;
             }
 
-            var waitDialogFactory = Package.GetGlobalService(typeof(SVsThreadedWaitDialogFactory)) as IVsThreadedWaitDialogFactory;
+            var progressDialogData = new ProgressDialogData("Upgrading Project", null, false, 0, 0);
+            using (var progressDialogSession = ProgressDialog.Start("NuGet Upgrader", progressDialogData, uiService))
+            {
+                var token = progressDialogSession.UserCancellationToken;
+                var progress = progressDialogSession.Progress;
+                await NuGetProjectUpgrader.DoUpgrade(upgradeInformationWindowModel, progress, token);
+            }
+
+            /*var waitDialogFactory = Package.GetGlobalService(typeof(SVsThreadedWaitDialogFactory)) as IVsThreadedWaitDialogFactory;
             using (var waitDialogSession = waitDialogFactory.StartWaitDialog(
                 waitCaption: "NuGet Upgrader",
                 initialProgress: new ThreadedWaitDialogProgressData(
@@ -110,7 +118,7 @@ namespace NuGet.PackageManagement.UI
                 var token = waitDialogSession.UserCancellationToken;
                 var progress = waitDialogSession.Progress;
                 await NuGetProjectUpgrader.DoUpgrade(upgradeInformationWindowModel, progress, token);
-            }
+            }*/
         }
 
         /// <summary>

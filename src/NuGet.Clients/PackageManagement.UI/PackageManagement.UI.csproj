@@ -29,7 +29,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;STANDALONE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -65,6 +65,8 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Actions\ProgressDialogData.cs" />
+    <Compile Include="Actions\ProgressDialogSession.cs" />
     <Compile Include="Actions\UIActionEngine.cs" />
     <Compile Include="Actions\ProjectContext.cs" />
     <Compile Include="Actions\UpdatePreviewResult.cs" />
@@ -88,6 +90,7 @@
     <Compile Include="Models\PackageSearchStatus.cs" />
     <Compile Include="Models\PackageUpgradeIssue.cs" />
     <Compile Include="Models\PackageUpgradeIssues.cs" />
+    <Compile Include="Models\ProgressDialogModel.cs" />
     <Compile Include="Models\UpgradeDependencyItem.cs" />
     <Compile Include="Models\UpgradeInformationWindowModel.cs" />
     <Compile Include="Models\UpgradeIssueSeverity.cs" />
