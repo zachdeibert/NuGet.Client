@@ -276,6 +276,9 @@
   <data name="NuGetUpgradeWarning_HasContentFiles" xml:space="preserve">
     <value>The package contains content files and may not work after upgrading.</value>
   </data>
+  <data name="NuGetUpgradeWarning_HasInstallScript" xml:space="preserve">
+    <value>The package contains an install.ps1 script that will not be applied after upgrading.</value>
+  </data>
   <data name="Text_IncludedPackages" xml:space="preserve">
     <value>Packages in project.json:</value>
   </data>

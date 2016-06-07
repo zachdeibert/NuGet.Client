@@ -1,8 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using NuGet.Frameworks;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
 using NuGet.ProjectManagement;
@@ -91,19 +94,57 @@ namespace NuGet.PackageManagement.UI
 
             foreach (var packageIdentity in PackageDependencyInfos)
             {
-                // Confirm package exists
-                var packagePath = folderNuGetProject.GetInstalledPackageFilePath(packageIdentity);
-                if (string.IsNullOrEmpty(packagePath))
+                var packageUpgradeIssues = GetPackageUpgradeIssues(folderNuGetProject, packageIdentity, framework).ToList();
+                if (packageUpgradeIssues.Any())
                 {
-                    yield return new PackageUpgradeIssues(packageIdentity, NuGetProjectUpgradeIssueSeverity.Error, Resources.NuGetUpgradeError_CannotFindPackage);
-                    continue;
+                    yield return new PackageUpgradeIssues(packageIdentity, packageUpgradeIssues);
                 }
+            }
+        }
+
+        private static IEnumerable<PackageUpgradeIssue> GetPackageUpgradeIssues(
+            FolderNuGetProject folderNuGetProject,
+            PackageIdentity packageIdentity,
+            NuGetFramework framework)
+        {
+            // Confirm package exists
+            var packagePath = folderNuGetProject.GetInstalledPackageFilePath(packageIdentity);
+            if (string.IsNullOrEmpty(packagePath))
+            {
+                yield return new PackageUpgradeIssue()
+                {
+                    IssueSeverity = NuGetProjectUpgradeIssueSeverity.Error,
+                    IssueDescription = Resources.NuGetUpgradeError_CannotFindPackage
+                };
+            }
+            else
+            {
+                var reader = new PackageArchiveReader(packagePath);
 
                 // Check if it has content files
-                var compatibleContentItemGroups = MSBuildNuGetProjectSystemUtility.GetMostCompatibleGroup(framework, new PackageArchiveReader(packagePath).GetContentItems());
-                if (compatibleContentItemGroups != null)
+                var contentFilesGroup = MSBuildNuGetProjectSystemUtility.GetMostCompatibleGroup(framework,
+                    reader.GetContentItems());
+                if (MSBuildNuGetProjectSystemUtility.IsValid(contentFilesGroup) && contentFilesGroup.Items.Any())
                 {
-                    yield return new PackageUpgradeIssues(packageIdentity, NuGetProjectUpgradeIssueSeverity.Warning, Resources.NuGetUpgradeWarning_HasContentFiles);
+                    yield return new PackageUpgradeIssue()
+                    {
+                        IssueSeverity = NuGetProjectUpgradeIssueSeverity.Warning,
+                        IssueDescription = Resources.NuGetUpgradeWarning_HasContentFiles
+                    };
+                }
+
+                // Check if it has an install.ps1 file
+                var toolItemsGroup = MSBuildNuGetProjectSystemUtility.GetMostCompatibleGroup(framework, reader.GetToolItems());
+                toolItemsGroup = MSBuildNuGetProjectSystemUtility.Normalize(toolItemsGroup);
+                var isValid = MSBuildNuGetProjectSystemUtility.IsValid(toolItemsGroup);
+                var hasInstall = isValid && toolItemsGroup.Items.Any(p => p.EndsWith(Path.DirectorySeparatorChar + PowerShellScripts.Install,StringComparison.OrdinalIgnoreCase));
+                if (hasInstall)
+                {
+                    yield return new PackageUpgradeIssue()
+                    {
+                        IssueSeverity = NuGetProjectUpgradeIssueSeverity.Warning,
+                        IssueDescription = Resources.NuGetUpgradeWarning_HasInstallScript
+                    };
                 }
             }
         }

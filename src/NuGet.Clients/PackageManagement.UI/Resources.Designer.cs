@@ -889,6 +889,15 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The package contains an install.ps1 script that will not be applied after upgrading..
+        /// </summary>
+        public static string NuGetUpgradeWarning_HasInstallScript {
+            get {
+                return ResourceManager.GetString("NuGetUpgradeWarning_HasInstallScript", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Time Elapsed: {0}.
         /// </summary>
         public static string Operation_TotalTime {
