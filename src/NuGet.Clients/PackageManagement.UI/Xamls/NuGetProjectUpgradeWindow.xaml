@@ -13,8 +13,10 @@
   ShowInTaskbar="False"
   WindowStartupLocation="CenterOwner"
   Title="{x:Static nuget:Resources.WindowTitle_NuGetUpgrader}"
+  MinWidth="640"
+  MinHeight="480"
   Width="640"
-  SizeToContent="Height">
+  Height="480">
 
   <Window.Resources>
     <ResourceDictionary>
@@ -50,12 +52,9 @@
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
+      <RowDefinition />
       <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
+      <RowDefinition />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
@@ -65,12 +64,20 @@
       Text="{x:Static nuget:Resources.Text_ProjectAnalysisResults}"
       FontSize="{Binding ElementName=_self,Path=FontSize,Converter={StaticResource Font122PercentSizeConverter}}" />
 
-    <StackPanel Grid.Row="2" Margin="12,8">
+    <Grid Grid.Row="1" Margin="12,8">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
       <TextBlock
+        Grid.Row="0"
         Margin="0,0,0,4"
         Text="{x:Static nuget:Resources.Text_NuGetUpgradeIssues}" />
 
       <Border
+        Grid.Row="1"
         Visibility="{Binding AnalysisResults,Converter={StaticResource EmptyEnumerableToVisibilityConverter}}"
         BorderThickness="1"
         Padding="3"
@@ -81,8 +88,8 @@
       </Border>
 
       <ItemsControl
+        Grid.Row="1"
         Visibility="{Binding AnalysisResults,Converter={StaticResource EnumerableToVisibilityConverter}}"
-        MaxHeight="80"
         IsTabStop="False"
         ItemsSource="{Binding AnalysisResults}"
         ItemTemplate="{StaticResource AnalysisItemTemplate}">
@@ -105,14 +112,15 @@
         </ItemsControl.Template>
       </ItemsControl>
       <TextBlock
+        Grid.Row="2"
         Margin="0,2,0,0"
         Text="{x:Static nuget:Resources.Text_NuGetUpgradeResolveErrorsBeforeUpgrading}"
         Foreground="Red"
         Visibility="{Binding Path=HasErrors, Converter={StaticResource BooleanToVisibilityConverter}}" />
-    </StackPanel>
+    </Grid>
 
     <StackPanel
-      Grid.Row="4"
+      Grid.Row="2"
       Margin="12,0"
       Visibility="{Binding Path=HasErrors, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
       <TextBlock
@@ -130,15 +138,22 @@
     </StackPanel>
 
 
-    <StackPanel
-      Grid.Row="6"
+    <Grid
+      Grid.Row="3"
       Margin="12,8"
       Visibility="{Binding Path=HasErrors, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition />
+      </Grid.RowDefinitions>
+
       <TextBlock
+        Grid.Row="0"
         Margin="0,0,0,4"
         Text="{x:Static nuget:Resources.Text_IncludedPackages}" />
       <ItemsControl
-        MaxHeight="80"
+        Grid.Row="1"
         IsTabStop="False"
         ItemsSource="{Binding Path=Packages}"
         ItemTemplate="{StaticResource ResultsTemplate}">
@@ -160,9 +175,9 @@
           </ControlTemplate>
         </ItemsControl.Template>
       </ItemsControl>
-    </StackPanel>
+    </Grid>
 
-    <Grid Grid.Row="7">
+    <Grid Grid.Row="4">
       <Grid.ColumnDefinitions>
         <ColumnDefinition />
         <ColumnDefinition Width="Auto" />
