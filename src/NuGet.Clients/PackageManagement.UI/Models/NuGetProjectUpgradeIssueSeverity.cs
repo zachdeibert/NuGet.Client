@@ -1,6 +1,6 @@
 ﻿namespace NuGet.PackageManagement.UI
 {
-    public enum UpgradeIssueSeverity
+    public enum NuGetProjectUpgradeIssueSeverity
     {
         Warning,
         Error

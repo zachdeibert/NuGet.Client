@@ -17,7 +17,9 @@ namespace NuGet.PackageManagement.UI
     /// <remarks>This is not expected to be thread safe.</remarks>
     public interface INuGetUI
     {
-        bool ShowNuGetUpgradeWindow(UpgradeInformationWindowModel upgradeInformationWindowModel);
+        bool ShowNuGetUpgradeWindow(NuGetProjectUpgradeWindowModel nuGetProjectUpgradeWindowModel);
+
+        void ShowNuGetUpgradeCompleteWindow(string backupLocation);
 
         bool PromptForLicenseAcceptance(IEnumerable<PackageLicenseInfo> packages);
 
@@ -54,6 +56,13 @@ namespace NuGet.PackageManagement.UI
         /// True if the option to preview actions first is checked
         /// </summary>
         bool DisplayPreviewWindow { get; }
+
+         /// <summary>
+        /// True if should display license acceptance window for added packages. Note that in all normal circumstances
+        /// this should be true. It is only set to false when adding just removed packages as part of converting
+        /// packages.config to project.json.
+        /// </summary>
+        bool DisplayLicenseAcceptanceWindow { get; }
 
         /// <summary>
         /// Package currently selected in the UI

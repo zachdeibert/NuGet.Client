@@ -817,6 +817,78 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Excluded (dependency of {0}).
+        /// </summary>
+        public static string NuGetUpgrade_PackageExcluded {
+            get {
+                return ResourceManager.GetString("NuGetUpgrade_PackageExcluded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Included.
+        /// </summary>
+        public static string NuGetUpgrade_PackageIncluded {
+            get {
+                return ResourceManager.GetString("NuGetUpgrade_PackageIncluded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Creating project.json.
+        /// </summary>
+        public static string NuGetUpgrade_Progress_CreatingProjectJson {
+            get {
+                return ResourceManager.GetString("NuGetUpgrade_Progress_CreatingProjectJson", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Installing required packages.
+        /// </summary>
+        public static string NuGetUpgrade_Progress_Installing {
+            get {
+                return ResourceManager.GetString("NuGetUpgrade_Progress_Installing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Uninstalling packages from packages.config.
+        /// </summary>
+        public static string NuGetUpgrade_Progress_Uninstalling {
+            get {
+                return ResourceManager.GetString("NuGetUpgrade_Progress_Uninstalling", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Upgrading Project.
+        /// </summary>
+        public static string NuGetUpgrade_WaitMessage {
+            get {
+                return ResourceManager.GetString("NuGetUpgrade_WaitMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot find the package. Restore the project then try again..
+        /// </summary>
+        public static string NuGetUpgradeError_CannotFindPackage {
+            get {
+                return ResourceManager.GetString("NuGetUpgradeError_CannotFindPackage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The package contains content files and may not work after upgrading..
+        /// </summary>
+        public static string NuGetUpgradeWarning_HasContentFiles {
+            get {
+                return ResourceManager.GetString("NuGetUpgradeWarning_HasContentFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Time Elapsed: {0}.
         /// </summary>
         public static string Operation_TotalTime {
@@ -1143,6 +1215,24 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No issues were found..
+        /// </summary>
+        public static string Text_NuGetUpgradeNoIssuesFound {
+            get {
+                return ResourceManager.GetString("Text_NuGetUpgradeNoIssuesFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You must resolve any errors before upgrading..
+        /// </summary>
+        public static string Text_NuGetUpgradeResolveErrorsBeforeUpgrading {
+            get {
+                return ResourceManager.GetString("Text_NuGetUpgradeResolveErrorsBeforeUpgrading", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Packages found.
         /// </summary>
         public static string Text_PackagesFound {
@@ -1251,7 +1341,34 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to This project uses NuGet 2.x packages.config to track dependencies. You can upgrade it to use NuGet 3.x project.json..
+        ///   Looks up a localized string similar to Upgrade Complete.
+        /// </summary>
+        public static string Text_UpgradeComplete {
+            get {
+                return ResourceManager.GetString("Text_UpgradeComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please build and run your solution to verify that all packages are available..
+        /// </summary>
+        public static string Text_UpgradeCompletePleaseBuild {
+            get {
+                return ResourceManager.GetString("Text_UpgradeCompletePleaseBuild", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to If you run into any issues and would like to revert, we have backed up changed files to &apos;{0}&apos;. Follow the directions described in the following document to revert changes:.
+        /// </summary>
+        public static string Text_UpgradeCompleteResolveProblems {
+            get {
+                return ResourceManager.GetString("Text_UpgradeCompleteResolveProblems", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Upgrade this project to NuGet 3.4 standard..
         /// </summary>
         public static string Text_UpgradeNuGetProjectDescription {
             get {

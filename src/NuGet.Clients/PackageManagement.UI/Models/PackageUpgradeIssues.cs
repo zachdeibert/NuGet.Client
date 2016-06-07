@@ -14,7 +14,7 @@ namespace NuGet.PackageManagement.UI
             Issues = issues;
         }
 
-        public PackageUpgradeIssues(PackageIdentity packageIdentity, UpgradeIssueSeverity issueSeverity, string issueDescription)
+        public PackageUpgradeIssues(PackageIdentity packageIdentity, NuGetProjectUpgradeIssueSeverity issueSeverity, string issueDescription)
         {
             // Convenience constructor when a package only has a single issue
             Package = packageIdentity.Id + "." + packageIdentity.Version;

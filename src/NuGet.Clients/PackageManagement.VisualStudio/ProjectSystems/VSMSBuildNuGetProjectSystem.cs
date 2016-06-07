@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.CSharp.RuntimeBinder;
 using Microsoft.VisualStudio.Shell.Interop;
+using NuGet.Common;
 using NuGet.Frameworks;
 using NuGet.Packaging.Core;
 using NuGet.ProjectManagement;
@@ -19,8 +20,7 @@ using EnvDTEProject = EnvDTE.Project;
 using EnvDTEProjectItems = EnvDTE.ProjectItems;
 using EnvDTEProperty = EnvDTE.Property;
 using Constants = NuGet.ProjectManagement.Constants;
-using MicrosoftBuildEvaluationProject = Microsoft.Build.Evaluation.Project;
-using MicrosoftBuildEvaluationProjectItem = Microsoft.Build.Evaluation.ProjectItem;
+using PathUtility = NuGet.ProjectManagement.PathUtility;
 using ThreadHelper = Microsoft.VisualStudio.Shell.ThreadHelper;
 
 namespace NuGet.PackageManagement.VisualStudio
@@ -47,7 +47,7 @@ namespace NuGet.PackageManagement.VisualStudio
             NuGetProjectContext = nuGetProjectContext;
         }
 
-        public EnvDTEProject EnvDTEProject { get; }
+        public EnvDTEProject EnvDTEProject { get; private set; }
 
         public INuGetProjectContext NuGetProjectContext { get; private set; }
 
@@ -210,6 +210,8 @@ namespace NuGet.PackageManagement.VisualStudio
             var fileName = Path.GetFileName(path);
             if (File.Exists(Path.Combine(ProjectFullPath, path))
                 && !fileExistsInProject
+                && !fileName.Equals(ProjectJsonPathUtilities.ProjectConfigFileName)
+                && !fileName.EndsWith(ProjectJsonPathUtilities.ProjectConfigFileEnding)
                 && !fileName.Equals(Constants.PackageReferenceFile)
                 && !fileName.Equals("packages." + ProjectName + ".config")
                 && !fileName.Equals(EnvDTEProjectUtility.WebConfig)
@@ -508,6 +510,16 @@ namespace NuGet.PackageManagement.VisualStudio
                     }
                 }
             });
+        }
+
+        public void Save()
+        {
+            EnvDTEProjectUtility.Save(EnvDTEProject);
+        }
+
+        public void Reload()
+        {
+            EnvDTEProject = EnvDTEProjectUtility.Reload(EnvDTEProject);
         }
 
         public virtual bool ReferenceExists(string name)

@@ -12,7 +12,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.OLE.Interop;
@@ -37,6 +36,7 @@ using ISettings = NuGet.Configuration.ISettings;
 using Resx = NuGet.PackageManagement.UI.Resources;
 using Strings = NuGet.PackageManagement.VisualStudio.Strings;
 using UI = NuGet.PackageManagement.UI;
+using Task = System.Threading.Tasks.Task;
 
 namespace NuGetVSExtension
 {
@@ -415,10 +415,10 @@ namespace NuGetVSExtension
             _mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
             if (null != _mcs)
             {
-                // menu command for converting packages.config files to project.json
-                CommandID convertPackagesConfigCommandID = new CommandID(GuidList.guidNuGetDialogCmdSet, PkgCmdIDList.cmdidConvertPackagesConfig);
-                OleMenuCommand convertPackagesConfigCommand = new OleMenuCommand(ExecuteConvertPackagesConfigCommand, null, BeforeQueryStatusForConvertPackagesConfig, convertPackagesConfigCommandID);
-                _mcs.AddCommand(convertPackagesConfigCommand);
+                // menu command for upgrading to NuGet 3.4 (converting packages.config files to project.json)
+                CommandID upgradeNuGetProjectCommandID = new CommandID(GuidList.guidNuGetDialogCmdSet, PkgCmdIDList.cmdidUpgradeNuGetProject);
+                OleMenuCommand upgradeNuGetProjectCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommand, null, BeforeQueryStatusForUpgradeNuGetProject, upgradeNuGetProjectCommandID);
+                _mcs.AddCommand(upgradeNuGetProjectCommand);
 
                 // menu command for opening Package Manager Console
                 CommandID toolwndCommandID = new CommandID(GuidList.guidNuGetConsoleCmdSet, PkgCmdIDList.cmdidPowerConsole);
@@ -728,59 +728,44 @@ namespace NuGetVSExtension
             return windowFrame;
         }
 
-        private void ExecuteConvertPackagesConfigCommand(object sender, EventArgs e)
+        private async void ExecuteUpgradeNuGetProjectCommand(object sender, EventArgs e)
         {
-            if (!ShowConvertPackagesConfigIntroDialog())
+            ThreadHelper.ThrowIfNotOnUIThread();
+            await ThreadHelper.JoinableTaskFactory.RunAsync(ExecuteUpgradeNuGetProjectCommandImpl);
+        }
+
+        private async Task ExecuteUpgradeNuGetProjectCommandImpl()
+        {
+            var project = EnvDTEProjectUtility.GetActiveProject(VsMonitorSelection);
+
+            // Close NuGet Package Manager if it is open for this project
+            var windowFrame = FindExistingWindowFrame(project);
+            windowFrame?.CloseFrame((uint) __FRAMECLOSE.FRAMECLOSE_SaveIfDirty);
+
+            var solutionManager = ServiceLocator.GetInstance<ISolutionManager>();
+            var nuGetProject = solutionManager.GetNuGetProject(EnvDTEProjectUtility.GetCustomUniqueName(project));
+            var uiContext = ServiceLocator.GetInstance<INuGetUIContextFactory>().Create(this, new[] {nuGetProject});
+            var uiController = ServiceLocator.GetInstance<INuGetUIFactory>().Create(uiContext, _uiProjectContext);
+            var settings = uiContext.GetSettings(GetProjectSettingsKey(nuGetProject));
+            var collapseDependencies = settings.NuGetProjectUpgradeCollapseDependencies;
+
+            collapseDependencies = await
+                uiContext.UIActionEngine.UpgradeNuGetProject(uiContext, uiController, nuGetProject,
+                    collapseDependencies);
+
+            settings.NuGetProjectUpgradeCollapseDependencies = collapseDependencies;
+            uiContext.PersistSettings();
+        }
+
+        private static string GetProjectSettingsKey(NuGetProject nuGetProject)
+        {
+            string projectName;
+            if (!nuGetProject.TryGetMetadata(NuGetProjectMetadataKeys.Name, out projectName))
             {
-                return;
+                projectName = "unknown";
             }
+            return "project:" + projectName;
         }
-
-        public bool ShowConvertPackagesConfigIntroDialog()
-        {
-            var result = false;
-            Application.Current.Dispatcher.Invoke(() => { result = ShowConvertPackagesConfigIntroDialogImpl(); });
-            return result;
-        }
-
-        private bool ShowConvertPackagesConfigIntroDialogImpl()
-        {
-            var convertWindow = new ConvertPackagesConfigIntroWindow(Settings) {DataContext = this};
-            var dialogResult = convertWindow.ShowModal();
-            return dialogResult ?? false;
-        }
-
-        public bool CollapseDependencies
-        {
-            get
-            {
-                var settingsValue = Settings.GetValue("convertPackagesConfig", "collapseDependencies") ?? string.Empty;
-                return IsSet(settingsValue, true);
-            }
-            set
-            {
-                Settings.SetValue("convertPackagesConfig", "collapseDependencies", value.ToString(CultureInfo.InvariantCulture));
-            }
-        }
-
-        private static bool IsSet(string value, bool defaultValue)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return defaultValue;
-            }
-
-            value = value.Trim();
-
-            bool boolResult;
-            int intResult;
-
-            var result = ((bool.TryParse(value, out boolResult) && boolResult) ||
-                          (int.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out intResult) && (intResult == 1)));
-
-            return result;
-        }
-
 
         private void ShowManageLibraryPackageDialog(object sender, EventArgs e)
         {
@@ -1057,7 +1042,7 @@ namespace NuGetVSExtension
             command.Enabled = !ConsoleStatus.IsBusy && !_powerConsoleCommandExecuting;
         }
 
-        private void BeforeQueryStatusForConvertPackagesConfig(object sender, EventArgs args)
+        private void BeforeQueryStatusForUpgradeNuGetProject(object sender, EventArgs args)
         {
             OleMenuCommand command = (OleMenuCommand)sender;
 

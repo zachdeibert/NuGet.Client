@@ -344,6 +344,11 @@ namespace NuGet.Common
             Project.Save();
         }
 
+        public void Reload()
+        {
+            throw new NotImplementedException();
+        }
+
         private IEnumerable<dynamic> GetItems(string itemType, string name)
         {
             foreach (dynamic i in Project.GetItems(itemType))

@@ -1,5 +1,5 @@
 ﻿<nuget:VsDialogWindow
-  x:Class="NuGet.PackageManagement.UI.UpgradeInformationWindow"
+  x:Class="NuGet.PackageManagement.UI.NuGetProjectUpgradeWindow"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -69,9 +69,22 @@
       <TextBlock
         Margin="0,0,0,4"
         Text="{x:Static nuget:Resources.Text_NuGetUpgradeIssues}" />
+
+      <Border
+        Visibility="{Binding AnalysisResults,Converter={StaticResource EmptyEnumerableToVisibilityConverter}}"
+        BorderThickness="1"
+        Padding="3"
+        BorderBrush="{DynamicResource {x:Static nuget:Brushes.BorderBrush}}"
+        Background="{DynamicResource {x:Static nuget:Brushes.ContentBrushKey}}">
+        <TextBlock
+          Text="{x:Static nuget:Resources.Text_NuGetUpgradeNoIssuesFound}" />
+      </Border>
+
       <ItemsControl
+        Visibility="{Binding AnalysisResults,Converter={StaticResource EnumerableToVisibilityConverter}}"
+        MaxHeight="80"
         IsTabStop="False"
-        ItemsSource="{Binding Path=AnalysisResults}"
+        ItemsSource="{Binding AnalysisResults}"
         ItemTemplate="{StaticResource AnalysisItemTemplate}">
         <ItemsControl.Template>
           <ControlTemplate
@@ -93,7 +106,7 @@
       </ItemsControl>
       <TextBlock
         Margin="0,2,0,0"
-        Text="You must resolve any errors before upgrading."
+        Text="{x:Static nuget:Resources.Text_NuGetUpgradeResolveErrorsBeforeUpgrading}"
         Foreground="Red"
         Visibility="{Binding Path=HasErrors, Converter={StaticResource BooleanToVisibilityConverter}}" />
     </StackPanel>
@@ -125,6 +138,7 @@
         Margin="0,0,0,4"
         Text="{x:Static nuget:Resources.Text_IncludedPackages}" />
       <ItemsControl
+        MaxHeight="80"
         IsTabStop="False"
         ItemsSource="{Binding Path=Packages}"
         ItemTemplate="{StaticResource ResultsTemplate}">
@@ -173,7 +187,7 @@
         Content="{x:Static nuget:Resources.Button_Cancel}"
         AutomationProperties.AutomationId="CancelButton"
         IsCancel="True"
-        Click="CancelButtonClicked"/>
+        Click="CancelButtonClicked" />
 
     </Grid>
   </Grid>

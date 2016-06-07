@@ -29,7 +29,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <DefineConstants>TRACE;DEBUG;STANDALONE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -91,16 +91,19 @@
     <Compile Include="Models\PackageUpgradeIssue.cs" />
     <Compile Include="Models\PackageUpgradeIssues.cs" />
     <Compile Include="Models\ProgressDialogModel.cs" />
-    <Compile Include="Models\UpgradeDependencyItem.cs" />
-    <Compile Include="Models\UpgradeInformationWindowModel.cs" />
-    <Compile Include="Models\UpgradeIssueSeverity.cs" />
-    <Compile Include="Models\UpgradePackageStatus.cs" />
+    <Compile Include="Models\NuGetProjectUpgradeDependencyItem.cs" />
+    <Compile Include="Models\NuGetProjectUpgradeWindowModel.cs" />
+    <Compile Include="Models\NuGetProjectUpgradeIssueSeverity.cs" />
+    <Compile Include="Models\NuGetProjectUpgradePackageStatus.cs" />
     <Compile Include="Resources\Domain.cs" />
     <Compile Include="Resources\Resources.xaml.cs">
       <DependentUpon>Resources.xaml</DependentUpon>
     </Compile>
     <Compile Include="Xamls\ConvertPackagesConfigIntroWindow.xaml.cs">
       <DependentUpon>ConvertPackagesConfigIntroWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Xamls\NuGetProjectUpgradeCompleteWindow.xaml.cs">
+      <DependentUpon>NuGetProjectUpgradeCompleteWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Xamls\RestartRequestBar.xaml.cs">
       <DependentUpon>RestartRequestBar.xaml</DependentUpon>
@@ -278,8 +281,8 @@
     <Compile Include="Xamls\UpdateButton.xaml.cs">
       <DependentUpon>UpdateButton.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Xamls\UpgradeInformationWindow.xaml.cs">
-      <DependentUpon>UpgradeInformationWindow.xaml</DependentUpon>
+    <Compile Include="Xamls\NuGetProjectUpgradeWindow.xaml.cs">
+      <DependentUpon>NuGetProjectUpgradeWindow.xaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
@@ -296,6 +299,10 @@
     <Page Include="Xamls\ConvertPackagesConfigIntroWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Xamls\NuGetProjectUpgradeCompleteWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Xamls\RestartRequestBar.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -409,7 +416,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Xamls\UpgradeInformationWindow.xaml">
+    <Page Include="Xamls\NuGetProjectUpgradeWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using NuGet.Packaging;
@@ -8,15 +9,15 @@ using NuGet.ProjectManagement;
 
 namespace NuGet.PackageManagement.UI
 {
-    public class UpgradeInformationWindowModel : INotifyPropertyChanged
+    public class NuGetProjectUpgradeWindowModel : INotifyPropertyChanged
     {
         private IEnumerable<PackageUpgradeIssues> _analysisResults;
-        private IEnumerable<UpgradeDependencyItem> _upgradeDependencyItems;
-        private IEnumerable<UpgradePackageStatus> _flatPackages;
-        private IEnumerable<UpgradePackageStatus> _collapsedPackages;
+        private IEnumerable<NuGetProjectUpgradeDependencyItem> _upgradeDependencyItems;
+        private IEnumerable<NuGetProjectUpgradePackageStatus> _flatPackages;
+        private IEnumerable<NuGetProjectUpgradePackageStatus> _collapsedPackages;
         private bool _collapseDependencies;
 
-        public UpgradeInformationWindowModel(NuGetProject project, IList<PackageDependencyInfo> packageDependencyInfos, bool collapseDependencies)
+        public NuGetProjectUpgradeWindowModel(NuGetProject project, IList<PackageDependencyInfo> packageDependencyInfos, bool collapseDependencies)
         {
             PackageDependencyInfos = packageDependencyInfos;
             Project = project;
@@ -46,20 +47,20 @@ namespace NuGet.PackageManagement.UI
 
         public bool HasErrors
         {
-            get { return AnalysisResults.Any(r => r.Issues.Any(i => i.IssueSeverity == UpgradeIssueSeverity.Error)); }
+            get { return AnalysisResults.Any(r => r.Issues.Any(i => i.IssueSeverity == NuGetProjectUpgradeIssueSeverity.Error)); }
         }
 
         public IEnumerable<PackageUpgradeIssues> AnalysisResults => _analysisResults ?? (_analysisResults = GetNuGetUpgradeIssues());
 
-        public IEnumerable<UpgradeDependencyItem> UpgradeDependencyItems => _upgradeDependencyItems ?? (_upgradeDependencyItems = GetUpgradeDependencyItems());
+        public IEnumerable<NuGetProjectUpgradeDependencyItem> UpgradeDependencyItems => _upgradeDependencyItems ?? (_upgradeDependencyItems = GetUpgradeDependencyItems());
 
-        public IEnumerable<UpgradePackageStatus> Packages => CollapseDependencies ? CollapsedPackages : FlatPackages;
+        public IEnumerable<NuGetProjectUpgradePackageStatus> Packages => CollapseDependencies ? CollapsedPackages : FlatPackages;
 
-        private IEnumerable<UpgradePackageStatus> CollapsedPackages => _collapsedPackages ?? (_collapsedPackages = GetCollapsedPackages());
+        private IEnumerable<NuGetProjectUpgradePackageStatus> CollapsedPackages => _collapsedPackages ?? (_collapsedPackages = GetCollapsedPackages());
 
-        private IEnumerable<UpgradePackageStatus> FlatPackages => _flatPackages ?? (_flatPackages = GetFlatPackages());
+        private IEnumerable<NuGetProjectUpgradePackageStatus> FlatPackages => _flatPackages ?? (_flatPackages = GetFlatPackages());
 
-        private IEnumerable<UpgradePackageStatus> GetCollapsedPackages()
+        private IEnumerable<NuGetProjectUpgradePackageStatus> GetCollapsedPackages()
         {
             foreach (var upgradeDependencyItem in UpgradeDependencyItems)
             {
@@ -67,24 +68,23 @@ namespace NuGet.PackageManagement.UI
                 if (upgradeDependencyItem.DependingPackages.Any())
                 {
                     var dependingPackagesString = string.Join(", ", upgradeDependencyItem.DependingPackages.Select(p => p.ToString()));
-                    status = $"Excluded (dependency of {dependingPackagesString})";
+                    status = string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgrade_PackageExcluded, dependingPackagesString);
                 }
                 else
                 {
-                    status = "Included";
+                    status = Resources.NuGetUpgrade_PackageIncluded;
                 }
-                yield return new UpgradePackageStatus(upgradeDependencyItem.Package.ToString(), status);
+                yield return new NuGetProjectUpgradePackageStatus(upgradeDependencyItem.Package.ToString(), status);
             }
         }
 
-        private IEnumerable<UpgradePackageStatus> GetFlatPackages()
+        private IEnumerable<NuGetProjectUpgradePackageStatus> GetFlatPackages()
         {
-            return UpgradeDependencyItems.Select(d => new UpgradePackageStatus(d.Package.ToString(), "Included"));
+            return UpgradeDependencyItems.Select(d => new NuGetProjectUpgradePackageStatus(d.Package.ToString(), Resources.NuGetUpgrade_PackageIncluded));
         }
 
         private IEnumerable<PackageUpgradeIssues> GetNuGetUpgradeIssues()
         {
-            var result = new List<PackageUpgradeIssues>();
             var msBuildNuGetProject = (MSBuildNuGetProject)Project;
             var framework = msBuildNuGetProject.MSBuildNuGetProjectSystem.TargetFramework;
             var folderNuGetProject = msBuildNuGetProject.FolderNuGetProject;
@@ -95,7 +95,7 @@ namespace NuGet.PackageManagement.UI
                 var packagePath = folderNuGetProject.GetInstalledPackageFilePath(packageIdentity);
                 if (string.IsNullOrEmpty(packagePath))
                 {
-                    result.Add(new PackageUpgradeIssues(packageIdentity, UpgradeIssueSeverity.Error, "Cannot find the package. Restore the project then try again."));
+                    yield return new PackageUpgradeIssues(packageIdentity, NuGetProjectUpgradeIssueSeverity.Error, Resources.NuGetUpgradeError_CannotFindPackage);
                     continue;
                 }
 
@@ -103,16 +103,14 @@ namespace NuGet.PackageManagement.UI
                 var compatibleContentItemGroups = MSBuildNuGetProjectSystemUtility.GetMostCompatibleGroup(framework, new PackageArchiveReader(packagePath).GetContentItems());
                 if (compatibleContentItemGroups != null)
                 {
-                    result.Add(new PackageUpgradeIssues(packageIdentity, UpgradeIssueSeverity.Warning, "The package contains content files and may not work after upgrading."));
+                    yield return new PackageUpgradeIssues(packageIdentity, NuGetProjectUpgradeIssueSeverity.Warning, Resources.NuGetUpgradeWarning_HasContentFiles);
                 }
             }
-
-            return result;
         }
 
-        private IEnumerable<UpgradeDependencyItem> GetUpgradeDependencyItems()
+        private IEnumerable<NuGetProjectUpgradeDependencyItem> GetUpgradeDependencyItems()
         {
-            var upgradeDependencyItems = PackageDependencyInfos.Select(p => new UpgradeDependencyItem(new PackageIdentity(p.Id, p.Version))).ToList();
+            var upgradeDependencyItems = PackageDependencyInfos.Select(p => new NuGetProjectUpgradeDependencyItem(new PackageIdentity(p.Id, p.Version))).ToList();
             foreach (var packageDependencyInfo in PackageDependencyInfos)
             {
                 foreach (var dependency in packageDependencyInfo.Dependencies)

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -409,7 +410,7 @@ namespace NuGet.PackageManagement.UI
         }
 
         // Save the settings of this doc window in the UIContext. Note that the settings
-        // are not guaranteed to be persisted. We need to call Model.Context.SaveSettings()
+        // are not guaranteed to be persisted. We need to call Model.Context.PersistSettings()
         // to persist the settings.
         public void SaveSettings()
         {
@@ -1080,10 +1081,11 @@ namespace NuGet.PackageManagement.UI
         private async void UpgradeButton_Click(object sender, RoutedEventArgs e)
         {
             var project = Model.Context.Projects.FirstOrDefault();
-            var packageDependencyInfos = await Model.Context.PackageManager.GetInstalledPackagesDependencyInfo(project, CancellationToken.None, includeUnresolved: true);
-            var upgradeInformationWindowModel = new UpgradeInformationWindowModel(project, packageDependencyInfos.ToList(), _nuGetProjectUpgradeCollapseDependencies);
-            await Model.Context.UIActionEngine.UpgradeNuGetProject(Model.UIController, upgradeInformationWindowModel);
-            _nuGetProjectUpgradeCollapseDependencies = upgradeInformationWindowModel.CollapseDependencies;
+            Debug.Assert(project != null);
+
+            _nuGetProjectUpgradeCollapseDependencies = await
+                Model.Context.UIActionEngine.UpgradeNuGetProject(Model.Context, Model.UIController, project,
+                    _nuGetProjectUpgradeCollapseDependencies);
         }
     }
 }

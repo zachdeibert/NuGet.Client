@@ -3,11 +3,11 @@
 namespace NuGet.PackageManagement.UI
 {
     /// <summary>
-    /// Interaction logic for UpgradeInformationWindow.xaml
+    /// Interaction logic for NuGetProjectUpgradeWindow.xaml
     /// </summary>
-    public partial class UpgradeInformationWindow : VsDialogWindow
+    public partial class NuGetProjectUpgradeWindow : VsDialogWindow
     {
-        public UpgradeInformationWindow()
+        public NuGetProjectUpgradeWindow()
         {
             InitializeComponent();
         }

@@ -12,8 +12,6 @@ using NuGet.Packaging.Core;
 using NuGet.ProjectManagement;
 using NuGet.Protocol.Core.Types;
 using System.Globalization;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
 using Task = System.Threading.Tasks.Task;
 
 namespace NuGet.PackageManagement.UI
@@ -88,37 +86,38 @@ namespace NuGet.PackageManagement.UI
             uiService.ProgressWindow.Log(ProjectManagement.MessageLevel.Info, string.Format(CultureInfo.CurrentCulture, Resources.Operation_TotalTime, stopWatch.Elapsed));
         }
 
-        public async Task UpgradeNuGetProject(INuGetUI uiService, UpgradeInformationWindowModel upgradeInformationWindowModel)
+        public async Task<bool> UpgradeNuGetProject(INuGetUIContext context, INuGetUI uiService, NuGetProject nuGetProject, bool collapseDependencies)
         {
+            var packagesDependencyInfo = await context.PackageManager.GetInstalledPackagesDependencyInfo(nuGetProject, CancellationToken.None, includeUnresolved: true);
+            var upgradeInformationWindowModel = new NuGetProjectUpgradeWindowModel(nuGetProject, packagesDependencyInfo.ToList(), collapseDependencies);
+
             var result = uiService.ShowNuGetUpgradeWindow(upgradeInformationWindowModel);
             if (!result)
             {
-                return;
+                return collapseDependencies;
             }
 
-            var progressDialogData = new ProgressDialogData("Upgrading Project", null, false, 0, 0);
-            using (var progressDialogSession = ProgressDialog.Start("NuGet Upgrader", progressDialogData, uiService))
+            collapseDependencies = upgradeInformationWindowModel.CollapseDependencies;
+
+            var progressDialogData = new ProgressDialogData(Resources.NuGetUpgrade_WaitMessage);
+            string backupLocation;
+            using (var progressDialogSession = ProgressDialog.Start(Resources.WindowTitle_NuGetUpgrader, progressDialogData, uiService))
             {
-                var token = progressDialogSession.UserCancellationToken;
+                var upgradeDependencyItems = upgradeInformationWindowModel.UpgradeDependencyItems;
                 var progress = progressDialogSession.Progress;
-                await NuGetProjectUpgrader.DoUpgrade(upgradeInformationWindowModel, progress, token);
-            }
+                var token = progressDialogSession.UserCancellationToken;
 
-            /*var waitDialogFactory = Package.GetGlobalService(typeof(SVsThreadedWaitDialogFactory)) as IVsThreadedWaitDialogFactory;
-            using (var waitDialogSession = waitDialogFactory.StartWaitDialog(
-                waitCaption: "NuGet Upgrader",
-                initialProgress: new ThreadedWaitDialogProgressData(
-                    "Upgrading Project",
-                    "This is the progress text",
-                    "This is the status bar text",
-                    isCancelable: true,
-                    currentStep: 0,
-                    totalSteps:0)))
-            {
-                var token = waitDialogSession.UserCancellationToken;
-                var progress = waitDialogSession.Progress;
-                await NuGetProjectUpgrader.DoUpgrade(upgradeInformationWindowModel, progress, token);
-            }*/
+                backupLocation = await NuGetProjectUpgrader.DoUpgrade(
+                    context,
+                    uiService,
+                    nuGetProject,
+                    upgradeDependencyItems,
+                    collapseDependencies,
+                    progress,
+                    token);
+            }
+            uiService.ShowNuGetUpgradeCompleteWindow(backupLocation);
+            return collapseDependencies;
         }
 
         /// <summary>
@@ -252,10 +251,13 @@ namespace NuGet.PackageManagement.UI
                     }*/
                 }
 
-                var accepted = await CheckLicenseAcceptanceAsync(uiService, results, token);
-                if (!accepted)
+                if (uiService.DisplayLicenseAcceptanceWindow)
                 {
-                    return;
+                    var accepted = await CheckLicenseAcceptanceAsync(uiService, results, token);
+                    if (!accepted)
+                    {
+                        return;
+                    }
                 }
 
                 if (!token.IsCancellationRequested)

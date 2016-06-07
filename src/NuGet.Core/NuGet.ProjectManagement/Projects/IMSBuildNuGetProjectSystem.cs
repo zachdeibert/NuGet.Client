@@ -22,6 +22,9 @@ namespace NuGet.ProjectManagement
         void RemoveFile(string path);
         bool FileExistsInProject(string path);
 
+        void Save();
+        void Reload();
+
         IList<string> SupportedPlatforms { get; }
 
         /// <summary>

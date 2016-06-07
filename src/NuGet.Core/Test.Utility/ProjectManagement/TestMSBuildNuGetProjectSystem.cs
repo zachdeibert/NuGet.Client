@@ -136,6 +136,16 @@ namespace Test.Utility
             return Files.Where(c => path.Equals(c, StringComparison.OrdinalIgnoreCase)).Any();
         }
 
+        public void Save()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Reload()
+        {
+            throw new NotImplementedException();
+        }
+
         public dynamic GetPropertyValue(string propertyName)
         {
             throw new NotImplementedException();
