@@ -106,9 +106,6 @@ namespace NuGetVSExtension
         private OutputConsoleLogger _outputConsoleLogger;
         private readonly HashSet<Uri> _credentialRequested;
 
-        private const string CSharpProjectGuildString = "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}";
-        private const string VBProjectGuidString = "{F184B08F-C81C-45F6-A57F-5ABD9991F28F}";
-
         public NuGetPackage()
         {
             ServiceLocator.InitializePackageServiceProvider(this);
@@ -1044,127 +1041,37 @@ namespace NuGetVSExtension
 
         private void BeforeQueryStatusForUpgradeNuGetProject(object sender, EventArgs args)
         {
-            OleMenuCommand command = (OleMenuCommand)sender;
+            ThreadHelper.JoinableTaskFactory.Run(async delegate
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            // Don't show command if experimental features aren't turned on
-            var settings = ServiceLocator.GetInstanceSafe<ISettings>();
-            var options = new ExperimentalFeatures(settings);
-            var areExperimentalFeaturesEnabled = options.Enabled;
+                var command = (OleMenuCommand)sender;
 
-            command.Visible = areExperimentalFeaturesEnabled && (IsPackageConfigInSupportedProjectSelected() || IsSupportedProjectWithPackagesConfigSelected());
-            command.Enabled = areExperimentalFeaturesEnabled && !ConsoleStatus.IsBusy && IsSolutionExistsAndNotDebuggingAndNotBuilding() && HasActiveLoadedSupportedProject;
+                // Don't show command if experimental features aren't turned on
+                var settings = ServiceLocator.GetInstanceSafe<ISettings>();
+                var options = new ExperimentalFeatures(settings);
+                var areExperimentalFeaturesEnabled = options.Enabled;
+
+                command.Visible = areExperimentalFeaturesEnabled && IsSolutionOpen  && IsProjectUpgradeable() && (IsPackagesConfigSelected() || IsProjectSelected());
+                command.Enabled = areExperimentalFeaturesEnabled && !ConsoleStatus.IsBusy && IsSolutionExistsAndNotDebuggingAndNotBuilding() && HasActiveLoadedSupportedProject;
+            });
         }
 
-        private bool IsSupportedProjectWithPackagesConfigSelected()
+        private bool IsSolutionOpen => _dte?.Solution != null && _dte.Solution.IsOpen;
+
+        private bool IsProjectUpgradeable()
         {
-            if (!IsProjectSelected())
-            {
-                return false;
-            }
-
-            Project project = EnvDTEProjectUtility.GetActiveProject(VsMonitorSelection);
-            if (!IsProjectSupportedForPackagesConfigConversion(project))
-            {
-                return false;
-            }
-
-            // Does the project contain a packages.config file?
-            var packagesConfigFile = EnvDTEProjectUtility.GetPackagesConfigFullPath(project);
-            return File.Exists(packagesConfigFile);
-        }
-
-        private bool IsProjectSupportedForPackagesConfigConversion(Project project = null)
-        {
-            // We only support C# and VB projects
-            project = project ?? EnvDTEProjectUtility.GetActiveProject(VsMonitorSelection);
-            var kind = project.Kind;
-            return kind == CSharpProjectGuildString || kind == VBProjectGuidString;
+            return NuGetProjectUpgradeHelper.IsNuGetProjectUpgradeable(null, EnvDTEProjectUtility.GetActiveProject(VsMonitorSelection));
         }
 
         private bool IsProjectSelected()
         {
-            if (VsMonitorSelection == null)
-            {
-                return false;
-            }
-
-            IntPtr hHierarchy = IntPtr.Zero;
-            IntPtr hContainer = IntPtr.Zero;
-            try
-            {
-                IVsMultiItemSelect multiItemSelect;
-                uint itemId;
-                if (VsMonitorSelection.GetCurrentSelection(out hHierarchy, out itemId, out multiItemSelect, out hContainer) != 0)
-                {
-                    return false;
-                }
-                return itemId == VSConstants.VSITEMID_ROOT;
-            }
-            finally
-            {
-                if (hHierarchy != IntPtr.Zero)
-                {
-                    Marshal.Release(hHierarchy);
-                }
-                if (hContainer != IntPtr.Zero)
-                {
-                    Marshal.Release(hContainer);
-                }
-            }
+            return NuGetProjectUpgradeHelper.IsProjectSelected(VsMonitorSelection);
         }
 
-        private bool IsPackageConfigInSupportedProjectSelected()
+        private bool IsPackagesConfigSelected()
         {
-            if (!IsProjectSupportedForPackagesConfigConversion())
-            {
-                return false;
-            }
-
-            var selectedFileName = GetSelectedFileName();
-            return !String.IsNullOrEmpty(selectedFileName) && Path.GetFileName(selectedFileName).ToLower() == "packages.config";
-        }
-
-        private string GetSelectedFileName()
-        {
-            if (VsMonitorSelection == null)
-            {
-                return String.Empty;
-            }
-
-            IntPtr hHierarchy = IntPtr.Zero;
-            IntPtr hContainer = IntPtr.Zero;
-            try
-            {
-                IVsMultiItemSelect multiItemSelect;
-                uint itemId;
-                if (VsMonitorSelection.GetCurrentSelection(out hHierarchy, out itemId, out multiItemSelect, out hContainer) != 0)
-                {
-                    return String.Empty;
-                }
-                if (itemId >= VSConstants.VSITEMID_SELECTION)
-                {
-                    return String.Empty;
-                }
-                IVsHierarchy hierarchy = Marshal.GetUniqueObjectForIUnknown(hHierarchy) as IVsHierarchy;
-                if (hierarchy == null)
-                {
-                    return String.Empty;
-                }
-                string fileName;
-                hierarchy.GetCanonicalName(itemId, out fileName);
-                return fileName;
-            }
-            finally
-            {
-                if (hHierarchy != IntPtr.Zero)
-                {
-                    Marshal.Release(hHierarchy);
-                }
-                if (hContainer != IntPtr.Zero)
-                {
-                    Marshal.Release(hContainer);
-                }
-            }
+            return NuGetProjectUpgradeHelper.IsPackagesConfigSelected(VsMonitorSelection);
         }
 
         private void BeforeQueryStatusForAddPackageDialog(object sender, EventArgs args)
@@ -1180,7 +1087,7 @@ namespace NuGetVSExtension
                 // This is actually true. All the menu commands under the 'Project Menu' do go away when no solution is open.
                 // If 'Manage NuGet Packages' is disabled but visible, 'Project' menu shows up just because 1 menu command is visible, even though, it is disabled
                 // So, make it invisible when no solution is open
-                command.Visible = (_dte != null && _dte.Solution != null && _dte.Solution.IsOpen);
+                command.Visible = IsSolutionOpen;
 
                 // Enable the 'Manage NuGet Packages' dialog menu
                 // a) if the console is NOT busy executing a command, AND

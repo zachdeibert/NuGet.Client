@@ -102,5 +102,10 @@ namespace StandaloneUI
         {
             // no-op
         }
+
+        public override bool IsNuGetProjectUpgradeable(NuGetProject project)
+        {
+            return false;
+        }
     }
 }

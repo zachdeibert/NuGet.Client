@@ -244,7 +244,7 @@ namespace NuGet.PackageManagement.UI
             {
                 await NuGetUIThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                var newValue = ShouldShowConvertProject();
+                var newValue = ShouldShowUpgradeProject();
                 if (newValue != _shouldShowUpgradeProject)
                 {
                     _shouldShowUpgradeProject = newValue;
@@ -253,9 +253,9 @@ namespace NuGet.PackageManagement.UI
             });
         }
 
-        private bool ShouldShowConvertProject()
+        private bool ShouldShowUpgradeProject()
         {
-            if (!_experimentalFeaturesEnabled && !StandaloneSwitch.IsRunningStandalone)
+            if (!_experimentalFeaturesEnabled)
             {
                 return false;
             }
@@ -274,14 +274,7 @@ namespace NuGet.PackageManagement.UI
 
             // We only support a single project
             var projects = Model.Context.Projects.ToList();
-            if (projects.Count != 1)
-            {
-                return false;
-            }
-
-            // The project must have a packages.config file
-            var msBuildNuGetProject = projects[0] as MSBuildNuGetProject;
-            return msBuildNuGetProject != null && File.Exists(msBuildNuGetProject.PackagesConfigNuGetProject.FullPath);
+            return projects.Count == 1 && Model.Context.IsNuGetProjectUpgradeable(projects[0]);
         }
 
         private void ExperimentalFeaturesEnabledChanged(object sender, EnabledChangedEventArgs enabledChangedEventArgs)

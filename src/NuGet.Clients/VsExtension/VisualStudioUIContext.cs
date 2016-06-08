@@ -61,5 +61,10 @@ namespace NuGetVSExtension
                 }
             }
         }
+
+        public override bool IsNuGetProjectUpgradeable(NuGetProject project)
+        {
+            return NuGetProjectUpgradeHelper.IsNuGetProjectUpgradeable(project);
+        }
     }
 }
