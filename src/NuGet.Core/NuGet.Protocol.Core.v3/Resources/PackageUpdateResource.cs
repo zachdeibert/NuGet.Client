@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -11,7 +14,6 @@ using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
-using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 
 namespace NuGet.Protocol.Core.Types
@@ -266,7 +268,7 @@ namespace NuGet.Protocol.Core.Types
                 response =>
                 {
                     response.EnsureSuccessStatusCode();
-                    NuGetHttpHeaderUtility.LogServerWarning(logger, response);
+                    response.LogServerWarning(logger);
 
                     return Task.FromResult(0);
                 },
@@ -303,7 +305,7 @@ namespace NuGet.Protocol.Core.Types
 
             if (hasApiKey)
             {
-                request.Headers.Add(NuGetHttpHeaderUtility.ApiKeyHeader, apiKey);
+                request.Headers.Add(ProtocolConstants.ApiKeyHeader, apiKey);
             }
 
             return request;
@@ -383,7 +385,7 @@ namespace NuGet.Protocol.Core.Types
 
                     if (hasApiKey)
                     {
-                        request.Headers.Add(NuGetHttpHeaderUtility.ApiKeyHeader, apiKey);
+                        request.Headers.Add(ProtocolConstants.ApiKeyHeader, apiKey);
                     }
 
                     return request;
@@ -391,7 +393,7 @@ namespace NuGet.Protocol.Core.Types
                 response =>
                 {
                     response.EnsureSuccessStatusCode();
-                    NuGetHttpHeaderUtility.LogServerWarning(logger, response);
+                    response.LogServerWarning(logger);
 
                     return Task.FromResult(0);
                 },

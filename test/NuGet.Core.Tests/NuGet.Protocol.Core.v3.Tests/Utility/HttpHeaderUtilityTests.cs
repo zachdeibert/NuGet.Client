@@ -1,16 +1,18 @@
-﻿using System.Net.Http;
-using NuGet.Protocol.Core.Types;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System.Net.Http;
 using NuGet.Test.Utility;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace NuGet.Protocol.Core.v3.Tests.Utility
 {
-    public class NuGetHttpHeaderUtilityTests
+    public class HttpResponseMessageExtensionsTests
     {
         private readonly ITestOutputHelper _output;
 
-        public NuGetHttpHeaderUtilityTests(ITestOutputHelper output)
+        public HttpResponseMessageExtensionsTests(ITestOutputHelper output)
         {
             _output = output;
         }
@@ -20,9 +22,9 @@ namespace NuGet.Protocol.Core.v3.Tests.Utility
         {
             var testLogger = new TestLogger();
             var response = new HttpResponseMessage();
-            response.Headers.Add(NuGetHttpHeaderUtility.WarningHeader, "test");
+            response.Headers.Add(ProtocolConstants.ServerWarningHeader, "test");
 
-            NuGetHttpHeaderUtility.LogServerWarning(testLogger, response);
+            response.LogServerWarning(testLogger);
 
             Assert.Equal(1, testLogger.Warnings);
 
