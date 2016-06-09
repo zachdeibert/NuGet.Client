@@ -1035,6 +1035,15 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Things to consider before upgrading to project.json..
+        /// </summary>
+        public static string Text_BeforeUpgradeConsiderations {
+            get {
+                return ResourceManager.GetString("Text_BeforeUpgradeConsiderations", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to by {0}.
         /// </summary>
         public static string Text_ByAuthor {

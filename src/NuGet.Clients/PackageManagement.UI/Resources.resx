@@ -399,6 +399,9 @@
   <data name="Text_LicenseAcceptance" xml:space="preserve">
     <value>License Acceptance</value>
   </data>
+  <data name="Text_BeforeUpgradeConsiderations" xml:space="preserve">
+    <value>Things to consider before upgrading to project.json.</value>
+  </data>
   <data name="Text_ProjectAnalysisResults" xml:space="preserve">
     <value>Project Analysis Results</value>
   </data>
