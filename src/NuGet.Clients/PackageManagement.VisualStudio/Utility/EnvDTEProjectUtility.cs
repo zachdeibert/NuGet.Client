@@ -1462,5 +1462,14 @@ namespace NuGet.PackageManagement.VisualStudio
             solution.GetProjectOfUniqueName(projectUniqueName, out projectHierarchy);
             return VsHierarchyUtility.GetProjectFromHierarchy(projectHierarchy);
         }
+
+        public static string GetFileName(EnvDTEProject envDTEProject)
+        {
+            return ThreadHelper.JoinableTaskFactory.Run(async delegate
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                return envDTEProject.FileName;
+            });
+        }
     }
 }

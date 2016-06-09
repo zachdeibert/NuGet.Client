@@ -147,6 +147,10 @@ namespace NuGet.PackageManagement.VisualStudio
             }
         }
 
+        private string _projectFileName;
+
+        public string ProjectFileName => _projectFileName ?? (_projectFileName = EnvDTEProjectUtility.GetFileName(EnvDTEProject));
+
         private NuGetFramework _targetFramework;
 
         public NuGetFramework TargetFramework

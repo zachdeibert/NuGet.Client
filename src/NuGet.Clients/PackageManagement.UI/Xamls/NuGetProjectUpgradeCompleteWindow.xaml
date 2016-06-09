@@ -15,20 +15,28 @@
   WindowStartupLocation="CenterOwner"
   Title="{x:Static nuget:Resources.WindowTitle_NuGetUpgrader}"
   SizeToContent="Height"
-  Width="480">
+  Width="560"
+  ResizeMode="NoResize">
 
   <Window.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <nuget:SharedResources />
       </ResourceDictionary.MergedDictionaries>
-      <nuget:StringFormatConverter
-        x:Key="StringFormatConverter" />
     </ResourceDictionary>
   </Window.Resources>
 
+  <Window.CommandBindings>
+    <CommandBinding
+      Command="{x:Static nuget:PackageManagerControlCommands.OpenExternalLink}"
+      Executed="ExecuteOpenExternalLink" />
+  </Window.CommandBindings>
+
   <Grid>
     <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
@@ -49,17 +57,35 @@
 
     <TextBlock
       Grid.Row="2"
-      Margin="12,4,12,4"
-      TextWrapping="Wrap">
-      <TextBlock.Text>
-        <MultiBinding Converter="{StaticResource StringFormatConverter}">
-          <Binding Source="{x:Static nuget:Resources.Text_UpgradeCompleteResolveProblems}" />
-          <Binding Path="BackupLocation" />
-        </MultiBinding>
-      </TextBlock.Text>
+      Margin="12,8,12,4"
+      TextWrapping="Wrap"
+      Text="{x:Static nuget:Resources.Text_UpgradeCompleteResolveProblemsBackup}" />
+
+    <TextBlock Grid.Row="3" Margin="12,4,12,8" TextWrapping="NoWrap" TextTrimming="WordEllipsis">
+      <Hyperlink
+        NavigateUri="{Binding BackupLocation, Mode=OneTime}"
+        Style="{StaticResource HyperlinkStyle}"
+        Command="{x:Static nuget:PackageManagerControlCommands.OpenExternalLink}">
+        <Run Text="{Binding BackupLocation, Mode=OneTime}" />
+      </Hyperlink>
     </TextBlock>
 
-    <Grid Grid.Row="3">
+    <TextBlock
+      Grid.Row="4"
+      Margin="12,4,12,4"
+      TextWrapping="Wrap"
+      Text="{x:Static nuget:Resources.Text_UpgradeCompleteResolveProblemsDirections}" />
+
+    <TextBlock Grid.Row="5" Margin="12,4,12,4" TextWrapping="Wrap">
+      <Hyperlink
+        NavigateUri="https://aka.ms/nugetupgradev1"
+        Style="{StaticResource HyperlinkStyle}"
+        Command="{x:Static nuget:PackageManagerControlCommands.OpenExternalLink}">
+        <Run Text="{x:Static nuget:Resources.Link_RevertNuGetProjectUpgrade}" />
+      </Hyperlink>
+    </TextBlock>
+
+    <Grid Grid.Row="6">
       <Grid.ColumnDefinitions>
         <ColumnDefinition />
         <ColumnDefinition Width="Auto" />

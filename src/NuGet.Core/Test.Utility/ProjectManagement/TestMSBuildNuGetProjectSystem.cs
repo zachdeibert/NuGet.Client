@@ -96,6 +96,11 @@ namespace Test.Utility
 
         public string ProjectName { get; }
 
+        public string ProjectFileName
+        {
+            get { throw new NotImplementedException(); }
+        }
+
         public string ProjectUniqueName
         {
             get { return ProjectName; }

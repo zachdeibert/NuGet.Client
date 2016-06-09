@@ -817,6 +817,15 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Reverting NuGet Project Upgrade.
+        /// </summary>
+        public static string Link_RevertNuGetProjectUpgrade {
+            get {
+                return ResourceManager.GetString("Link_RevertNuGetProjectUpgrade", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to (dependency of {0}).
         /// </summary>
         public static string NuGetUpgrade_PackageDependencyOf {
@@ -1359,16 +1368,25 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to If you run into any issues and would like to revert, we have backed up changed files to &apos;{0}&apos;. Follow the directions described in the following document to revert changes:.
+        ///   Looks up a localized string similar to If you run into any issues and would like to revert, we have backed up changed files to the following location:.
         /// </summary>
-        public static string Text_UpgradeCompleteResolveProblems {
+        public static string Text_UpgradeCompleteResolveProblemsBackup {
             get {
-                return ResourceManager.GetString("Text_UpgradeCompleteResolveProblems", resourceCulture);
+                return ResourceManager.GetString("Text_UpgradeCompleteResolveProblemsBackup", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Upgrade this project to NuGet 3.4 standard..
+        ///   Looks up a localized string similar to Follow the directions described in the following document to revert changes:.
+        /// </summary>
+        public static string Text_UpgradeCompleteResolveProblemsDirections {
+            get {
+                return ResourceManager.GetString("Text_UpgradeCompleteResolveProblemsDirections", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Upgrade this project from packages.config to project.json..
         /// </summary>
         public static string Text_UpgradeNuGetProjectDescription {
             get {
@@ -1377,7 +1395,7 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Upgrade Options.
+        ///   Looks up a localized string similar to Upgrade Options:.
         /// </summary>
         public static string Text_UpgradeOptions {
             get {

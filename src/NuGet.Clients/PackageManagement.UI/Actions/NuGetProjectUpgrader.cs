@@ -33,9 +33,16 @@ namespace NuGet.PackageManagement.UI
             var backupPath = Path.Combine(projectPath, "NuGetUpgradeBackup");
 
             Directory.CreateDirectory(backupPath);
+
+            // Backup packages.config
             var packagesConfigFullPath = msBuildNuGetProject.PackagesConfigNuGetProject.FullPath;
-            var targetPath = Path.GetFileName(packagesConfigFullPath);
-            File.Copy(packagesConfigFullPath, Path.Combine(backupPath, targetPath), true);
+            var packagesConfigFileName = Path.GetFileName(packagesConfigFullPath);
+            File.Copy(packagesConfigFullPath, Path.Combine(backupPath, packagesConfigFileName), true);
+
+            // Backup project file
+            var projectFullPath = msBuildNuGetProjectSystem.ProjectFileName;
+            var projectFileName = Path.GetFileName(projectFullPath);
+            File.Copy(projectFullPath, Path.Combine(backupPath, projectFileName), true);
 
             // 2. Uninstall all packages currently in packages.config
             var progressData = new ProgressDialogData(Resources.NuGetUpgrade_WaitMessage, Resources.NuGetUpgrade_Progress_Uninstalling);

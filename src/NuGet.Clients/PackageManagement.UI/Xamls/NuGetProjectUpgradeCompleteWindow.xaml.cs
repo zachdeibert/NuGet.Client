@@ -1,4 +1,7 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
+using System.Windows.Documents;
+using System.Windows.Input;
 
 namespace NuGet.PackageManagement.UI
 {
@@ -18,6 +21,16 @@ namespace NuGet.PackageManagement.UI
         private void OkButtonClicked(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void ExecuteOpenExternalLink(object sender, ExecutedRoutedEventArgs e)
+        {
+            var hyperlink = e.OriginalSource as Hyperlink;
+            if (hyperlink?.NavigateUri != null)
+            {
+                Process.Start(hyperlink.NavigateUri.AbsoluteUri);
+                e.Handled = true;
+            }
         }
     }
 }

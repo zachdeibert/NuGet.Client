@@ -116,7 +116,7 @@
         <CommandFlag>DynamicVisibility</CommandFlag>
         <Strings>
           <CommandName>cmdidUpgradeNuGetProject</CommandName>
-          <ButtonText>&amp;Upgrade to NuGet 3.4 Standard...</ButtonText>
+          <ButtonText>&amp;Upgrade packages.config to project.json...</ButtonText>
         </Strings>
       </Button>
 
