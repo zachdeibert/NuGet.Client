@@ -11,6 +11,7 @@ using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
+using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 
 namespace NuGet.Protocol.Core.Types
@@ -21,7 +22,6 @@ namespace NuGet.Protocol.Core.Types
     public class PackageUpdateResource : INuGetResource
     {
         private const string ServiceEndpoint = "/api/v2/package";
-        private const string ApiKeyHeader = "X-NuGet-ApiKey";
 
         private HttpSource _httpSource;
         private string _source;
@@ -266,6 +266,8 @@ namespace NuGet.Protocol.Core.Types
                 response =>
                 {
                     response.EnsureSuccessStatusCode();
+                    NuGetHttpHeaderUtility.LogServerWarning(logger, response);
+
                     return Task.FromResult(0);
                 },
                 logger,
@@ -301,7 +303,7 @@ namespace NuGet.Protocol.Core.Types
 
             if (hasApiKey)
             {
-                request.Headers.Add(ApiKeyHeader, apiKey);
+                request.Headers.Add(NuGetHttpHeaderUtility.ApiKeyHeader, apiKey);
             }
 
             return request;
@@ -381,7 +383,7 @@ namespace NuGet.Protocol.Core.Types
 
                     if (hasApiKey)
                     {
-                        request.Headers.Add(ApiKeyHeader, apiKey);
+                        request.Headers.Add(NuGetHttpHeaderUtility.ApiKeyHeader, apiKey);
                     }
 
                     return request;
@@ -389,6 +391,8 @@ namespace NuGet.Protocol.Core.Types
                 response =>
                 {
                     response.EnsureSuccessStatusCode();
+                    NuGetHttpHeaderUtility.LogServerWarning(logger, response);
+
                     return Task.FromResult(0);
                 },
                 logger,

@@ -281,6 +281,7 @@ namespace NuGet.Protocol
                 }
 
                 response.EnsureSuccessStatusCode();
+                NuGetHttpHeaderUtility.LogServerWarning(log, response);
 
                 var networkStream = await response.Content.ReadAsStreamAsync();
                 var timeoutStream = new DownloadTimeoutStream(uri.ToString(), networkStream, DownloadTimeout);
