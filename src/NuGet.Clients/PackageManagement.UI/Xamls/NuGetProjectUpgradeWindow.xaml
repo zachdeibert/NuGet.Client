@@ -37,7 +37,23 @@
             IsTabStop="False" />
         </StackPanel>
       </DataTemplate>
-      <DataTemplate x:Key="ResultsTemplate">
+      <ControlTemplate
+        x:Key="StandardItemsControlTemplate"
+            TargetType="{x:Type ItemsControl}">
+        <Border
+              BorderThickness="1"
+              BorderBrush="{DynamicResource {x:Static nuget:Brushes.BorderBrush}}">
+          <ScrollViewer
+                Padding="3"
+                Background="{DynamicResource {x:Static nuget:Brushes.ContentBrushKey}}"
+                CanContentScroll="True"
+                VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled">
+            <ItemsPresenter />
+          </ScrollViewer>
+        </Border>
+      </ControlTemplate>
+      <!-- <DataTemplate x:Key="ResultsTemplate">
         <StackPanel Margin="2,0,2,5">
           <TextBlock TextWrapping="Wrap">
             <Run Text="{Binding PackageDesc, Mode=OneTime}" FontWeight="Bold" />
@@ -45,7 +61,7 @@
             <Run Text="{Binding Status, Mode=OneTime}" />
           </TextBlock>
         </StackPanel>
-      </DataTemplate>
+      </DataTemplate> -->
     </ResourceDictionary>
   </Window.Resources>
 
@@ -92,24 +108,8 @@
         Visibility="{Binding AnalysisResults,Converter={StaticResource EnumerableToVisibilityConverter}}"
         IsTabStop="False"
         ItemsSource="{Binding AnalysisResults}"
-        ItemTemplate="{StaticResource AnalysisItemTemplate}">
-        <ItemsControl.Template>
-          <ControlTemplate
-            TargetType="{x:Type ItemsControl}">
-            <Border
-              BorderThickness="1"
-              BorderBrush="{DynamicResource {x:Static nuget:Brushes.BorderBrush}}">
-              <ScrollViewer
-                Padding="3"
-                Background="{DynamicResource {x:Static nuget:Brushes.ContentBrushKey}}"
-                CanContentScroll="True"
-                VerticalScrollBarVisibility="Auto"
-                HorizontalScrollBarVisibility="Disabled">
-                <ItemsPresenter />
-              </ScrollViewer>
-            </Border>
-          </ControlTemplate>
-        </ItemsControl.Template>
+        ItemTemplate="{StaticResource AnalysisItemTemplate}"
+        Template="{StaticResource StandardItemsControlTemplate}">
       </ItemsControl>
       <TextBlock
         Grid.Row="2"
@@ -129,14 +129,15 @@
         TextWrapping="Wrap" />
       <RadioButton
         Margin="0,3"
+        Foreground="{DynamicResource {x:Static nuget:Brushes.UIText}}"
         IsChecked="{Binding CollapseDependencies}"
         Content="{x:Static nuget:Resources.Radio_CollapseDepencies}" />
       <RadioButton
         Margin="0,3"
+        Foreground="{DynamicResource {x:Static nuget:Brushes.UIText}}"
         IsChecked="{Binding CollapseDependencies, Converter={StaticResource InverseBooleanConverter}}"
         Content="{x:Static nuget:Resources.Radio_FlattenDependencies}" />
     </StackPanel>
-
 
     <Grid
       Grid.Row="3"
@@ -155,25 +156,17 @@
       <ItemsControl
         Grid.Row="1"
         IsTabStop="False"
-        ItemsSource="{Binding Path=Packages}"
-        ItemTemplate="{StaticResource ResultsTemplate}">
-        <ItemsControl.Template>
-          <ControlTemplate
-            TargetType="{x:Type ItemsControl}">
-            <Border
-              BorderThickness="1"
-              BorderBrush="{DynamicResource {x:Static nuget:Brushes.BorderBrush}}">
-              <ScrollViewer
-                Padding="3"
-                Background="{DynamicResource {x:Static nuget:Brushes.ContentBrushKey}}"
-                CanContentScroll="True"
-                VerticalScrollBarVisibility="Auto"
-                HorizontalScrollBarVisibility="Disabled">
-                <ItemsPresenter />
-              </ScrollViewer>
-            </Border>
-          </ControlTemplate>
-        </ItemsControl.Template>
+        Template="{StaticResource StandardItemsControlTemplate}">
+        <ItemsControl.Items>
+          <StackPanel Visibility="{Binding Path=IncludedPackages, Converter={StaticResource EnumerableToVisibilityConverter}}">
+            <TextBlock FontWeight="Bold" Text="Included Packages" Margin="2,0" />
+            <ItemsControl Margin="10,0,0,5" ItemsSource="{Binding IncludedPackages}" IsTabStop="False" />
+          </StackPanel>
+          <StackPanel Visibility="{Binding Path=ExcludedPackages, Converter={StaticResource EnumerableToVisibilityConverter}}">
+            <TextBlock FontWeight="Bold" Text="Excluded Packages" Margin="2,0" />
+            <ItemsControl Margin="10,0,0,0" ItemsSource="{Binding ExcludedPackages}" IsTabStop="False" />
+          </StackPanel>
+        </ItemsControl.Items>
       </ItemsControl>
     </Grid>
 

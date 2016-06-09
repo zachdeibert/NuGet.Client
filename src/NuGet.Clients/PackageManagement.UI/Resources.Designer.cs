@@ -817,20 +817,11 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Excluded (dependency of {0}).
+        ///   Looks up a localized string similar to (dependency of {0}).
         /// </summary>
-        public static string NuGetUpgrade_PackageExcluded {
+        public static string NuGetUpgrade_PackageDependencyOf {
             get {
-                return ResourceManager.GetString("NuGetUpgrade_PackageExcluded", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Included.
-        /// </summary>
-        public static string NuGetUpgrade_PackageIncluded {
-            get {
-                return ResourceManager.GetString("NuGetUpgrade_PackageIncluded", resourceCulture);
+                return ResourceManager.GetString("NuGetUpgrade_PackageDependencyOf", resourceCulture);
             }
         }
         

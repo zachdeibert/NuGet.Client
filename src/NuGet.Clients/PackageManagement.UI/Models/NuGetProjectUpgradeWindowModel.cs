@@ -14,87 +14,78 @@ namespace NuGet.PackageManagement.UI
 {
     public class NuGetProjectUpgradeWindowModel : INotifyPropertyChanged
     {
+        private IEnumerable<string> _allPackages;
         private IEnumerable<PackageUpgradeIssues> _analysisResults;
-        private IEnumerable<NuGetProjectUpgradeDependencyItem> _upgradeDependencyItems;
-        private IEnumerable<NuGetProjectUpgradePackageStatus> _flatPackages;
-        private IEnumerable<NuGetProjectUpgradePackageStatus> _collapsedPackages;
         private bool _collapseDependencies;
+        private IEnumerable<string> _dependencyPackages;
+        private IEnumerable<string> _includedCollapsedPackages;
+        private IEnumerable<NuGetProjectUpgradeDependencyItem> _upgradeDependencyItems;
 
-        public NuGetProjectUpgradeWindowModel(NuGetProject project, IList<PackageDependencyInfo> packageDependencyInfos, bool collapseDependencies)
+        public NuGetProjectUpgradeWindowModel(NuGetProject project, IList<PackageDependencyInfo> packageDependencyInfos,
+            bool collapseDependencies)
         {
             PackageDependencyInfos = packageDependencyInfos;
             Project = project;
             _collapseDependencies = collapseDependencies;
         }
 
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public NuGetProject Project { get; }
 
         public IList<PackageDependencyInfo> PackageDependencyInfos { get; }
 
         // Changing CollapseDependencies updates the list of included packages
-        public bool CollapseDependencies {
-            get
-            {
-                return _collapseDependencies;
-            }
+        public bool CollapseDependencies
+        {
+            get { return _collapseDependencies; }
             set
             {
-                var isChanged = value != _collapseDependencies;
                 _collapseDependencies = value;
-                if (isChanged)
-                {
-                    OnPropertyChanged(nameof(Packages));
-                }
+                OnPropertyChanged(nameof(IncludedPackages));
+                OnPropertyChanged(nameof(ExcludedPackages));
             }
         }
 
-        public bool HasErrors
-        {
-            get { return AnalysisResults.Any(r => r.Issues.Any(i => i.IssueSeverity == NuGetProjectUpgradeIssueSeverity.Error)); }
-        }
+        public bool HasErrors => AnalysisResults.SelectMany(r => r.Issues).Any(i => i.Severity == NuGetProjectUpgradeIssueSeverity.Error);
 
         public IEnumerable<PackageUpgradeIssues> AnalysisResults => _analysisResults ?? (_analysisResults = GetNuGetUpgradeIssues());
 
-        public IEnumerable<NuGetProjectUpgradeDependencyItem> UpgradeDependencyItems => _upgradeDependencyItems ?? (_upgradeDependencyItems = GetUpgradeDependencyItems());
+        public IEnumerable<NuGetProjectUpgradeDependencyItem> UpgradeDependencyItems
+            => _upgradeDependencyItems ?? (_upgradeDependencyItems = GetUpgradeDependencyItems());
 
-        public IEnumerable<NuGetProjectUpgradePackageStatus> Packages => CollapseDependencies ? CollapsedPackages : FlatPackages;
+        public IEnumerable<string> IncludedPackages => CollapseDependencies ? IncludedCollapsedPackages : AllPackages;
 
-        private IEnumerable<NuGetProjectUpgradePackageStatus> CollapsedPackages => _collapsedPackages ?? (_collapsedPackages = GetCollapsedPackages());
+        public IEnumerable<string> ExcludedPackages => CollapseDependencies ? DependencyPackages : null;
 
-        private IEnumerable<NuGetProjectUpgradePackageStatus> FlatPackages => _flatPackages ?? (_flatPackages = GetFlatPackages());
+        private IEnumerable<string> DependencyPackages => _dependencyPackages ?? (_dependencyPackages = GetDependencyPackages());
 
-        private IEnumerable<NuGetProjectUpgradePackageStatus> GetCollapsedPackages()
+        private IEnumerable<string> AllPackages => _allPackages ?? (_allPackages = UpgradeDependencyItems.Select(d => d.Package.ToString()));
+
+        private IEnumerable<string> IncludedCollapsedPackages => _includedCollapsedPackages ?? (_includedCollapsedPackages = GetIncludedCollapsedPackages());
+
+        private IEnumerable<string> GetDependencyPackages()
         {
-            foreach (var upgradeDependencyItem in UpgradeDependencyItems)
-            {
-                string status;
-                if (upgradeDependencyItem.DependingPackages.Any())
-                {
-                    var dependingPackagesString = string.Join(", ", upgradeDependencyItem.DependingPackages.Select(p => p.ToString()));
-                    status = string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgrade_PackageExcluded, dependingPackagesString);
-                }
-                else
-                {
-                    status = Resources.NuGetUpgrade_PackageIncluded;
-                }
-                yield return new NuGetProjectUpgradePackageStatus(upgradeDependencyItem.Package.ToString(), status);
-            }
+            return UpgradeDependencyItems.Where(d => d.DependingPackages.Any()).Select(d => d.ToString());
         }
 
-        private IEnumerable<NuGetProjectUpgradePackageStatus> GetFlatPackages()
+        private IEnumerable<string> GetIncludedCollapsedPackages()
         {
-            return UpgradeDependencyItems.Select(d => new NuGetProjectUpgradePackageStatus(d.Package.ToString(), Resources.NuGetUpgrade_PackageIncluded));
+            return UpgradeDependencyItems
+                .Where(upgradeDependencyItem => !upgradeDependencyItem.DependingPackages.Any())
+                .Select(upgradeDependencyItem => upgradeDependencyItem.Package.ToString());
         }
 
         private IEnumerable<PackageUpgradeIssues> GetNuGetUpgradeIssues()
         {
-            var msBuildNuGetProject = (MSBuildNuGetProject)Project;
+            var msBuildNuGetProject = (MSBuildNuGetProject) Project;
             var framework = msBuildNuGetProject.MSBuildNuGetProjectSystem.TargetFramework;
             var folderNuGetProject = msBuildNuGetProject.FolderNuGetProject;
 
             foreach (var packageIdentity in PackageDependencyInfos)
             {
-                var packageUpgradeIssues = GetPackageUpgradeIssues(folderNuGetProject, packageIdentity, framework).ToList();
+                var packageUpgradeIssues =
+                    GetPackageUpgradeIssues(folderNuGetProject, packageIdentity, framework).ToList();
                 if (packageUpgradeIssues.Any())
                 {
                     yield return new PackageUpgradeIssues(packageIdentity, packageUpgradeIssues);
@@ -111,10 +102,10 @@ namespace NuGet.PackageManagement.UI
             var packagePath = folderNuGetProject.GetInstalledPackageFilePath(packageIdentity);
             if (string.IsNullOrEmpty(packagePath))
             {
-                yield return new PackageUpgradeIssue()
+                yield return new PackageUpgradeIssue
                 {
-                    IssueSeverity = NuGetProjectUpgradeIssueSeverity.Error,
-                    IssueDescription = Resources.NuGetUpgradeError_CannotFindPackage
+                    Severity = NuGetProjectUpgradeIssueSeverity.Error,
+                    Description = Resources.NuGetUpgradeError_CannotFindPackage
                 };
             }
             else
@@ -126,24 +117,29 @@ namespace NuGet.PackageManagement.UI
                     reader.GetContentItems());
                 if (MSBuildNuGetProjectSystemUtility.IsValid(contentFilesGroup) && contentFilesGroup.Items.Any())
                 {
-                    yield return new PackageUpgradeIssue()
+                    yield return new PackageUpgradeIssue
                     {
-                        IssueSeverity = NuGetProjectUpgradeIssueSeverity.Warning,
-                        IssueDescription = Resources.NuGetUpgradeWarning_HasContentFiles
+                        Severity = NuGetProjectUpgradeIssueSeverity.Warning,
+                        Description = Resources.NuGetUpgradeWarning_HasContentFiles
                     };
                 }
 
                 // Check if it has an install.ps1 file
-                var toolItemsGroup = MSBuildNuGetProjectSystemUtility.GetMostCompatibleGroup(framework, reader.GetToolItems());
+                var toolItemsGroup = MSBuildNuGetProjectSystemUtility.GetMostCompatibleGroup(framework,
+                    reader.GetToolItems());
                 toolItemsGroup = MSBuildNuGetProjectSystemUtility.Normalize(toolItemsGroup);
                 var isValid = MSBuildNuGetProjectSystemUtility.IsValid(toolItemsGroup);
-                var hasInstall = isValid && toolItemsGroup.Items.Any(p => p.EndsWith(Path.DirectorySeparatorChar + PowerShellScripts.Install,StringComparison.OrdinalIgnoreCase));
+                var hasInstall = isValid &&
+                                 toolItemsGroup.Items.Any(
+                                     p =>
+                                         p.EndsWith(Path.DirectorySeparatorChar + PowerShellScripts.Install,
+                                             StringComparison.OrdinalIgnoreCase));
                 if (hasInstall)
                 {
-                    yield return new PackageUpgradeIssue()
+                    yield return new PackageUpgradeIssue
                     {
-                        IssueSeverity = NuGetProjectUpgradeIssueSeverity.Warning,
-                        IssueDescription = Resources.NuGetUpgradeWarning_HasInstallScript
+                        Severity = NuGetProjectUpgradeIssueSeverity.Warning,
+                        Description = Resources.NuGetUpgradeWarning_HasInstallScript
                     };
                 }
             }
@@ -151,20 +147,24 @@ namespace NuGet.PackageManagement.UI
 
         private IEnumerable<NuGetProjectUpgradeDependencyItem> GetUpgradeDependencyItems()
         {
-            var upgradeDependencyItems = PackageDependencyInfos.Select(p => new NuGetProjectUpgradeDependencyItem(new PackageIdentity(p.Id, p.Version))).ToList();
+            var upgradeDependencyItems =
+                PackageDependencyInfos.Select(
+                    p => new NuGetProjectUpgradeDependencyItem(new PackageIdentity(p.Id, p.Version))).ToList();
             foreach (var packageDependencyInfo in PackageDependencyInfos)
             {
                 foreach (var dependency in packageDependencyInfo.Dependencies)
                 {
-                    var matchingDependencyItem = upgradeDependencyItems.FirstOrDefault(d => d.Package.Id == dependency.Id && d.Package.Version == dependency.VersionRange.MinVersion);
-                    matchingDependencyItem?.DependingPackages.Add(new PackageIdentity(packageDependencyInfo.Id, packageDependencyInfo.Version));
+                    var matchingDependencyItem =
+                        upgradeDependencyItems.FirstOrDefault(
+                            d =>
+                                d.Package.Id == dependency.Id && d.Package.Version == dependency.VersionRange.MinVersion);
+                    matchingDependencyItem?.DependingPackages.Add(new PackageIdentity(packageDependencyInfo.Id,
+                        packageDependencyInfo.Version));
                 }
             }
 
             return upgradeDependencyItems;
         }
-
-        public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {

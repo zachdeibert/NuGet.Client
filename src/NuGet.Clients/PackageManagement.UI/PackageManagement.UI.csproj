@@ -94,13 +94,9 @@
     <Compile Include="Models\NuGetProjectUpgradeDependencyItem.cs" />
     <Compile Include="Models\NuGetProjectUpgradeWindowModel.cs" />
     <Compile Include="Models\NuGetProjectUpgradeIssueSeverity.cs" />
-    <Compile Include="Models\NuGetProjectUpgradePackageStatus.cs" />
     <Compile Include="Resources\Domain.cs" />
     <Compile Include="Resources\Resources.xaml.cs">
       <DependentUpon>Resources.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Xamls\ConvertPackagesConfigIntroWindow.xaml.cs">
-      <DependentUpon>ConvertPackagesConfigIntroWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Xamls\NuGetProjectUpgradeCompleteWindow.xaml.cs">
       <DependentUpon>NuGetProjectUpgradeCompleteWindow.xaml</DependentUpon>
@@ -295,10 +291,6 @@
     <Page Include="Themes\generic.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Xamls\ConvertPackagesConfigIntroWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
     </Page>
     <Page Include="Xamls\NuGetProjectUpgradeCompleteWindow.xaml">
       <SubType>Designer</SubType>

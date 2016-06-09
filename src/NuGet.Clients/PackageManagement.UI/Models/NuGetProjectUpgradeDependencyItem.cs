@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using NuGet.Packaging.Core;
+using System.Globalization;
+using System.Linq;
 
 namespace NuGet.PackageManagement.UI
 {
@@ -12,6 +14,13 @@ namespace NuGet.PackageManagement.UI
         {
             Package = package;
             DependingPackages = dependingPackages ?? new List<PackageIdentity>();
+        }
+
+        public override string ToString()
+        {
+            return !DependingPackages.Any()
+                ? Package.ToString()
+                : Package + " " + string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgrade_PackageDependencyOf, string.Join(", ", DependingPackages));
         }
     }
 }

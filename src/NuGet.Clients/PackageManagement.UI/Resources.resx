@@ -252,9 +252,6 @@
   <data name="Text_NuGetUpgradeResolveErrorsBeforeUpgrading" xml:space="preserve">
     <value>You must resolve any errors before upgrading.</value>
   </data>
-  <data name="NuGetUpgrade_PackageIncluded" xml:space="preserve">
-    <value>Included</value>
-  </data>
   <data name="NuGetUpgrade_WaitMessage" xml:space="preserve">
     <value>Upgrading Project</value>
   </data>
@@ -267,8 +264,8 @@
   <data name="NuGetUpgrade_Progress_CreatingProjectJson" xml:space="preserve">
     <value>Creating project.json</value>
   </data>
-  <data name="NuGetUpgrade_PackageExcluded" xml:space="preserve">
-    <value>Excluded (dependency of {0})</value>
+  <data name="NuGetUpgrade_PackageDependencyOf" xml:space="preserve">
+    <value>(dependency of {0})</value>
   </data>
   <data name="NuGetUpgradeError_CannotFindPackage" xml:space="preserve">
     <value>Cannot find the package. Restore the project then try again.</value>
