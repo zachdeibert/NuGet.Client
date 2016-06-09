@@ -78,38 +78,6 @@ namespace NuGetVSExtension
                        .All(projectTypeGuid => !UnsupportedUpgradeProjectTypes.Contains(projectTypeGuid));
         }
 
-        internal static bool IsProjectSelected(IVsMonitorSelection vsMonitorSelection)
-        {
-            if (vsMonitorSelection == null)
-            {
-                return false;
-            }
-
-            var hHierarchy = IntPtr.Zero;
-            var hContainer = IntPtr.Zero;
-            try
-            {
-                IVsMultiItemSelect multiItemSelect;
-                uint itemId;
-                if (vsMonitorSelection.GetCurrentSelection(out hHierarchy, out itemId, out multiItemSelect, out hContainer) != 0)
-                {
-                    return false;
-                }
-                return itemId == VSConstants.VSITEMID_ROOT;
-            }
-            finally
-            {
-                if (hHierarchy != IntPtr.Zero)
-                {
-                    Marshal.Release(hHierarchy);
-                }
-                if (hContainer != IntPtr.Zero)
-                {
-                    Marshal.Release(hContainer);
-                }
-            }
-        }
-
         internal static bool IsPackagesConfigSelected(IVsMonitorSelection vsMonitorSelection)
         {
             var selectedFileName = GetSelectedFileName(vsMonitorSelection);

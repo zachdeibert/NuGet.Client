@@ -417,6 +417,10 @@ namespace NuGetVSExtension
                 OleMenuCommand upgradeNuGetProjectCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommand, null, BeforeQueryStatusForUpgradeNuGetProject, upgradeNuGetProjectCommandID);
                 _mcs.AddCommand(upgradeNuGetProjectCommand);
 
+                CommandID upgradePackagesConfigCommandID = new CommandID(GuidList.guidNuGetDialogCmdSet, PkgCmdIDList.cmdidUpgradePackagesConfig);
+                OleMenuCommand upgradePackagesConfigCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommand, null, BeforeQueryStatusForUpgradePackagesConfig, upgradePackagesConfigCommandID);
+                _mcs.AddCommand(upgradePackagesConfigCommand);
+
                 // menu command for opening Package Manager Console
                 CommandID toolwndCommandID = new CommandID(GuidList.guidNuGetConsoleCmdSet, PkgCmdIDList.cmdidPowerConsole);
                 OleMenuCommand powerConsoleExecuteCommand = new OleMenuCommand(ExecutePowerConsoleCommand, null, BeforeQueryStatusForPowerConsole, toolwndCommandID);
@@ -1041,6 +1045,7 @@ namespace NuGetVSExtension
 
         private void BeforeQueryStatusForUpgradeNuGetProject(object sender, EventArgs args)
         {
+            // Check whether to show context menu item for project or references, or in project menu
             ThreadHelper.JoinableTaskFactory.Run(async delegate
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -1052,9 +1057,29 @@ namespace NuGetVSExtension
                 var options = new ExperimentalFeatures(settings);
                 var areExperimentalFeaturesEnabled = options.Enabled;
 
-                command.Visible = areExperimentalFeaturesEnabled && IsSolutionOpen  && IsProjectUpgradeable() && (IsPackagesConfigSelected() || IsProjectSelected());
+                command.Visible = areExperimentalFeaturesEnabled && IsSolutionOpen && IsProjectUpgradeable();
                 command.Enabled = areExperimentalFeaturesEnabled && !ConsoleStatus.IsBusy && IsSolutionExistsAndNotDebuggingAndNotBuilding() && HasActiveLoadedSupportedProject;
             });
+        }
+
+        private void BeforeQueryStatusForUpgradePackagesConfig(object sender, EventArgs args)
+        {
+            // Check whether to show context menu item on packages.config
+            ThreadHelper.JoinableTaskFactory.Run(async delegate
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                var command = (OleMenuCommand)sender;
+
+                // Don't show command if experimental features aren't turned on
+                var settings = ServiceLocator.GetInstanceSafe<ISettings>();
+                var options = new ExperimentalFeatures(settings);
+                var areExperimentalFeaturesEnabled = options.Enabled;
+
+                command.Visible = areExperimentalFeaturesEnabled && IsSolutionOpen && IsProjectUpgradeable() && IsPackagesConfigSelected();
+                command.Enabled = areExperimentalFeaturesEnabled && !ConsoleStatus.IsBusy && IsSolutionExistsAndNotDebuggingAndNotBuilding() && HasActiveLoadedSupportedProject;
+            });
+
         }
 
         private bool IsSolutionOpen => _dte?.Solution != null && _dte.Solution.IsOpen;
@@ -1062,11 +1087,6 @@ namespace NuGetVSExtension
         private bool IsProjectUpgradeable()
         {
             return NuGetProjectUpgradeHelper.IsNuGetProjectUpgradeable(null, EnvDTEProjectUtility.GetActiveProject(VsMonitorSelection));
-        }
-
-        private bool IsProjectSelected()
-        {
-            return NuGetProjectUpgradeHelper.IsProjectSelected(VsMonitorSelection);
         }
 
         private bool IsPackagesConfigSelected()
