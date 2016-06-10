@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -9,6 +8,7 @@ using NuGet.Frameworks;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
 using NuGet.ProjectManagement;
+using NuGet.Versioning;
 
 namespace NuGet.PackageManagement.UI
 {
@@ -46,6 +46,8 @@ namespace NuGet.PackageManagement.UI
                 OnPropertyChanged(nameof(ExcludedPackages));
             }
         }
+
+        public double DefaultHeight => HasErrors ? 300 : 480;
 
         public bool HasErrors => AnalysisResults.SelectMany(r => r.Issues).Any(i => i.Severity == NuGetProjectUpgradeIssueSeverity.Error);
 
@@ -166,9 +168,53 @@ namespace NuGet.PackageManagement.UI
             return upgradeDependencyItems;
         }
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
+#if DEBUG
+        public NuGetProjectUpgradeWindowModel()
+        {
+            // This should only be called by the designer. Prepopulate design time sample values
+            _analysisResults = DesignTimeAnalysisResults;
+            _upgradeDependencyItems = DesignTimeUpgradeDependencyItems;
+            _collapseDependencies = true;
+        }
+
+        private static readonly PackageIdentity PackageOne = new PackageIdentity("Test.Package.One", new NuGetVersion("1.2.3"));
+        private static readonly PackageIdentity PackageTwo = new PackageIdentity("Test.Package.Two", new NuGetVersion("0.5.7"));
+
+        private static readonly IEnumerable<NuGetProjectUpgradeDependencyItem> DesignTimeUpgradeDependencyItems = new List<NuGetProjectUpgradeDependencyItem>
+        {
+            new NuGetProjectUpgradeDependencyItem(PackageOne),
+            new NuGetProjectUpgradeDependencyItem(PackageTwo, new List<PackageIdentity> {PackageOne})
+        };
+
+        private static readonly IEnumerable<PackageUpgradeIssues> DesignTimeAnalysisResults = new List<PackageUpgradeIssues>
+        {
+            // Don't include any errors, otherwise the bottom half of the dialog won't display
+            new PackageUpgradeIssues(PackageOne, new List<PackageUpgradeIssue> {GetHasContentFilesIssue()}),
+            new PackageUpgradeIssues(PackageTwo, new List<PackageUpgradeIssue> {GetHasContentFilesIssue(), GetHasInstallScriptIssue()})
+        };
+
+        private static PackageUpgradeIssue GetHasContentFilesIssue()
+        {
+            return new PackageUpgradeIssue
+            {
+                Severity = NuGetProjectUpgradeIssueSeverity.Warning,
+                Description = Resources.NuGetUpgradeWarning_HasContentFiles
+            };
+        }
+
+        private static PackageUpgradeIssue GetHasInstallScriptIssue()
+        {
+            return new PackageUpgradeIssue
+            {
+                Severity = NuGetProjectUpgradeIssueSeverity.Warning,
+                Description = Resources.NuGetUpgradeWarning_HasInstallScript
+            };
+        }
+#endif
     }
 }

@@ -45,10 +45,7 @@ namespace NuGet.PackageManagement.UI
 
             UIDispatcher.Invoke(() =>
             {
-                var upgradeInformationWindow = new NuGetProjectUpgradeWindow
-                {
-                    DataContext = nuGetProjectUpgradeWindowModel
-                };
+                var upgradeInformationWindow = new NuGetProjectUpgradeWindow(nuGetProjectUpgradeWindowModel);
 
                 result = upgradeInformationWindow.ShowModal() == true;
             });

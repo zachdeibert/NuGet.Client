@@ -2,12 +2,7 @@
 {
     public class PackageUpgradeIssue
     {
-        public string Description;
-        public NuGetProjectUpgradeIssueSeverity Severity;
-
-        public override string ToString()
-        {
-            return Severity + ": " + Description;
-        }
+        public string Description { get; set; }
+        public NuGetProjectUpgradeIssueSeverity Severity { get; set; }
     }
 }

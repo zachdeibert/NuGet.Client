@@ -10,8 +10,9 @@ namespace NuGet.PackageManagement.UI
     /// </summary>
     public partial class NuGetProjectUpgradeWindow : VsDialogWindow
     {
-        public NuGetProjectUpgradeWindow()
+        public NuGetProjectUpgradeWindow(NuGetProjectUpgradeWindowModel model)
         {
+            DataContext = model;
             InitializeComponent();
         }
 

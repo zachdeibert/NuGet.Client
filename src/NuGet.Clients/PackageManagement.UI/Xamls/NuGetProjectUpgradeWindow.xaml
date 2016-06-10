@@ -13,18 +13,51 @@
   ShowInTaskbar="False"
   WindowStartupLocation="CenterOwner"
   Title="{x:Static nuget:Resources.WindowTitle_NuGetUpgrader}"
+  Height="{Binding DefaultHeight, Mode=OneTime}"
+  MinHeight="{Binding DefaultHeight, Mode=OneTime}"
   MinWidth="640"
-  MinHeight="480"
   Width="640"
-  Height="480">
+  d:DataContext="{d:DesignInstance Type=nuget:NuGetProjectUpgradeWindowModel, IsDesignTimeCreatable=True}">
 
   <Window.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <nuget:SharedResources />
       </ResourceDictionary.MergedDictionaries>
+      <BitmapImage
+        x:Key="BitmapImageError"
+        UriSource="/NuGet.PackageManagement.UI;component/Resources/error.png" />
+      <BitmapImage
+        x:Key="BitmapImageWarning"
+        UriSource="/NuGet.PackageManagement.UI;component/Resources/warning.png" />
+      <DataTemplate x:Key="IssueItemTemplate" DataType="nuget:PackageUpgradeIssue">
+        <Grid Margin="0,1">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <ColumnDefinition></ColumnDefinition>
+          </Grid.ColumnDefinitions>
+
+          <Image
+            Grid.Column="0"
+            Margin="0,0,2,0"
+            Source="{StaticResource BitmapImageError}"
+            Height="16"
+            Width="16"
+            Visibility="{Binding Severity, Mode=OneTime, Converter={StaticResource UpgradeIssueSeverityToVisibilityConverter}, ConverterParameter={x:Static nuget:NuGetProjectUpgradeIssueSeverity.Error}}"/>
+          <Image
+            Grid.Column="0"
+            Margin="0,0,2,0"
+            Source="{StaticResource BitmapImageWarning}"
+            Height="16"
+            Width="16"
+            Visibility="{Binding Severity, Mode=OneTime, Converter={StaticResource UpgradeIssueSeverityToVisibilityConverter}, ConverterParameter={x:Static nuget:NuGetProjectUpgradeIssueSeverity.Warning}}"/>
+          <TextBlock
+            Grid.Column="1"
+            Text="{Binding Description, Mode=OneTime}"/>
+        </Grid>
+      </DataTemplate>
       <DataTemplate
-        x:Key="AnalysisItemTemplate">
+        x:Key="AnalysisItemTemplate" DataType="nuget:PackageUpgradeIssues">
         <StackPanel>
           <TextBlock
             FontWeight="Bold"
@@ -32,8 +65,9 @@
             TextWrapping="Wrap"
             Text="{Binding Package, Mode=OneTime}" />
           <ItemsControl
-            Margin="10,0,0,5"
-            ItemsSource="{Binding Path=Issues}"
+            Margin="2,0,0,5"
+            ItemsSource="{Binding Issues, Mode=OneTime}"
+            ItemTemplate="{StaticResource IssueItemTemplate}"
             IsTabStop="False" />
         </StackPanel>
       </DataTemplate>
@@ -68,7 +102,8 @@
       <RowDefinition Height="Auto" />
       <RowDefinition />
       <RowDefinition Height="Auto" />
-      <RowDefinition />
+      <RowDefinition
+        Height="{Binding HasErrors, Mode=OneTime, Converter={StaticResource InvertedBooleanToGridRowHeightConverter}}"/>
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
@@ -101,7 +136,7 @@
 
       <Border
         Grid.Row="1"
-        Visibility="{Binding AnalysisResults,Converter={StaticResource EmptyEnumerableToVisibilityConverter}}"
+        Visibility="{Binding AnalysisResults, Mode=OneTime, Converter={StaticResource EmptyEnumerableToVisibilityConverter}}"
         BorderThickness="1"
         Padding="3"
         BorderBrush="{DynamicResource {x:Static nuget:Brushes.BorderBrush}}"
@@ -112,9 +147,9 @@
 
       <ItemsControl
         Grid.Row="1"
-        Visibility="{Binding AnalysisResults,Converter={StaticResource EnumerableToVisibilityConverter}}"
+        Visibility="{Binding AnalysisResults, Mode=OneTime, Converter={StaticResource EnumerableToVisibilityConverter}}"
         IsTabStop="False"
-        ItemsSource="{Binding AnalysisResults}"
+        ItemsSource="{Binding AnalysisResults, Mode=OneTime}"
         ItemTemplate="{StaticResource AnalysisItemTemplate}"
         Template="{StaticResource StandardItemsControlTemplate}">
       </ItemsControl>
@@ -123,13 +158,13 @@
         Margin="0,2,0,0"
         Text="{x:Static nuget:Resources.Text_NuGetUpgradeResolveErrorsBeforeUpgrading}"
         Foreground="Red"
-        Visibility="{Binding Path=HasErrors, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        Visibility="{Binding HasErrors, Mode=OneTime, Converter={StaticResource BooleanToVisibilityConverter}}" />
     </Grid>
 
     <StackPanel
       Grid.Row="3"
       Margin="12,0"
-      Visibility="{Binding Path=HasErrors, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+      Visibility="{Binding HasErrors, Mode=OneTime, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
       <TextBlock
         Margin="0,3"
         Text="{x:Static nuget:Resources.Text_UpgradeOptions}"
@@ -149,7 +184,7 @@
     <Grid
       Grid.Row="4"
       Margin="12,8"
-      Visibility="{Binding Path=HasErrors, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+      Visibility="{Binding HasErrors, Mode=OneTime, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
 
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
@@ -165,13 +200,13 @@
         IsTabStop="False"
         Template="{StaticResource StandardItemsControlTemplate}">
         <ItemsControl.Items>
-          <StackPanel Visibility="{Binding Path=IncludedPackages, Converter={StaticResource EnumerableToVisibilityConverter}}">
+          <StackPanel Visibility="{Binding IncludedPackages, Converter={StaticResource EnumerableToVisibilityConverter}}">
             <TextBlock FontWeight="Bold" Text="Included Packages" Margin="2,0" />
-            <ItemsControl Margin="10,0,0,5" ItemsSource="{Binding IncludedPackages}" IsTabStop="False" />
+            <ItemsControl Margin="2,0,0,5" ItemsSource="{Binding IncludedPackages}" IsTabStop="False" />
           </StackPanel>
-          <StackPanel Visibility="{Binding Path=ExcludedPackages, Converter={StaticResource EnumerableToVisibilityConverter}}">
+          <StackPanel Visibility="{Binding ExcludedPackages, Converter={StaticResource EnumerableToVisibilityConverter}}">
             <TextBlock FontWeight="Bold" Text="Excluded Packages" Margin="2,0" />
-            <ItemsControl Margin="10,0,0,0" ItemsSource="{Binding ExcludedPackages}" IsTabStop="False" />
+            <ItemsControl Margin="2,0,0,0" ItemsSource="{Binding ExcludedPackages}" IsTabStop="False" />
           </StackPanel>
         </ItemsControl.Items>
       </ItemsControl>
@@ -193,7 +228,7 @@
         AutomationProperties.AutomationId="OkButton"
         IsDefault="True"
         Click="OkButtonClicked"
-        IsEnabled="{Binding Path=HasErrors, Mode=OneTime, Converter={StaticResource InverseBooleanConverter}}" />
+        IsEnabled="{Binding HasErrors, Mode=OneTime, Converter={StaticResource InverseBooleanConverter}}" />
       <Button
         Grid.Column="2"
         MinWidth="86"
