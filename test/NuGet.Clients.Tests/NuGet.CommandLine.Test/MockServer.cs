@@ -9,6 +9,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using NuGet.Protocol;
 
 namespace NuGet.CommandLine.Test
 {
@@ -47,6 +48,8 @@ namespace NuGet.CommandLine.Test
         public RouteTable Delete { get; } = new RouteTable();
 
         public string Uri { get { return PortReserver.BaseUri; } }
+
+        private List<string> ServerWarnings { get; } = new List<string>();
 
         /// <summary>
         /// Starts the mock server.
@@ -200,13 +203,13 @@ namespace NuGet.CommandLine.Test
             SetResponseContent(response, System.Text.Encoding.UTF8.GetBytes(text));
         }
 
-        void SetResponseNotFound(HttpListenerResponse response)
+        private static void SetResponseNotFound(HttpListenerResponse response)
         {
             response.StatusCode = (int)HttpStatusCode.NotFound;
             SetResponseContent(response, "404 not found");
         }
 
-        void GenerateResponse(HttpListenerContext context)
+        private void GenerateResponse(HttpListenerContext context)
         {
             var request = context.Request;
             HttpListenerResponse response = context.Response;
@@ -254,6 +257,11 @@ namespace NuGet.CommandLine.Test
                         {
                             response.StatusCode = (int)r;
                         }
+
+                        foreach (var warning in ServerWarnings)
+                        {
+                            response.Headers.Add(ProtocolConstants.ServerWarningHeader, warning);
+                        }
                     }
                     else
                     {
@@ -267,7 +275,7 @@ namespace NuGet.CommandLine.Test
             }
         }
 
-        void HandleRequest()
+        private void HandleRequest()
         {
             const int ERROR_OPERATION_ABORTED = 995;
             const int ERROR_INVALID_HANDLE = 6;
@@ -365,6 +373,22 @@ namespace NuGet.CommandLine.Test
             return doc.ToString();
         }
 
+        public void AddServerWarnings(string[] messages)
+        {
+            if (messages == null)
+            {
+                return;
+            }
+
+            foreach (var message in messages)
+            {
+                if (!string.IsNullOrEmpty(message))
+                {
+                    ServerWarnings.Add(message);
+                }
+            }
+        }
+
         public void Dispose()
         {
             if (!_disposed)
@@ -392,7 +416,7 @@ namespace NuGet.CommandLine.Test
     /// </remarks>
     public class RouteTable
     {
-        List<Tuple<string, Func<HttpListenerRequest, object>>> _mappings;
+        private readonly List<Tuple<string, Func<HttpListenerRequest, object>>> _mappings;
 
         public RouteTable()
         {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using NuGet.Test.Utility;
@@ -46,7 +47,7 @@ namespace NuGet.CommandLine.Test
                 // Arrange
                 var packageFileName = Util.CreateTestPackage("testPackage1", "1.1.0", source);
                 Assert.True(File.Exists(packageFileName));
-                File.SetAttributes(packageFileName, 
+                File.SetAttributes(packageFileName,
                     File.GetAttributes(packageFileName) | FileAttributes.ReadOnly);
                 // Act
                 string[] args = new string[] {
@@ -193,6 +194,56 @@ namespace NuGet.CommandLine.Test
                 // Assert
                 Assert.Equal(0, r.Item1);
                 Assert.True(deleteRequestIsCalled);
+            }
+        }
+
+        [Theory, MemberData(nameof(ServerWarningData))]
+        public void DeleteCommand_ShowsServerWarnings(string firstServerWarning, string secondServerWarning)
+        {
+            var serverWarnings = new[] { firstServerWarning, secondServerWarning };
+            var nugetexe = Util.GetNuGetExePath();
+
+            // Arrange
+            using (var server = new MockServer())
+            {
+                server.Start();
+
+                server.Delete.Add("/nuget/testPackage1/1.1", request => HttpStatusCode.OK);
+
+                server.AddServerWarnings(serverWarnings);
+
+                // Act
+                string[] args = new string[] {
+                    "delete", "testPackage1", "1.1.0",
+                    "-Source", server.Uri + "nuget", "-NonInteractive" };
+
+                var r = CommandRunner.Run(
+                    nugetexe,
+                    Directory.GetCurrentDirectory(),
+                    string.Join(" ", args),
+                    waitForExit: true);
+
+                // Assert
+                foreach (var serverWarning in serverWarnings)
+                {
+                    if (!string.IsNullOrEmpty(serverWarning))
+                    {
+                        Assert.Contains(serverWarning, r.Item2);
+                    }
+                }
+            }
+        }
+
+        public static IEnumerable<string[]> ServerWarningData
+        {
+            get
+            {
+                return new[]
+                {
+                    new string[] { null, null },
+                    new string[] { "Single server warning message", null},
+                    new string[] { "First of two server warning messages", "Second of two server warning messages"}
+                };
             }
         }
     }

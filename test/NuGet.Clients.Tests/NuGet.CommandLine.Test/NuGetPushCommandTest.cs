@@ -292,6 +292,49 @@ $@"<?xml version='1.0' encoding='utf-8'?>
             }
         }
 
+        [Theory]
+        [MemberData(nameof(ServerWarningData))]
+        public void PushCommand_LogsServerWarningsWhenPresent(string firstServerWarning, string secondServerWarning)
+        {
+            var serverWarnings = new[] { firstServerWarning, secondServerWarning };
+            var nugetexe = Util.GetNuGetExePath();
+
+            // Arrange
+            using (var packageDirectory = TestFileSystemUtility.CreateRandomTestFolder())
+            {
+                var packageFileName = Util.CreateTestPackage("testPackage1", "1.1.0", packageDirectory);
+                using (var server = new MockServer())
+                {
+                    server.Get.Add("/push", r => "OK");
+                    server.Put.Add("/push", r => HttpStatusCode.Created);
+
+                    server.AddServerWarnings(serverWarnings);
+
+                    server.Start();
+
+                    // Act
+                    string[] args = new string[]
+                    {"push", packageFileName, "-Source", server.Uri + "push", "-Apikey", "token"};
+                    var result = CommandRunner.Run(
+                        nugetexe,
+                        Directory.GetCurrentDirectory(),
+                        string.Join(" ", args),
+                        true);
+                    server.Stop();
+
+                    // Assert
+                    var output = result.Item2;
+                    foreach (var serverWarning in serverWarnings)
+                    {
+                        if (!string.IsNullOrEmpty(serverWarning))
+                        {
+                            Assert.Contains(serverWarning, output);
+                        }
+                    }
+                }
+            }
+        }
+
         [Fact]
         public void PushCommand_PushToServerNoSymbols()
         {
@@ -480,8 +523,8 @@ $@"<?xml version='1.0' encoding='utf-8'?>
 
         // Regression test for the bug that "nuget.exe push" will retry forever instead of asking for
         // user's password when NuGet.Server uses Windows Authentication.
-        [Fact(Skip = "TODO: reconstruct faked response headers which won't crash HttpClient. " + 
-            "Using real serevr, same sceanrio works fine")]
+        [Fact(Skip = "TODO: reconstruct faked response headers which won't crash HttpClient. " +
+            "Using real server, same scenario works fine")]
         public void PushCommand_PushToServerWontRetryForever()
         {
             var nugetexe = Util.GetNuGetExePath();
@@ -1875,6 +1918,19 @@ $@"<?xml version='1.0' encoding='utf-8'?>
             public static readonly string ProviderNotApplicableCode = "1";
             public static readonly string FailCode = "2";
 
+        }
+
+        public static IEnumerable<string[]> ServerWarningData
+        {
+            get
+            {
+                return new[]
+                {
+                    new string[] { null, null },
+                    new string[] { "Single server warning message", null},
+                    new string[] { "First of two server warning messages", "Second of two server warning messages"}
+                };
+            }
         }
     }
 }
