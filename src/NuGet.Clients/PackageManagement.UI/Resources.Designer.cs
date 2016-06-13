@@ -1305,6 +1305,15 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Review Changes for {0}.
+        /// </summary>
+        public static string Text_ReviewChangesForProject {
+            get {
+                return ResourceManager.GetString("Text_ReviewChangesForProject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Search ({0}).
         /// </summary>
         public static string Text_SearchBoxText {

@@ -33,8 +33,8 @@
       <DataTemplate x:Key="IssueItemTemplate" DataType="nuget:PackageUpgradeIssue">
         <Grid Margin="0,1">
           <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"></ColumnDefinition>
-            <ColumnDefinition></ColumnDefinition>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition />
           </Grid.ColumnDefinitions>
 
           <Image
@@ -43,17 +43,17 @@
             Source="{StaticResource BitmapImageError}"
             Height="16"
             Width="16"
-            Visibility="{Binding Severity, Mode=OneTime, Converter={StaticResource UpgradeIssueSeverityToVisibilityConverter}, ConverterParameter={x:Static nuget:NuGetProjectUpgradeIssueSeverity.Error}}"/>
+            Visibility="{Binding Severity, Mode=OneTime, Converter={StaticResource UpgradeIssueSeverityToVisibilityConverter}, ConverterParameter={x:Static nuget:NuGetProjectUpgradeIssueSeverity.Error}}" />
           <Image
             Grid.Column="0"
             Margin="0,0,2,0"
             Source="{StaticResource BitmapImageWarning}"
             Height="16"
             Width="16"
-            Visibility="{Binding Severity, Mode=OneTime, Converter={StaticResource UpgradeIssueSeverityToVisibilityConverter}, ConverterParameter={x:Static nuget:NuGetProjectUpgradeIssueSeverity.Warning}}"/>
+            Visibility="{Binding Severity, Mode=OneTime, Converter={StaticResource UpgradeIssueSeverityToVisibilityConverter}, ConverterParameter={x:Static nuget:NuGetProjectUpgradeIssueSeverity.Warning}}" />
           <TextBlock
             Grid.Column="1"
-            Text="{Binding Description, Mode=OneTime}"/>
+            Text="{Binding Description, Mode=OneTime}" />
         </Grid>
       </DataTemplate>
       <DataTemplate
@@ -73,16 +73,16 @@
       </DataTemplate>
       <ControlTemplate
         x:Key="StandardItemsControlTemplate"
-            TargetType="{x:Type ItemsControl}">
+        TargetType="{x:Type ItemsControl}">
         <Border
-              BorderThickness="1"
-              BorderBrush="{DynamicResource {x:Static nuget:Brushes.BorderBrush}}">
+          BorderThickness="1"
+          BorderBrush="{DynamicResource {x:Static nuget:Brushes.BorderBrush}}">
           <ScrollViewer
-                Padding="3"
-                Background="{DynamicResource {x:Static nuget:Brushes.ContentBrushKey}}"
-                CanContentScroll="True"
-                VerticalScrollBarVisibility="Auto"
-                HorizontalScrollBarVisibility="Disabled">
+            Padding="3"
+            Background="{DynamicResource {x:Static nuget:Brushes.ContentBrushKey}}"
+            CanContentScroll="True"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled">
             <ItemsPresenter />
           </ScrollViewer>
         </Border>
@@ -101,21 +101,44 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition />
-      <RowDefinition Height="Auto" />
       <RowDefinition
-        Height="{Binding HasErrors, Mode=OneTime, Converter={StaticResource InvertedBooleanToGridRowHeightConverter}}"/>
+        Height="{Binding HasErrors, Mode=OneTime, Converter={StaticResource InvertedBooleanToGridRowHeightConverter}}" />
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <TextBlock Grid.Row="0" Margin="12,8,12,0" TextWrapping="Wrap">
-      <Hyperlink
-        NavigateUri="https://aka.ms/nugetupgradev1"
-        Style="{StaticResource HyperlinkStyle}"
-        Command="{x:Static nuget:PackageManagerControlCommands.OpenExternalLink}">
-        <Run Text="{x:Static nuget:Resources.Text_BeforeUpgradeConsiderations}" />
-      </Hyperlink>
-    </TextBlock>    
-    
+    <StackPanel Grid.Row="0" Background="White">
+      <TextBlock
+        Margin="12,8,12,0"
+        Text="{Binding Title}"
+        FontSize="{Binding ElementName=_self,Path=FontSize,Converter={StaticResource Font122PercentSizeConverter}}" />
+
+      <TextBlock
+        Margin="12,8,12,0"
+        TextWrapping="Wrap"
+        Text="NuGet Upgrader is about to make changes to this project. Before upgrading, please read the following document:" />
+      <TextBlock Margin="12,0,12,4" TextWrapping="Wrap">
+        <Hyperlink
+          NavigateUri="https://aka.ms/nugetupgradev1"
+          Style="{StaticResource HyperlinkStyle}"
+          Command="{x:Static nuget:PackageManagerControlCommands.OpenExternalLink}">
+          <Run Text="{x:Static nuget:Resources.Text_BeforeUpgradeConsiderations}" />
+        </Hyperlink>
+      </TextBlock>
+      <TextBlock
+        Margin="12,4,12,0"
+        TextWrapping="Wrap"
+        Text="Changes can be reverted. Learn how to revert changes here:" />
+      <TextBlock Margin="12,0,12,4" TextWrapping="Wrap">
+        <Hyperlink
+          NavigateUri="https://aka.ms/nugetupgradev1"
+          Style="{StaticResource HyperlinkStyle}"
+          Command="{x:Static nuget:PackageManagerControlCommands.OpenExternalLink}">
+          <Run Text="{x:Static nuget:Resources.Link_RevertNuGetProjectUpgrade}" />
+        </Hyperlink>
+      </TextBlock>
+    </StackPanel>
+
     <TextBlock
       Grid.Row="1"
       Margin="12,8,12,0"
@@ -129,10 +152,30 @@
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
-      <TextBlock
-        Grid.Row="0"
-        Margin="0,0,0,4"
-        Text="{x:Static nuget:Resources.Text_NuGetUpgradeIssues}" />
+      <StackPanel Grid.Row="0" Orientation="Horizontal">
+        <TextBlock Margin="0,0,4,4" Text="{x:Static nuget:Resources.Text_NuGetUpgradeIssues}" />
+        <TextBlock Margin="4,0,4,4">
+          <Hyperlink
+            NavigateUri="DummyValue"
+            Style="{StaticResource HyperlinkStyle}">
+            <Run Text="5 Total" />
+          </Hyperlink>
+        </TextBlock>
+        <TextBlock Margin="4,0,4,4">
+          <Hyperlink
+            NavigateUri="DummyValue"
+            Style="{StaticResource HyperlinkStyle}">
+            <Run Text="3 Warnings" />
+          </Hyperlink>
+        </TextBlock>
+        <TextBlock Margin="4,0,4,4">
+          <Hyperlink
+            NavigateUri="DummyValue"
+            Style="{StaticResource HyperlinkStyle}">
+            <Run Text="2 Errors" />
+          </Hyperlink>
+        </TextBlock>
+      </StackPanel>
 
       <Border
         Grid.Row="1"
@@ -151,8 +194,7 @@
         IsTabStop="False"
         ItemsSource="{Binding AnalysisResults, Mode=OneTime}"
         ItemTemplate="{StaticResource AnalysisItemTemplate}"
-        Template="{StaticResource StandardItemsControlTemplate}">
-      </ItemsControl>
+        Template="{StaticResource StandardItemsControlTemplate}" />
       <TextBlock
         Grid.Row="2"
         Margin="0,2,0,0"
@@ -161,28 +203,8 @@
         Visibility="{Binding HasErrors, Mode=OneTime, Converter={StaticResource BooleanToVisibilityConverter}}" />
     </Grid>
 
-    <StackPanel
-      Grid.Row="3"
-      Margin="12,0"
-      Visibility="{Binding HasErrors, Mode=OneTime, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
-      <TextBlock
-        Margin="0,3"
-        Text="{x:Static nuget:Resources.Text_UpgradeOptions}"
-        TextWrapping="Wrap" />
-      <RadioButton
-        Margin="0,3"
-        Foreground="{DynamicResource {x:Static nuget:Brushes.UIText}}"
-        IsChecked="{Binding CollapseDependencies}"
-        Content="{x:Static nuget:Resources.Radio_CollapseDepencies}" />
-      <RadioButton
-        Margin="0,3"
-        Foreground="{DynamicResource {x:Static nuget:Brushes.UIText}}"
-        IsChecked="{Binding CollapseDependencies, Converter={StaticResource InverseBooleanConverter}}"
-        Content="{x:Static nuget:Resources.Radio_FlattenDependencies}" />
-    </StackPanel>
-
     <Grid
-      Grid.Row="4"
+      Grid.Row="3"
       Margin="12,8"
       Visibility="{Binding HasErrors, Mode=OneTime, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
 
@@ -200,17 +222,39 @@
         IsTabStop="False"
         Template="{StaticResource StandardItemsControlTemplate}">
         <ItemsControl.Items>
-          <StackPanel Visibility="{Binding IncludedPackages, Converter={StaticResource EnumerableToVisibilityConverter}}">
+          <StackPanel
+            Visibility="{Binding IncludedPackages, Converter={StaticResource EnumerableToVisibilityConverter}}">
             <TextBlock FontWeight="Bold" Text="Included Packages" Margin="2,0" />
             <ItemsControl Margin="2,0,0,5" ItemsSource="{Binding IncludedPackages}" IsTabStop="False" />
           </StackPanel>
-          <StackPanel Visibility="{Binding ExcludedPackages, Converter={StaticResource EnumerableToVisibilityConverter}}">
+          <StackPanel
+            Visibility="{Binding ExcludedPackages, Converter={StaticResource EnumerableToVisibilityConverter}}">
             <TextBlock FontWeight="Bold" Text="Excluded Packages" Margin="2,0" />
             <ItemsControl Margin="2,0,0,0" ItemsSource="{Binding ExcludedPackages}" IsTabStop="False" />
           </StackPanel>
         </ItemsControl.Items>
       </ItemsControl>
     </Grid>
+
+    <StackPanel
+      Grid.Row="4"
+      Margin="12,0"
+      Visibility="{Binding HasErrors, Mode=OneTime, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+      <TextBlock
+        Margin="0,3"
+        Text="{x:Static nuget:Resources.Text_UpgradeOptions}"
+        TextWrapping="Wrap" />
+      <RadioButton
+        Margin="0,3"
+        Foreground="{DynamicResource {x:Static nuget:Brushes.UIText}}"
+        IsChecked="{Binding CollapseDependencies}"
+        Content="{x:Static nuget:Resources.Radio_CollapseDepencies}" />
+      <RadioButton
+        Margin="0,3"
+        Foreground="{DynamicResource {x:Static nuget:Brushes.UIText}}"
+        IsChecked="{Binding CollapseDependencies, Converter={StaticResource InverseBooleanConverter}}"
+        Content="{x:Static nuget:Resources.Radio_FlattenDependencies}" />
+    </StackPanel>
 
     <Grid Grid.Row="5">
       <Grid.ColumnDefinitions>

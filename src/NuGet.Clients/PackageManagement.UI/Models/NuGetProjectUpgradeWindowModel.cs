@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -20,6 +21,7 @@ namespace NuGet.PackageManagement.UI
         private IEnumerable<string> _dependencyPackages;
         private IEnumerable<string> _includedCollapsedPackages;
         private IEnumerable<NuGetProjectUpgradeDependencyItem> _upgradeDependencyItems;
+        private string _projectName;
 
         public NuGetProjectUpgradeWindowModel(NuGetProject project, IList<PackageDependencyInfo> packageDependencyInfos,
             bool collapseDependencies)
@@ -32,6 +34,10 @@ namespace NuGet.PackageManagement.UI
         public event PropertyChangedEventHandler PropertyChanged;
 
         public NuGetProject Project { get; }
+
+        public string Title => string.Format(CultureInfo.CurrentCulture, Resources.Text_ReviewChangesForProject, ProjectName);
+
+        private string ProjectName => _projectName ?? (_projectName = NuGetProject.GetUniqueNameOrName(Project));
 
         public IList<PackageDependencyInfo> PackageDependencyInfos { get; }
 
@@ -47,7 +53,7 @@ namespace NuGet.PackageManagement.UI
             }
         }
 
-        public double DefaultHeight => HasErrors ? 300 : 480;
+        public double DefaultHeight => HasErrors ? 400 : 540;
 
         public bool HasErrors => AnalysisResults.SelectMany(r => r.Issues).Any(i => i.Severity == NuGetProjectUpgradeIssueSeverity.Error);
 
@@ -180,6 +186,7 @@ namespace NuGet.PackageManagement.UI
             _analysisResults = DesignTimeAnalysisResults;
             _upgradeDependencyItems = DesignTimeUpgradeDependencyItems;
             _collapseDependencies = true;
+            _projectName = "TestProject";
         }
 
         private static readonly PackageIdentity PackageOne = new PackageIdentity("Test.Package.One", new NuGetVersion("1.2.3"));

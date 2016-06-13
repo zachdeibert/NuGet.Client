@@ -393,6 +393,9 @@
   <data name="Text_ReviewChanges" xml:space="preserve">
     <value>Review Changes</value>
   </data>
+  <data name="Text_ReviewChangesForProject" xml:space="preserve">
+    <value>Review Changes for {0}</value>
+  </data>
   <data name="Text_Changes" xml:space="preserve">
     <value>Visual Studio is about to make changes to this solution. Click OK to proceed with the changes listed below.</value>
   </data>
