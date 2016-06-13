@@ -5,8 +5,7 @@ namespace NuGet.Protocol
 {
     public static class ProtocolConstants
     {
-
         public static readonly string ApiKeyHeader = "X-NuGet-ApiKey";
-        public static readonly string ServerWarningHeader = "NuGet-Warning";
+        public static readonly string ServerWarningHeader = "X-NuGet-Warning";
     }
 }

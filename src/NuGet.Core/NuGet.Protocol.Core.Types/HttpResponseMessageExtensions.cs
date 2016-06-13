@@ -11,12 +11,12 @@ namespace NuGet.Protocol
     {
         public static void LogServerWarning(this HttpResponseMessage response, ILogger log)
         {
-            if(log == null)
+            if (log == null)
             {
                 throw new ArgumentNullException(nameof(log));
             }
 
-            if(response == null)
+            if (response == null)
             {
                 throw new ArgumentNullException(nameof(response));
             }
