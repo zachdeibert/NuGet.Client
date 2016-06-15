@@ -498,8 +498,8 @@ Packages installed into Website projects will not be restored during build. Cons
   <data name="DoNotShowThisAgain" xml:space="preserve">
     <value>Do not show this again</value>
   </data>
-  <data name="Radio_CollapseDepencies" xml:space="preserve">
-    <value>Collapse depencies (recommended)</value>
+  <data name="Radio_CollapseDependencies" xml:space="preserve">
+    <value>Collapse dependencies (recommended)</value>
   </data>
   <data name="Radio_FlattenDependencies" xml:space="preserve">
     <value>Flatten dependencies</value>

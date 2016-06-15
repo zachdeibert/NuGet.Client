@@ -20,12 +20,17 @@ namespace NuGet.PackageManagement.UI
                 boolValue = !boolValue;
             }
 
-            return boolValue ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+            return boolValue ? GetGridLength(parameter) : new GridLength(0);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotSupportedException();
+        }
+
+        private static GridLength GetGridLength(object parameter)
+        {
+            return parameter as GridLength? ?? new GridLength(1, GridUnitType.Star);
         }
     }
 }

@@ -972,11 +972,11 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Collapse depencies (recommended).
+        ///   Looks up a localized string similar to Collapse dependencies (recommended).
         /// </summary>
-        public static string Radio_CollapseDepencies {
+        public static string Radio_CollapseDependencies {
             get {
-                return ResourceManager.GetString("Radio_CollapseDepencies", resourceCulture);
+                return ResourceManager.GetString("Radio_CollapseDependencies", resourceCulture);
             }
         }
         
