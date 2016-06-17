@@ -58,7 +58,7 @@ namespace NuGetVSExtension
     [ProvideOptionPage(typeof(GeneralOptionPage), "NuGet Package Manager", "General", 113, 115, true)]
     [ProvideSearchProvider(typeof(NuGetSearchProvider), "NuGet Search")]
     [ProvideBindingPath] // Definition dll needs to be on VS binding path
-    [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string)] // We need to be loaded when solution loads for code that conditionally adds menu items to run.
+    //[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string)] // We need to be loaded when solution loads for code that conditionally adds menu items to run.
     [ProvideAutoLoad(GuidList.guidAutoLoadNuGetString)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionBuilding_string)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.ProjectRetargeting_string)]
@@ -923,10 +923,29 @@ namespace NuGetVSExtension
                 await project.GetInstalledPackagesAsync(CancellationToken.None);
             }
 
-            var uiContextFactory = ServiceLocator.GetInstance<INuGetUIContextFactory>();
+            INuGetUIContextFactory uiContextFactory;
+            try
+            {
+                uiContextFactory = ServiceLocator.GetInstance<INuGetUIContextFactory>();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
             var uiContext = uiContextFactory.Create(this, projects);
 
-            var uiFactory = ServiceLocator.GetInstance<INuGetUIFactory>();
+            INuGetUIFactory uiFactory;
+
+            try
+            {
+                uiFactory = ServiceLocator.GetInstance<INuGetUIFactory>();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
             var uiController = uiFactory.Create(uiContext, _uiProjectContext);
 
             var solutionName = (string)_dte.Solution.Properties.Item("Name").Value;

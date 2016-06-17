@@ -48,10 +48,18 @@ namespace NuGet.PackageManagement.UI
             var progressData = new ProgressDialogData(Resources.NuGetUpgrade_WaitMessage, Resources.NuGetUpgrade_Progress_Uninstalling);
             progress.Report(progressData);
 
+            var solutionManager = context.SolutionManager;
+            var packagesWithDirectoriesToBeDeleted = new HashSet<PackageIdentity>();
             foreach (var upgradeDependencyItem in dependencyItems)
             {
-                await nuGetProject.UninstallPackageAsync(upgradeDependencyItem.Package, new EmptyNuGetProjectContext(), token);
+                var package = upgradeDependencyItem.Package;
+                await nuGetProject.UninstallPackageAsync(package, uiService.ProgressWindow, token);
+                if (!await NuGetPackageManager.PackageExistsInAnotherNuGetProject(nuGetProject, package, solutionManager, token, excludeIntegrated: true))
+                {
+                    packagesWithDirectoriesToBeDeleted.Add(package);
+                }
             }
+            await context.PackageManager.DeletePackageDirectoriesAsync(uiService.ProgressWindow, packagesWithDirectoriesToBeDeleted, token);
 
             // 3. Create stub project.json file
             progressData = new ProgressDialogData(Resources.NuGetUpgrade_WaitMessage, Resources.NuGetUpgrade_Progress_CreatingProjectJson);
@@ -105,7 +113,7 @@ namespace NuGet.PackageManagement.UI
             var uniqueName = msBuildNuGetProjectSystem.ProjectUniqueName;
             msBuildNuGetProjectSystem.Save();
             msBuildNuGetProjectSystem.Reload();
-            nuGetProject = context.SolutionManager.GetNuGetProject(uniqueName);
+            nuGetProject = solutionManager.GetNuGetProject(uniqueName);
 
             // Ensure we use the updated project for installing, and don't display preview or license acceptance windows.
             context.Projects = new[] {nuGetProject};
