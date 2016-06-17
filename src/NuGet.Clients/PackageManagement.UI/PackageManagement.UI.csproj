@@ -90,8 +90,6 @@
     <Compile Include="Models\LoadingStatusViewModel.cs" />
     <Compile Include="Models\PackageSearchMetadataCache.cs" />
     <Compile Include="Models\PackageSearchStatus.cs" />
-    <Compile Include="Models\PackageUpgradeIssue.cs" />
-    <Compile Include="Models\PackageUpgradeIssues.cs" />
     <Compile Include="Models\ProgressDialogModel.cs" />
     <Compile Include="Models\NuGetProjectUpgradeDependencyItem.cs" />
     <Compile Include="Models\NuGetProjectUpgradeWindowModel.cs" />
@@ -449,6 +447,9 @@
   <ItemGroup>
     <Resource Include="Resources\error.png" />
     <Resource Include="Resources\warning.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\information.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\..\..\build\common.targets" />

@@ -268,13 +268,13 @@
     <value>(dependency of {0})</value>
   </data>
   <data name="NuGetUpgradeError_CannotFindPackage" xml:space="preserve">
-    <value>Cannot find the package. Restore the project then try again.</value>
+    <value>{0} cannot be found.</value>
   </data>
   <data name="NuGetUpgradeWarning_HasContentFiles" xml:space="preserve">
-    <value>The package contains content files and may not work after upgrading.</value>
+    <value>{0} contains content files and may not work after upgrading.</value>
   </data>
   <data name="NuGetUpgradeWarning_HasInstallScript" xml:space="preserve">
-    <value>The package contains an install.ps1 script that will not be applied after upgrading.</value>
+    <value>{0} contains an install.ps1 script that will not be applied after upgrading.</value>
   </data>
   <data name="Text_IncludedPackages" xml:space="preserve">
     <value>Packages in project.json:</value>
@@ -393,8 +393,8 @@
   <data name="Text_ReviewChanges" xml:space="preserve">
     <value>Review Changes</value>
   </data>
-  <data name="Text_ReviewChangesForProject" xml:space="preserve">
-    <value>Review Changes for {0}</value>
+  <data name="Text_ChangesForProject" xml:space="preserve">
+    <value>Changes for {0}</value>
   </data>
   <data name="Text_Changes" xml:space="preserve">
     <value>Visual Studio is about to make changes to this solution. Click OK to proceed with the changes listed below.</value>

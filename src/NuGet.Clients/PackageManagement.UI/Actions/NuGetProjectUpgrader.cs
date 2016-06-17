@@ -15,7 +15,7 @@ namespace NuGet.PackageManagement.UI
 {
     internal static class NuGetProjectUpgrader
     {
-        internal static async Task<string> DoUpgrade(
+        internal static async Task<string> DoUpgradeAsync(
             INuGetUIContext context,
             INuGetUI uiService,
             NuGetProject nuGetProject,

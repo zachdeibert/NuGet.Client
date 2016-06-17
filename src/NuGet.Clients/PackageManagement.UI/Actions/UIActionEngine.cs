@@ -86,7 +86,7 @@ namespace NuGet.PackageManagement.UI
             uiService.ProgressWindow.Log(ProjectManagement.MessageLevel.Info, string.Format(CultureInfo.CurrentCulture, Resources.Operation_TotalTime, stopWatch.Elapsed));
         }
 
-        public async Task<bool> UpgradeNuGetProject(INuGetUIContext context, INuGetUI uiService, NuGetProject nuGetProject, bool collapseDependencies)
+        public static async Task<bool> UpgradeNuGetProjectAsync(INuGetUIContext context, INuGetUI uiService, NuGetProject nuGetProject, bool collapseDependencies)
         {
             var packagesDependencyInfo = await context.PackageManager.GetInstalledPackagesDependencyInfo(nuGetProject, CancellationToken.None, includeUnresolved: true);
             var upgradeInformationWindowModel = new NuGetProjectUpgradeWindowModel(nuGetProject, packagesDependencyInfo.ToList(), collapseDependencies);
@@ -107,7 +107,7 @@ namespace NuGet.PackageManagement.UI
                 var progress = progressDialogSession.Progress;
                 var token = progressDialogSession.UserCancellationToken;
 
-                backupLocation = await NuGetProjectUpgrader.DoUpgrade(
+                backupLocation = await NuGetProjectUpgrader.DoUpgradeAsync(
                     context,
                     uiService,
                     nuGetProject,

@@ -28,7 +28,7 @@ namespace NuGet.PackageManagement.UI
 
         private void ExecuteOpenExternalLink(object sender, ExecutedRoutedEventArgs e)
         {
-            var hyperlink = (Hyperlink) sender;
+            var hyperlink = (Hyperlink) e.OriginalSource;
             if (hyperlink.NavigateUri != null)
             {
                 Process.Start(hyperlink.NavigateUri.AbsoluteUri);

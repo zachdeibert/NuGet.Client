@@ -58,7 +58,7 @@ namespace NuGetVSExtension
     [ProvideOptionPage(typeof(GeneralOptionPage), "NuGet Package Manager", "General", 113, 115, true)]
     [ProvideSearchProvider(typeof(NuGetSearchProvider), "NuGet Search")]
     [ProvideBindingPath] // Definition dll needs to be on VS binding path
-    //[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string)] // We need to be loaded when solution loads for code that conditionally adds menu items to run.
+    [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string)] // We need to be loaded when solution loads for code that conditionally adds menu items to run.
     [ProvideAutoLoad(GuidList.guidAutoLoadNuGetString)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionBuilding_string)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.ProjectRetargeting_string)]
@@ -414,11 +414,11 @@ namespace NuGetVSExtension
             {
                 // menu command for upgrading to NuGet 3.4 (converting packages.config files to project.json)
                 CommandID upgradeNuGetProjectCommandID = new CommandID(GuidList.guidNuGetDialogCmdSet, PkgCmdIDList.cmdidUpgradeNuGetProject);
-                OleMenuCommand upgradeNuGetProjectCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommand, null, BeforeQueryStatusForUpgradeNuGetProject, upgradeNuGetProjectCommandID);
+                OleMenuCommand upgradeNuGetProjectCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommandAsync, null, BeforeQueryStatusForUpgradeNuGetProject, upgradeNuGetProjectCommandID);
                 _mcs.AddCommand(upgradeNuGetProjectCommand);
 
                 CommandID upgradePackagesConfigCommandID = new CommandID(GuidList.guidNuGetDialogCmdSet, PkgCmdIDList.cmdidUpgradePackagesConfig);
-                OleMenuCommand upgradePackagesConfigCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommand, null, BeforeQueryStatusForUpgradePackagesConfig, upgradePackagesConfigCommandID);
+                OleMenuCommand upgradePackagesConfigCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommandAsync, null, BeforeQueryStatusForUpgradePackagesConfig, upgradePackagesConfigCommandID);
                 _mcs.AddCommand(upgradePackagesConfigCommand);
 
                 // menu command for opening Package Manager Console
@@ -729,13 +729,13 @@ namespace NuGetVSExtension
             return windowFrame;
         }
 
-        private async void ExecuteUpgradeNuGetProjectCommand(object sender, EventArgs e)
+        private async void ExecuteUpgradeNuGetProjectCommandAsync(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            await ThreadHelper.JoinableTaskFactory.RunAsync(ExecuteUpgradeNuGetProjectCommandImpl);
+            await ThreadHelper.JoinableTaskFactory.RunAsync(ExecuteUpgradeNuGetProjectCommandImplAsync);
         }
 
-        private async Task ExecuteUpgradeNuGetProjectCommandImpl()
+        private async Task ExecuteUpgradeNuGetProjectCommandImplAsync()
         {
             var project = EnvDTEProjectUtility.GetActiveProject(VsMonitorSelection);
 
@@ -751,7 +751,7 @@ namespace NuGetVSExtension
             var collapseDependencies = settings.NuGetProjectUpgradeCollapseDependencies;
 
             collapseDependencies = await
-                uiContext.UIActionEngine.UpgradeNuGetProject(uiContext, uiController, nuGetProject,
+UIActionEngine.UpgradeNuGetProjectAsync(uiContext, uiController, nuGetProject,
                     collapseDependencies);
 
             settings.NuGetProjectUpgradeCollapseDependencies = collapseDependencies;

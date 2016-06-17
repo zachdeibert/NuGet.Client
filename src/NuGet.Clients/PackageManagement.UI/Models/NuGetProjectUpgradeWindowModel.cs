@@ -16,7 +16,6 @@ namespace NuGet.PackageManagement.UI
     public class NuGetProjectUpgradeWindowModel : INotifyPropertyChanged
     {
         private IEnumerable<string> _allPackages;
-        private IEnumerable<PackageUpgradeIssues> _analysisResults;
         private bool _collapseDependencies;
         private IEnumerable<string> _dependencyPackages;
         private IEnumerable<string> _includedCollapsedPackages;
@@ -35,7 +34,7 @@ namespace NuGet.PackageManagement.UI
 
         public NuGetProject Project { get; }
 
-        public string Title => string.Format(CultureInfo.CurrentCulture, Resources.Text_ReviewChangesForProject, ProjectName);
+        public string Title => string.Format(CultureInfo.CurrentCulture, Resources.Text_ChangesForProject, ProjectName);
 
         private string ProjectName => _projectName ?? (_projectName = NuGetProject.GetUniqueNameOrName(Project));
 
@@ -53,11 +52,31 @@ namespace NuGet.PackageManagement.UI
             }
         }
 
-        public double DefaultHeight => HasErrors ? 400 : 540;
+        public IEnumerable<string> Warnings
+        {
+            get
+            {
+                if (_warnings == null)
+                {
+                    InitPackageUpgradeIssues();
+                }
+                return _warnings;
+            }
+        }
 
-        public bool HasErrors => AnalysisResults.SelectMany(r => r.Issues).Any(i => i.Severity == NuGetProjectUpgradeIssueSeverity.Error);
+        public IEnumerable<string> Errors
+        {
+            get
+            {
+                if (_errors == null)
+                {
+                    InitPackageUpgradeIssues();
+                }
+                return _errors;
+            }
+        }
 
-        public IEnumerable<PackageUpgradeIssues> AnalysisResults => _analysisResults ?? (_analysisResults = GetNuGetUpgradeIssues());
+        public bool HasIssues => Errors.Any() || Warnings.Any();
 
         public IEnumerable<NuGetProjectUpgradeDependencyItem> UpgradeDependencyItems
             => _upgradeDependencyItems ?? (_upgradeDependencyItems = GetUpgradeDependencyItems());
@@ -84,37 +103,33 @@ namespace NuGet.PackageManagement.UI
                 .Select(upgradeDependencyItem => upgradeDependencyItem.Package.ToString());
         }
 
-        private IEnumerable<PackageUpgradeIssues> GetNuGetUpgradeIssues()
+        private IList<string> _warnings;
+        private IList<string> _errors;
+
+        private void InitPackageUpgradeIssues()
         {
-            var msBuildNuGetProject = (MSBuildNuGetProject) Project;
+            _warnings = new List<string>();
+            _errors = new List<string>();
+
+            var msBuildNuGetProject = (MSBuildNuGetProject)Project;
             var framework = msBuildNuGetProject.MSBuildNuGetProjectSystem.TargetFramework;
             var folderNuGetProject = msBuildNuGetProject.FolderNuGetProject;
 
-            foreach (var packageIdentity in PackageDependencyInfos)
+            foreach (var package in PackageDependencyInfos)
             {
-                var packageUpgradeIssues =
-                    GetPackageUpgradeIssues(folderNuGetProject, packageIdentity, framework).ToList();
-                if (packageUpgradeIssues.Any())
-                {
-                    yield return new PackageUpgradeIssues(packageIdentity, packageUpgradeIssues);
-                }
+                // We create a new PackageIdentity here, otherwise we would be passing in a PackageDependencyInfo
+                // which includes dependencies in its ToString().
+                InitPackageUpgradeIssues(folderNuGetProject, new PackageIdentity(package.Id, package.Version), framework);
             }
         }
 
-        private static IEnumerable<PackageUpgradeIssue> GetPackageUpgradeIssues(
-            FolderNuGetProject folderNuGetProject,
-            PackageIdentity packageIdentity,
-            NuGetFramework framework)
+        private void InitPackageUpgradeIssues(FolderNuGetProject folderNuGetProject, PackageIdentity packageIdentity, NuGetFramework framework)
         {
             // Confirm package exists
             var packagePath = folderNuGetProject.GetInstalledPackageFilePath(packageIdentity);
             if (string.IsNullOrEmpty(packagePath))
             {
-                yield return new PackageUpgradeIssue
-                {
-                    Severity = NuGetProjectUpgradeIssueSeverity.Error,
-                    Description = Resources.NuGetUpgradeError_CannotFindPackage
-                };
+                _errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgradeError_CannotFindPackage, packageIdentity));
             }
             else
             {
@@ -125,11 +140,7 @@ namespace NuGet.PackageManagement.UI
                     reader.GetContentItems());
                 if (MSBuildNuGetProjectSystemUtility.IsValid(contentFilesGroup) && contentFilesGroup.Items.Any())
                 {
-                    yield return new PackageUpgradeIssue
-                    {
-                        Severity = NuGetProjectUpgradeIssueSeverity.Warning,
-                        Description = Resources.NuGetUpgradeWarning_HasContentFiles
-                    };
+                    _warnings.Add(string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgradeWarning_HasContentFiles, packageIdentity));
                 }
 
                 // Check if it has an install.ps1 file
@@ -137,18 +148,10 @@ namespace NuGet.PackageManagement.UI
                     reader.GetToolItems());
                 toolItemsGroup = MSBuildNuGetProjectSystemUtility.Normalize(toolItemsGroup);
                 var isValid = MSBuildNuGetProjectSystemUtility.IsValid(toolItemsGroup);
-                var hasInstall = isValid &&
-                                 toolItemsGroup.Items.Any(
-                                     p =>
-                                         p.EndsWith(Path.DirectorySeparatorChar + PowerShellScripts.Install,
-                                             StringComparison.OrdinalIgnoreCase));
+                var hasInstall = isValid && toolItemsGroup.Items.Any( p => p.EndsWith(Path.DirectorySeparatorChar + PowerShellScripts.Install, StringComparison.OrdinalIgnoreCase));
                 if (hasInstall)
                 {
-                    yield return new PackageUpgradeIssue
-                    {
-                        Severity = NuGetProjectUpgradeIssueSeverity.Warning,
-                        Description = Resources.NuGetUpgradeWarning_HasInstallScript
-                    };
+                    _warnings.Add(string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgradeWarning_HasInstallScript, packageIdentity));
                 }
             }
         }
@@ -183,10 +186,20 @@ namespace NuGet.PackageManagement.UI
         public NuGetProjectUpgradeWindowModel()
         {
             // This should only be called by the designer. Prepopulate design time sample values
-            _analysisResults = DesignTimeAnalysisResults;
+            //_analysisResults = DesignTimeAnalysisResults;
             _upgradeDependencyItems = DesignTimeUpgradeDependencyItems;
             _collapseDependencies = true;
             _projectName = "TestProject";
+            _errors = new List<string>
+            {
+                string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgradeError_CannotFindPackage, PackageTwo)
+            };
+            _warnings = new List<string>
+            {
+                string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgradeWarning_HasContentFiles, PackageOne),
+                string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgradeWarning_HasInstallScript, PackageOne),
+                string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgradeWarning_HasInstallScript, PackageThree)
+            };
         }
 
         private static readonly PackageIdentity PackageOne = new PackageIdentity("Test.Package.One", new NuGetVersion("1.2.3"));
@@ -200,7 +213,7 @@ namespace NuGet.PackageManagement.UI
             new NuGetProjectUpgradeDependencyItem(PackageThree, new List<PackageIdentity> {PackageOne, PackageTwo})
         };
 
-        private static readonly IEnumerable<PackageUpgradeIssues> DesignTimeAnalysisResults = new List<PackageUpgradeIssues>
+        /*private static readonly IEnumerable<PackageUpgradeIssues> DesignTimeAnalysisResults = new List<PackageUpgradeIssues>
         {
             // Don't include any errors, otherwise the bottom half of the dialog won't display
             new PackageUpgradeIssues(PackageOne, new List<PackageUpgradeIssue> {GetHasContentFilesIssue()}),
@@ -223,7 +236,7 @@ namespace NuGet.PackageManagement.UI
                 Severity = NuGetProjectUpgradeIssueSeverity.Warning,
                 Description = Resources.NuGetUpgradeWarning_HasInstallScript
             };
-        }
+        }*/
 #endif
     }
 }

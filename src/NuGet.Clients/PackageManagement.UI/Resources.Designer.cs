@@ -871,7 +871,7 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cannot find the package. Restore the project then try again..
+        ///   Looks up a localized string similar to {0} cannot be found..
         /// </summary>
         public static string NuGetUpgradeError_CannotFindPackage {
             get {
@@ -880,7 +880,7 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The package contains content files and may not work after upgrading..
+        ///   Looks up a localized string similar to {0} contains content files and may not work after upgrading..
         /// </summary>
         public static string NuGetUpgradeWarning_HasContentFiles {
             get {
@@ -889,7 +889,7 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The package contains an install.ps1 script that will not be applied after upgrading..
+        ///   Looks up a localized string similar to {0} contains an install.ps1 script that will not be applied after upgrading..
         /// </summary>
         public static string NuGetUpgradeWarning_HasInstallScript {
             get {
@@ -1058,6 +1058,15 @@ namespace NuGet.PackageManagement.UI {
         public static string Text_Changes {
             get {
                 return ResourceManager.GetString("Text_Changes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Changes for {0}.
+        /// </summary>
+        public static string Text_ChangesForProject {
+            get {
+                return ResourceManager.GetString("Text_ChangesForProject", resourceCulture);
             }
         }
         
@@ -1301,15 +1310,6 @@ namespace NuGet.PackageManagement.UI {
         public static string Text_ReviewChanges {
             get {
                 return ResourceManager.GetString("Text_ReviewChanges", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Review Changes for {0}.
-        /// </summary>
-        public static string Text_ReviewChangesForProject {
-            get {
-                return ResourceManager.GetString("Text_ReviewChangesForProject", resourceCulture);
             }
         }
         

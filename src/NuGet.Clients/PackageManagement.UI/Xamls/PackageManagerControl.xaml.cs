@@ -1077,7 +1077,7 @@ namespace NuGet.PackageManagement.UI
             Debug.Assert(project != null);
 
             _nuGetProjectUpgradeCollapseDependencies = await
-                Model.Context.UIActionEngine.UpgradeNuGetProject(Model.Context, Model.UIController, project,
+                    UIActionEngine.UpgradeNuGetProjectAsync(Model.Context, Model.UIController, project,
                     _nuGetProjectUpgradeCollapseDependencies);
         }
     }
