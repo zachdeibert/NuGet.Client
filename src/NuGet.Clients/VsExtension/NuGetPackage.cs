@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -58,7 +57,27 @@ namespace NuGetVSExtension
     [ProvideOptionPage(typeof(GeneralOptionPage), "NuGet Package Manager", "General", 113, 115, true)]
     [ProvideSearchProvider(typeof(NuGetSearchProvider), "NuGet Search")]
     [ProvideBindingPath] // Definition dll needs to be on VS binding path
-    [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string)] // We need to be loaded when solution loads for code that conditionally adds menu items to run.
+
+    // UI Context rule for packages.config being selected
+    [ProvideUIContextRule(GuidList.guidPackagesConfigSelectedString,
+        "PackagesConfigSelected",
+        "SolutionExistsAndNotBuildingAndNotDebugging & SolutionExistsAndFullyLoaded & PackagesConfig",
+        new[] { "SolutionExistsAndNotBuildingAndNotDebugging", "SolutionExistsAndFullyLoaded", "PackagesConfig" },
+        new[] { VSConstants.UICONTEXT.SolutionExistsAndNotBuildingAndNotDebugging_string,
+            VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string,
+            @"HierSingleSelectionName:packages\.config$" })]
+
+    [ProvideUIContextRule(GuidList.guidUpgradeableProjectLoadedString,
+        "NuGetExperimentalFeaturesActive",
+        "SolutionExistsAndLoaded & ExperimentalFeatures & (CSProject | VBProject) & !UnsupportedProjectCapabilities",
+        new[] { "SolutionExistsAndLoaded", "ExperimentalFeatures", "CSProject", "VBProject", "UnsupportedProjectCapabilities" },
+        new[] { VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string,
+            @"UserSettingsStoreQuery:UserSettings\NuGet\ExperimentalFeatures",
+            "ActiveProjectFlavor:" + NuGetVSConstants.CsharpProjectTypeGuid,
+            "ActiveProjectFlavor:" + NuGetVSConstants.VbProjectTypeGuid,
+            "ActiveProjectCapability:SharedAssetsProject"})]
+
+    [ProvideAutoLoad(GuidList.guidUpgradeableProjectLoadedString)]
     [ProvideAutoLoad(GuidList.guidAutoLoadNuGetString)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionBuilding_string)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.ProjectRetargeting_string)]
