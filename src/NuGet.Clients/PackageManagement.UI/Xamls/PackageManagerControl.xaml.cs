@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,8 +19,6 @@ using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
 using Resx = NuGet.PackageManagement.UI;
 using Microsoft.VisualStudio.Threading;
-using NuGet.Configuration;
-using NuGet.PackageManagement.VisualStudio;
 
 namespace NuGet.PackageManagement.UI
 {
@@ -151,7 +148,8 @@ namespace NuGet.PackageManagement.UI
 
             Model.Context.SourceProvider.PackageSourceProvider.PackageSourcesChanged += Sources_PackageSourcesChanged;
 
-            UpdateUpgradeProjectVisibility(nugetSettings);
+            _experimentalFeaturesEnabled = ExperimentalFeatures.IsEnabled;
+            UpdateUpgradeProjectVisibility();
             Unloaded += PackageManagerUnloaded;
             ExperimentalFeatures.EnabledChanged += ExperimentalFeaturesEnabledChanged;
 
@@ -230,12 +228,6 @@ namespace NuGet.PackageManagement.UI
             {
                 _topPanel.SelectFilter(settings.SelectedFilter);
             }
-        }
-
-        private void UpdateUpgradeProjectVisibility(ISettings nugetSettings)
-        {
-            _experimentalFeaturesEnabled = new ExperimentalFeatures(nugetSettings).Enabled;
-            UpdateUpgradeProjectVisibility();
         }
 
         private void UpdateUpgradeProjectVisibility()

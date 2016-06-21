@@ -4,9 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Windows.Forms;
-using Microsoft.VisualStudio.Settings;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Settings;
+using NuGet.PackageManagement.UI;
 using NuGet.PackageManagement.VisualStudio;
 
 namespace NuGet.Options
@@ -15,9 +13,6 @@ namespace NuGet.Options
     {
         private readonly Configuration.ISettings _settings;
         private bool _initialized;
-
-        private const string SettingsStorePath = @"UserSettings\NuGet";
-        private const string ExperimentalFeaturesPropertyName = "ExperimentalFeatures";
 
         public GeneralOptionControl()
         {
@@ -43,7 +38,7 @@ namespace NuGet.Options
                     var bindingRedirects = new BindingRedirectBehavior(_settings);
                     skipBindingRedirects.Checked = bindingRedirects.IsSkipped;
 
-                    enableExperimentalFeaturesCheckBox.Checked = ExperimentalFeaturesEnabled;
+                    enableExperimentalFeaturesCheckBox.Checked = ExperimentalFeatures.IsEnabled;
                 }
                 catch(InvalidOperationException)
                 {
@@ -69,7 +64,7 @@ namespace NuGet.Options
                 var bindingRedirects = new BindingRedirectBehavior(_settings);
                 bindingRedirects.IsSkipped = skipBindingRedirects.Checked;
 
-                ExperimentalFeaturesEnabled = enableExperimentalFeaturesCheckBox.Checked;
+                ExperimentalFeatures.IsEnabled = enableExperimentalFeaturesCheckBox.Checked;
             }
             catch (InvalidOperationException)
             {
@@ -106,44 +101,6 @@ namespace NuGet.Options
             if (!packageRestoreConsentCheckBox.Checked)
             {
                 packageRestoreAutomaticCheckBox.Checked = false;
-            }
-        }
-
-        private static bool ExperimentalFeaturesEnabled
-        {
-            get
-            {
-                var settingsManager = new ShellSettingsManager(ServiceProvider.GlobalProvider);
-                var settingsStore = settingsManager.GetReadOnlySettingsStore(SettingsScope.UserSettings);
-                EnsureNuGetSettingsCollectionExists();
-                return settingsStore.GetBoolean(SettingsStorePath, ExperimentalFeaturesPropertyName);
-            }
-            set
-            {
-                // This is stored as a Visual Studio settings so we can use it in a UIContext rule.
-                var settingsManager = new ShellSettingsManager(ServiceProvider.GlobalProvider);
-                var settingsStore = settingsManager.GetWritableSettingsStore(SettingsScope.UserSettings);
-                EnsureNuGetSettingsCollectionExists(settingsStore);
-                settingsStore.SetBoolean(SettingsStorePath, ExperimentalFeaturesPropertyName, value);
-            }
-        }
-
-        private static void EnsureNuGetSettingsCollectionExists(WritableSettingsStore settingsStore = null)
-        {
-            if (settingsStore == null)
-            {
-                var settingsManager = new ShellSettingsManager(ServiceProvider.GlobalProvider);
-                settingsStore = settingsManager.GetWritableSettingsStore(SettingsScope.UserSettings);
-            }
-
-            if (!settingsStore.CollectionExists(SettingsStorePath))
-            {
-                settingsStore.CreateCollection(SettingsStorePath);
-            }
-
-            if (!settingsStore.PropertyExists(SettingsStorePath, ExperimentalFeaturesPropertyName))
-            {
-                settingsStore.SetBoolean(SettingsStorePath, ExperimentalFeaturesPropertyName, false);
             }
         }
     }

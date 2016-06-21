@@ -177,7 +177,6 @@
   </Commands>
 
   <VisibilityConstraints>
-    <VisibilityItem guid="guidDialogCmdSet" id="cmdidUpgradePackagesConfig" context="UICONTEXT_PackagesConfigSelected" />
     <VisibilityItem guid="guidDialogCmdSet" id="cmdidAddPackages" context="UICONTEXT_SolutionExistsAndNotBuildingAndNotDebugging" />
     <VisibilityItem guid="guidDialogCmdSet" id="cmdidAddPackagesForSolution" context="UICONTEXT_SolutionExistsAndNotBuildingAndNotDebugging" />
     <VisibilityItem guid="guidDialogCmdSet" id="cmdidRestorePackages" context="UICONTEXT_SolutionExistsAndNotBuildingAndNotDebugging" />
@@ -280,7 +279,6 @@
     <GuidSymbol name="guidReferenceContext" value="{D309F791-903F-11D0-9EFC-00A0C911004F}">
       <IdSymbol name="cmdAddReferenceGroup" value="0x450" />
     </GuidSymbol>
-    <GuidSymbol name="UICONTEXT_PackagesConfigSelected" value="{57C9A439-AB2C-40A0-AE5E-573109ADF8BC}" />
     <GuidSymbol name="UICONTEXT_SolutionExistsAndNotBuildingAndNotDebugging" value="{D0E4DEEC-1B53-4CDA-8559-D454583AD23B}" />
     <GuidSymbol name="guidNuGetDebugConsoleCmdSet" value="{DDC61543-6CA7-4A6F-A5B7-984BE723C52F}">
       <IDSymbol name="cmdidDebugConsole" value="0x0900" />

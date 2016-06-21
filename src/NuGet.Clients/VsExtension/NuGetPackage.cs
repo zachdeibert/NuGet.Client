@@ -58,21 +58,13 @@ namespace NuGetVSExtension
     [ProvideSearchProvider(typeof(NuGetSearchProvider), "NuGet Search")]
     [ProvideBindingPath] // Definition dll needs to be on VS binding path
 
-    // UI Context rule for packages.config being selected
-    [ProvideUIContextRule(GuidList.guidPackagesConfigSelectedString,
-        "PackagesConfigSelected",
-        "SolutionExistsAndNotBuildingAndNotDebugging & SolutionExistsAndFullyLoaded & PackagesConfig",
-        new[] { "SolutionExistsAndNotBuildingAndNotDebugging", "SolutionExistsAndFullyLoaded", "PackagesConfig" },
-        new[] { VSConstants.UICONTEXT.SolutionExistsAndNotBuildingAndNotDebugging_string,
-            VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string,
-            @"HierSingleSelectionName:packages\.config$" })]
-
+    // UI Context rule for a project that could be upgraded to packages.config being loaded (and experimental features turned on).
     [ProvideUIContextRule(GuidList.guidUpgradeableProjectLoadedString,
-        "NuGetExperimentalFeaturesActive",
-        "SolutionExistsAndLoaded & ExperimentalFeatures & (CSProject | VBProject) & !UnsupportedProjectCapabilities",
-        new[] { "SolutionExistsAndLoaded", "ExperimentalFeatures", "CSProject", "VBProject", "UnsupportedProjectCapabilities" },
+        "UpgradeableProjectLoaded",
+        "SolutionExistsAndFullyLoaded & ExperimentalFeatures & (CSProject | VBProject) & !UnsupportedProjectCapabilities",
+        new[] { "SolutionExistsAndFullyLoaded", "ExperimentalFeatures", "CSProject", "VBProject", "UnsupportedProjectCapabilities" },
         new[] { VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string,
-            @"UserSettingsStoreQuery:UserSettings\NuGet\ExperimentalFeatures",
+            @"UserSettingsStoreQuery:NuGet\ExperimentalFeatures",
             "ActiveProjectFlavor:" + NuGetVSConstants.CsharpProjectTypeGuid,
             "ActiveProjectFlavor:" + NuGetVSConstants.VbProjectTypeGuid,
             "ActiveProjectCapability:SharedAssetsProject"})]
@@ -431,13 +423,16 @@ namespace NuGetVSExtension
             _mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
             if (null != _mcs)
             {
-                // menu command for upgrading to NuGet 3.4 (converting packages.config files to project.json)
+                // menu command for upgrading packages.config files to project.json - Project menu, Project context menu, References context menu
                 CommandID upgradeNuGetProjectCommandID = new CommandID(GuidList.guidNuGetDialogCmdSet, PkgCmdIDList.cmdidUpgradeNuGetProject);
-                OleMenuCommand upgradeNuGetProjectCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommandAsync, null, BeforeQueryStatusForUpgradeNuGetProject, upgradeNuGetProjectCommandID);
+                OleMenuCommand upgradeNuGetProjectCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommandAsync, null,
+                    BeforeQueryStatusForUpgradeNuGetProject, upgradeNuGetProjectCommandID);
                 _mcs.AddCommand(upgradeNuGetProjectCommand);
 
+                // menu command for upgrading packages.config files to project.json - packages.config context menu
                 CommandID upgradePackagesConfigCommandID = new CommandID(GuidList.guidNuGetDialogCmdSet, PkgCmdIDList.cmdidUpgradePackagesConfig);
-                OleMenuCommand upgradePackagesConfigCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommandAsync, null, BeforeQueryStatusForUpgradePackagesConfig, upgradePackagesConfigCommandID);
+                OleMenuCommand upgradePackagesConfigCommand = new OleMenuCommand(ExecuteUpgradeNuGetProjectCommandAsync, null,
+                    BeforeQueryStatusForUpgradePackagesConfig, upgradePackagesConfigCommandID);
                 _mcs.AddCommand(upgradePackagesConfigCommand);
 
                 // menu command for opening Package Manager Console
@@ -1091,9 +1086,7 @@ UIActionEngine.UpgradeNuGetProjectAsync(uiContext, uiController, nuGetProject,
                 var command = (OleMenuCommand)sender;
 
                 // Don't show command if experimental features aren't turned on
-                var settings = ServiceLocator.GetInstanceSafe<ISettings>();
-                var options = new ExperimentalFeatures(settings);
-                var areExperimentalFeaturesEnabled = options.Enabled;
+                var areExperimentalFeaturesEnabled = ExperimentalFeatures.IsEnabled;
 
                 command.Visible = areExperimentalFeaturesEnabled && IsSolutionOpen && IsProjectUpgradeable();
                 command.Enabled = areExperimentalFeaturesEnabled && !ConsoleStatus.IsBusy && IsSolutionExistsAndNotDebuggingAndNotBuilding() && HasActiveLoadedSupportedProject;
@@ -1110,9 +1103,7 @@ UIActionEngine.UpgradeNuGetProjectAsync(uiContext, uiController, nuGetProject,
                 var command = (OleMenuCommand)sender;
 
                 // Don't show command if experimental features aren't turned on
-                var settings = ServiceLocator.GetInstanceSafe<ISettings>();
-                var options = new ExperimentalFeatures(settings);
-                var areExperimentalFeaturesEnabled = options.Enabled;
+                var areExperimentalFeaturesEnabled = ExperimentalFeatures.IsEnabled;
 
                 command.Visible = areExperimentalFeaturesEnabled && IsSolutionOpen && IsProjectUpgradeable() && IsPackagesConfigSelected();
                 command.Enabled = areExperimentalFeaturesEnabled && !ConsoleStatus.IsBusy && IsSolutionExistsAndNotDebuggingAndNotBuilding() && HasActiveLoadedSupportedProject;
