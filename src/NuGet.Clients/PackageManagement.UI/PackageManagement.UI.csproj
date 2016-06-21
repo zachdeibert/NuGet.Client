@@ -72,6 +72,7 @@
     <Compile Include="Actions\UpdatePreviewResult.cs" />
     <Compile Include="Automation\FilterLabelAutomationPeer.cs" />
     <Compile Include="Actions\NuGetProjectUpgrader.cs" />
+    <Compile Include="Actions\UpgradeLogger.cs" />
     <Compile Include="Common\ErrorFloodGate.cs" />
     <Compile Include="Common\IOptionsPageActivator.cs" />
     <Compile Include="Common\NuGetEvent.cs" />
@@ -97,9 +98,6 @@
     <Compile Include="Resources\Domain.cs" />
     <Compile Include="Resources\Resources.xaml.cs">
       <DependentUpon>Resources.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Xamls\NuGetProjectUpgradeCompleteWindow.xaml.cs">
-      <DependentUpon>NuGetProjectUpgradeCompleteWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Xamls\RestartRequestBar.xaml.cs">
       <DependentUpon>RestartRequestBar.xaml</DependentUpon>
@@ -292,10 +290,6 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Xamls\NuGetProjectUpgradeCompleteWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="Xamls\RestartRequestBar.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -448,6 +442,11 @@
     <Resource Include="Resources\statuserror.16.16.png" />
     <Resource Include="Resources\statusinformation.16.16.png" />
     <Resource Include="Resources\statuswarning.16.16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\UpgradeReport.xslt">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\..\..\build\common.targets" />

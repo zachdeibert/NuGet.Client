@@ -83,7 +83,7 @@ namespace NuGet.PackageManagement.UI
 
         public IEnumerable<string> IncludedPackages => CollapseDependencies ? IncludedCollapsedPackages : AllPackages;
 
-        public IEnumerable<string> ExcludedPackages => CollapseDependencies ? DependencyPackages : null;
+        public IEnumerable<string> ExcludedPackages => CollapseDependencies ? DependencyPackages : new List<string>();
 
         private IEnumerable<string> DependencyPackages => _dependencyPackages ?? (_dependencyPackages = GetDependencyPackages());
 

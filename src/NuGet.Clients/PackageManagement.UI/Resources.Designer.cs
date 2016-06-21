@@ -1548,6 +1548,15 @@ namespace NuGet.PackageManagement.UI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Must be a valid path..
+        /// </summary>
+        public static string UpgradeLogger_BackupPathMustBeValid {
+            get {
+                return ResourceManager.GetString("UpgradeLogger_BackupPathMustBeValid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Installed.
         /// </summary>
         public static string Version_Installed {

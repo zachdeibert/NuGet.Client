@@ -26,20 +26,20 @@ namespace NuGet.PackageManagement.UI
         {
             var dependencyItems = upgradeDependencyItems as IList<NuGetProjectUpgradeDependencyItem> ?? upgradeDependencyItems.ToList();
 
-            // 1. Backup existing packages.config
-            var msBuildNuGetProject = (MSBuildNuGetProject) nuGetProject;
-            var msBuildNuGetProjectSystem = msBuildNuGetProject.MSBuildNuGetProjectSystem;
-            var projectPath = msBuildNuGetProjectSystem.ProjectFullPath;
-            var backupPath = Path.Combine(projectPath, "NuGetUpgradeBackup");
-
+            // 1. Backup files that will change
+            var solutionManager = context.SolutionManager;
+            var solutionDirectory = solutionManager.SolutionDirectory;
+            var backupPath = Path.Combine(solutionDirectory, "NuGetBackup", NuGetProject.GetUniqueNameOrName(nuGetProject));
             Directory.CreateDirectory(backupPath);
 
             // Backup packages.config
+            var msBuildNuGetProject = (MSBuildNuGetProject)nuGetProject;
             var packagesConfigFullPath = msBuildNuGetProject.PackagesConfigNuGetProject.FullPath;
             var packagesConfigFileName = Path.GetFileName(packagesConfigFullPath);
             File.Copy(packagesConfigFullPath, Path.Combine(backupPath, packagesConfigFileName), true);
 
             // Backup project file
+            var msBuildNuGetProjectSystem = msBuildNuGetProject.MSBuildNuGetProjectSystem;
             var projectFullPath = msBuildNuGetProjectSystem.ProjectFileName;
             var projectFileName = Path.GetFileName(projectFullPath);
             File.Copy(projectFullPath, Path.Combine(backupPath, projectFileName), true);
@@ -48,7 +48,6 @@ namespace NuGet.PackageManagement.UI
             var progressData = new ProgressDialogData(Resources.NuGetUpgrade_WaitMessage, Resources.NuGetUpgrade_Progress_Uninstalling);
             progress.Report(progressData);
 
-            var solutionManager = context.SolutionManager;
             var packagesWithDirectoriesToBeDeleted = new HashSet<PackageIdentity>();
             foreach (var upgradeDependencyItem in dependencyItems)
             {
@@ -100,7 +99,7 @@ namespace NuGet.PackageManagement.UI
             json["runtimes"] = runtimes;
 
             // Write out project.json and add it to the project
-            var projectJsonFileName = Path.Combine(projectPath, PackageSpec.PackageSpecFileName);
+            var projectJsonFileName = Path.Combine(msBuildNuGetProjectSystem.ProjectFullPath, PackageSpec.PackageSpecFileName);
             using (var textWriter = new StreamWriter(projectJsonFileName, false, Encoding.UTF8))
             using (var jsonWriter = new JsonTextWriter(textWriter))
             {

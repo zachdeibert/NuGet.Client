@@ -53,14 +53,6 @@ namespace NuGet.PackageManagement.UI
             return result;
         }
 
-        public void ShowNuGetUpgradeCompleteWindow(string backupLocation)
-        {
-            UIDispatcher.Invoke(() =>
-            {
-                new NuGetProjectUpgradeCompleteWindow(backupLocation).ShowModal();
-            });
-        }
-
         public bool PromptForLicenseAcceptance(IEnumerable<PackageLicenseInfo> packages)
         {
             var result = false;

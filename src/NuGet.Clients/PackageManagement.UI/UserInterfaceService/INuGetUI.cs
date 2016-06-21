@@ -19,8 +19,6 @@ namespace NuGet.PackageManagement.UI
     {
         bool ShowNuGetUpgradeWindow(NuGetProjectUpgradeWindowModel nuGetProjectUpgradeWindowModel);
 
-        void ShowNuGetUpgradeCompleteWindow(string backupLocation);
-
         bool PromptForLicenseAcceptance(IEnumerable<PackageLicenseInfo> packages);
 
         void LaunchExternalLink(Uri url);

@@ -100,14 +100,14 @@ namespace NuGet.PackageManagement.UI
             collapseDependencies = upgradeInformationWindowModel.CollapseDependencies;
 
             var progressDialogData = new ProgressDialogData(Resources.NuGetUpgrade_WaitMessage);
-            string backupLocation;
+            string backupPath;
             using (var progressDialogSession = ProgressDialog.Start(Resources.WindowTitle_NuGetUpgrader, progressDialogData, uiService))
             {
                 var upgradeDependencyItems = upgradeInformationWindowModel.UpgradeDependencyItems;
                 var progress = progressDialogSession.Progress;
                 var token = progressDialogSession.UserCancellationToken;
 
-                backupLocation = await NuGetProjectUpgrader.DoUpgradeAsync(
+                backupPath = await NuGetProjectUpgrader.DoUpgradeAsync(
                     context,
                     uiService,
                     nuGetProject,
@@ -116,8 +116,34 @@ namespace NuGet.PackageManagement.UI
                     progress,
                     token);
             }
-            uiService.ShowNuGetUpgradeCompleteWindow(backupLocation);
+
+            var htmlLogFile = GenerateUpgradeReport(nuGetProject, backupPath, upgradeInformationWindowModel);
+            Process.Start(htmlLogFile);
+
             return collapseDependencies;
+        }
+
+        private static string GenerateUpgradeReport(NuGetProject nuGetProject, string backupPath, NuGetProjectUpgradeWindowModel upgradeInformationWindowModel)
+        {
+            var projectName = NuGetProject.GetUniqueNameOrName(nuGetProject);
+            var upgradeLogger = new UpgradeLogger(projectName, backupPath);
+            foreach (var error in upgradeInformationWindowModel.Errors)
+            {
+                upgradeLogger.LogIssue(projectName, UpgradeLogger.ErrorLevel.Error, error);
+            }
+            foreach (var warning in upgradeInformationWindowModel.Warnings)
+            {
+                upgradeLogger.LogIssue(projectName, UpgradeLogger.ErrorLevel.Warning, warning);
+            }
+            foreach (var package in upgradeInformationWindowModel.IncludedPackages)
+            {
+                upgradeLogger.RegisterPackage(projectName, package, true);
+            }
+            foreach (var package in upgradeInformationWindowModel.ExcludedPackages)
+            {
+                upgradeLogger.RegisterPackage(projectName, package, false);
+            }
+            return upgradeLogger.Flush();
         }
 
         /// <summary>
