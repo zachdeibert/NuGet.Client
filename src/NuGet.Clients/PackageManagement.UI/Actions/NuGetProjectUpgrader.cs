@@ -29,7 +29,7 @@ namespace NuGet.PackageManagement.UI
             // 1. Backup files that will change
             var solutionManager = context.SolutionManager;
             var solutionDirectory = solutionManager.SolutionDirectory;
-            var backupPath = Path.Combine(solutionDirectory, "NuGetBackup", NuGetProject.GetUniqueNameOrName(nuGetProject));
+            var backupPath = Path.Combine(solutionDirectory, "Backup", NuGetProject.GetUniqueNameOrName(nuGetProject));
             Directory.CreateDirectory(backupPath);
 
             // Backup packages.config
