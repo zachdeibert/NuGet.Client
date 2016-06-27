@@ -48,17 +48,8 @@ namespace NuGet.PackageManagement.UI
             var progressData = new ProgressDialogData(Resources.NuGetUpgrade_WaitMessage, Resources.NuGetUpgrade_Progress_Uninstalling);
             progress.Report(progressData);
 
-            var packagesWithDirectoriesToBeDeleted = new HashSet<PackageIdentity>();
-            foreach (var upgradeDependencyItem in dependencyItems)
-            {
-                var package = upgradeDependencyItem.Package;
-                await nuGetProject.UninstallPackageAsync(package, uiService.ProgressWindow, token);
-                if (!await NuGetPackageManager.PackageExistsInAnotherNuGetProject(nuGetProject, package, solutionManager, token, excludeIntegrated: true))
-                {
-                    packagesWithDirectoriesToBeDeleted.Add(package);
-                }
-            }
-            await context.PackageManager.DeletePackageDirectoriesAsync(uiService.ProgressWindow, packagesWithDirectoriesToBeDeleted, token);
+            var actions = dependencyItems.Select(d => d.Package).Select(NuGetProjectAction.CreateUninstallProjectAction);
+            await context.PackageManager.ExecuteNuGetProjectActionsAsync(nuGetProject, actions, uiService.ProgressWindow, CancellationToken.None);
 
             // 3. Create stub project.json file
             progressData = new ProgressDialogData(Resources.NuGetUpgrade_WaitMessage, Resources.NuGetUpgrade_Progress_CreatingProjectJson);
