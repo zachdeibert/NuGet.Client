@@ -109,18 +109,15 @@ namespace NuGet.PackageManagement.UI
             string backupPath;
             using (var progressDialogSession = ProgressDialog.Start(Resources.WindowTitle_NuGetUpgrader, progressDialogData, uiService))
             {
-                var upgradeDependencyItems = upgradeInformationWindowModel.UpgradeDependencyItems;
-                var progress = progressDialogSession.Progress;
-                var token = progressDialogSession.UserCancellationToken;
-
                 backupPath = await NuGetProjectUpgrader.DoUpgradeAsync(
                     context,
                     uiService,
                     nuGetProject,
-                    upgradeDependencyItems,
+                    upgradeInformationWindowModel.UpgradeDependencyItems,
+                    upgradeInformationWindowModel.NotFoundPackages,
                     collapseDependencies,
-                    progress,
-                    token);
+                    progressDialogSession.Progress,
+                    progressDialogSession.UserCancellationToken);
             }
 
             var htmlLogFile = GenerateUpgradeReport(nuGetProject, backupPath, upgradeInformationWindowModel);

@@ -21,6 +21,9 @@ namespace NuGet.PackageManagement.UI
         private IEnumerable<string> _includedCollapsedPackages;
         private IEnumerable<NuGetProjectUpgradeDependencyItem> _upgradeDependencyItems;
         private string _projectName;
+        private IList<string> _warnings;
+        private IList<string> _errors;
+        private IList<PackageIdentity> _notFoundPackages;
 
         public NuGetProjectUpgradeWindowModel(NuGetProject project, IList<PackageDependencyInfo> packageDependencyInfos,
             bool collapseDependencies)
@@ -76,6 +79,18 @@ namespace NuGet.PackageManagement.UI
             }
         }
 
+        public IList<PackageIdentity> NotFoundPackages
+        {
+            get
+            {
+                if (_notFoundPackages == null)
+                {
+                    InitPackageUpgradeIssues();
+                }
+                return _notFoundPackages;
+            }
+        }
+
         public bool HasIssues => Errors.Any() || Warnings.Any();
 
         public IEnumerable<NuGetProjectUpgradeDependencyItem> UpgradeDependencyItems
@@ -103,13 +118,11 @@ namespace NuGet.PackageManagement.UI
                 .Select(upgradeDependencyItem => upgradeDependencyItem.Package.ToString());
         }
 
-        private IList<string> _warnings;
-        private IList<string> _errors;
-
         private void InitPackageUpgradeIssues()
         {
             _warnings = new List<string>();
             _errors = new List<string>();
+            _notFoundPackages = new List<PackageIdentity>();
 
             var msBuildNuGetProject = (MSBuildNuGetProject)Project;
             var framework = msBuildNuGetProject.MSBuildNuGetProjectSystem.TargetFramework;
@@ -130,6 +143,7 @@ namespace NuGet.PackageManagement.UI
             if (string.IsNullOrEmpty(packagePath))
             {
                 _errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.NuGetUpgradeError_CannotFindPackage, packageIdentity));
+                _notFoundPackages.Add(packageIdentity);
             }
             else
             {
