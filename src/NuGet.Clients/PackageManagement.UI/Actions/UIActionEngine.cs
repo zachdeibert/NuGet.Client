@@ -12,6 +12,9 @@ using NuGet.Packaging.Core;
 using NuGet.ProjectManagement;
 using NuGet.Protocol.Core.Types;
 using System.Globalization;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using Task = System.Threading.Tasks.Task;
 
 namespace NuGet.PackageManagement.UI
@@ -23,6 +26,9 @@ namespace NuGet.PackageManagement.UI
     {
         private readonly ISourceRepositoryProvider _sourceProvider;
         private readonly NuGetPackageManager _packageManager;
+
+        private const __VSCREATEWEBBROWSER CreateWebBrowserFlags = __VSCREATEWEBBROWSER.VSCWB_StartCustom | __VSCREATEWEBBROWSER.VSCWB_ReuseExisting | __VSCREATEWEBBROWSER.VSCWB_AutoShow;
+        private const string CreateWebBrowserOwnerGuidString = "192D4A62-3273-4C4F-9EB4-B53DAAFFCBFB";
 
         /// <summary>
         /// Create a UIActionEngine to perform installs/uninstalls
@@ -118,9 +124,33 @@ namespace NuGet.PackageManagement.UI
             }
 
             var htmlLogFile = GenerateUpgradeReport(nuGetProject, backupPath, upgradeInformationWindowModel);
-            Process.Start(htmlLogFile);
+            Process process = null;
+            try
+            {
+                process = Process.Start(htmlLogFile);
+            }
+            catch { }
+            if (process == null)
+            {
+                OpenUrlInInternalWebBrowser(htmlLogFile);
+            }
 
             return collapseDependencies;
+        }
+
+        private static void OpenUrlInInternalWebBrowser(string url)
+        {
+            var webBrowsingService = Package.GetGlobalService(typeof(SVsWebBrowsingService)) as IVsWebBrowsingService;
+            if (webBrowsingService == null)
+            {
+                return;
+            }
+
+            var createWebBrowserOwnerGuid = new Guid(CreateWebBrowserOwnerGuidString);
+
+            IVsWindowFrame frame;
+            IVsWebBrowser browser;
+            webBrowsingService.CreateWebBrowser((uint)CreateWebBrowserFlags, ref createWebBrowserOwnerGuid, null, url, null, out browser, out frame);
         }
 
         private static string GenerateUpgradeReport(NuGetProject nuGetProject, string backupPath, NuGetProjectUpgradeWindowModel upgradeInformationWindowModel)
