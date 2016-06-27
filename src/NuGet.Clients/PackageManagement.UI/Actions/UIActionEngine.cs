@@ -94,6 +94,10 @@ namespace NuGet.PackageManagement.UI
 
         public static async Task<bool> UpgradeNuGetProjectAsync(INuGetUIContext context, INuGetUI uiService, NuGetProject nuGetProject, bool collapseDependencies)
         {
+            // Restore the project before proceeding
+            var solutionDirectory = context.SolutionManager.SolutionDirectory;
+            await context.PackageRestoreManager.RestoreMissingPackagesAsync(solutionDirectory, nuGetProject, uiService.ProgressWindow, CancellationToken.None);
+
             var packagesDependencyInfo = await context.PackageManager.GetInstalledPackagesDependencyInfo(nuGetProject, CancellationToken.None, includeUnresolved: true);
             var upgradeInformationWindowModel = new NuGetProjectUpgradeWindowModel(nuGetProject, packagesDependencyInfo.ToList(), collapseDependencies);
 

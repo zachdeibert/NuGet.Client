@@ -123,6 +123,12 @@ namespace NuGet.PackageManagement.UI
             nuGetUI.DisplayLicenseAcceptanceWindow = false;
 
             // 4. Install the requested packages
+            var ideExecutionContext = uiService.ProgressWindow.ExecutionContext as IDEExecutionContext;
+            if (ideExecutionContext != null)
+            {
+                await ideExecutionContext.SaveExpandedNodeStates(solutionManager);
+            }
+
             progressData = new ProgressDialogData(Resources.NuGetUpgrade_WaitMessage, Resources.NuGetUpgrade_Progress_Installing);
             progress.Report(progressData);
 
@@ -151,6 +157,10 @@ namespace NuGet.PackageManagement.UI
                 WriteProjectJson(projectJsonFileName, json);
             }
 
+            if (ideExecutionContext != null)
+            {
+                await ideExecutionContext.CollapseAllNodes(solutionManager);
+            }
 
             return backupPath;
         }
