@@ -297,7 +297,7 @@
           </div>
           <div class="info-text">
             If you need to revert changes, follow the directions here:
-            <a href="https://aka.ms/nugetupgradev1">Reverting NuGet Project Upgrade</a>
+            <a href="https://aka.ms/nugetupgraderevertv1">Reverting NuGet Project Upgrade</a>
           </div>
 
           <h2 _locID="PackagtesTitle">Packages Processed</h2>
