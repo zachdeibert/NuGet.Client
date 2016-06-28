@@ -834,7 +834,8 @@ namespace NuGet.PackageManagement
                 prunedAvailablePackages = PrunePackageTree.PruneByUpdateConstraints(prunedAvailablePackages, projectInstalledPackageReferences, resolutionContext.VersionConstraints);
 
                 // Verify that the target is allowed by packages.config
-                GatherExceptionHelpers.ThrowIfVersionIsDisallowedByPackagesConfig(primaryTargetIds, projectInstalledPackageReferences, prunedAvailablePackages);
+                GatherExceptionHelpers.ThrowIfVersionIsDisallowedByPackagesConfig(primaryTargetIds, projectInstalledPackageReferences, prunedAvailablePackages,
+                    new LoggerAdapter(nuGetProjectContext));
 
                 // Remove versions that do not satisfy 'allowedVersions' attribute in packages.config, if any
                 prunedAvailablePackages = PrunePackageTree.PruneDisallowedVersions(prunedAvailablePackages, projectInstalledPackageReferences);
@@ -1266,7 +1267,8 @@ namespace NuGet.PackageManagement
                     }
 
                     // Verify that the target is allowed by packages.config
-                    GatherExceptionHelpers.ThrowIfVersionIsDisallowedByPackagesConfig(packageIdentity.Id, projectInstalledPackageReferences, prunedAvailablePackages);
+                    GatherExceptionHelpers.ThrowIfVersionIsDisallowedByPackagesConfig(packageIdentity.Id, projectInstalledPackageReferences, prunedAvailablePackages,
+                        new LoggerAdapter(nuGetProjectContext));
 
                     // Remove versions that do not satisfy 'allowedVersions' attribute in packages.config, if any
                     prunedAvailablePackages = PrunePackageTree.PruneDisallowedVersions(prunedAvailablePackages, projectInstalledPackageReferences);

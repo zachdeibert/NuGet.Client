@@ -304,4 +304,7 @@
 {1} is the unsupported package type.
 {2} is the project name.</comment>
   </data>
+  <data name="PackagesConfigAllowedVersions" xml:space="preserve">
+    <value>Applying constraint '{0}' defined in '{1}'.</value>
+  </data>
 </root>
