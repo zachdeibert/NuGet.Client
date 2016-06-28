@@ -80,7 +80,10 @@ namespace NuGet.PackageManagement.UI
 
             _projectVersionRangeDict = new Dictionary<string, VersionRange>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var project in _nugetProjects)
+            // filter build integrated projects since allowedVersion is only applicable to packages.config
+            var nonBuildIntegratedProjects = _nugetProjects.Where(project => !(project is INuGetIntegratedProject));
+
+            foreach (var project in nonBuildIntegratedProjects)
             {
                 // cache allowed version range for each nuget project for current selected package
                 var packageReference = (await project.GetInstalledPackagesAsync(CancellationToken.None))
