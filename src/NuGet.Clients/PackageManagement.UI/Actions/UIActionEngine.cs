@@ -302,11 +302,11 @@ namespace NuGet.PackageManagement.UI
                 // preview window
                 if (uiService.DisplayPreviewWindow)
                 {
-                    /*var shouldContinue = uiService.PromptForPreviewAcceptance(results);
+                    var shouldContinue = uiService.PromptForPreviewAcceptance(results);
                     if (!shouldContinue)
                     {
                         return;
-                    }*/
+                    }
                 }
 
                 if (uiService.DisplayLicenseAcceptanceWindow)

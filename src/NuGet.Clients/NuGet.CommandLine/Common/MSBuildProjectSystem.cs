@@ -49,7 +49,6 @@ namespace NuGet.Common
 
         public string ProjectFileName { get; }
 
-
         public NuGetFramework TargetFramework
         {
             get

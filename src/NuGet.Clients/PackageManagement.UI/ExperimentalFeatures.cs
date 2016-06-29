@@ -10,7 +10,7 @@ namespace NuGet.PackageManagement.UI
 {
     public static class ExperimentalFeatures
     {
-        private const string SettingsStorePath = @"NuGet";
+        private const string SettingsStorePath = "NuGet";
         private const string ExperimentalFeaturesPropertyName = "ExperimentalFeatures";
 
         public static event EventHandler<EnabledChangedEventArgs> EnabledChanged;

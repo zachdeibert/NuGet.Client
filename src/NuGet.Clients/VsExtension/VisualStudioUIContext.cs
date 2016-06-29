@@ -70,7 +70,7 @@ namespace NuGetVSExtension
 
         public override IModalProgressDialogSession StartModalProgressDialog(string caption, ProgressDialogData initialData, INuGetUI uiService)
         {
-            var waitForDialogFactory = (IVsThreadedWaitDialogFactory)Package.GetGlobalService(typeof(SVsThreadedWaitDialogFactory));
+            var waitForDialogFactory = ServiceLocator.GetGlobalService<SVsThreadedWaitDialogFactory, IVsThreadedWaitDialogFactory>();
             var progressData = new ThreadedWaitDialogProgressData(
                 initialData.WaitMessage,
                 initialData.ProgressText,
