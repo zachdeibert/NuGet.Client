@@ -2518,6 +2518,114 @@ Enabling license acceptance requires a license url.");
             }
         }
 
+        [Fact]
+        public void PackageBuilderWorksWithFilesHavingCurrentDirectoryAsTarget()
+        {
+            // Act
+            var builder = new PackageBuilder { Id = "test", Version = NuGetVersion.Parse("1.0"), Description = "test" };
+            builder.Authors.Add("test");
+            builder.Files.Add(CreatePackageFile("." + Path.DirectorySeparatorChar + "test1.txt"));
+
+            // Assert
+            using (MemoryStream stream = new MemoryStream())
+            {
+                builder.Save(stream);
+
+                using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true))
+                {
+                    var files = archive.GetFiles().OrderBy(s => s).ToArray();
+
+                    // Linux sorts the first two in different order than Windows
+                    Assert.Contains<string>(@"[Content_Types].xml", files);
+                    Assert.Contains<string>(@"_rels/.rels", files);
+                    Assert.StartsWith(@"package/services/metadata/core-properties/", files[2]);
+                    Assert.Equal(@"test.nuspec", files[3]);
+                    Assert.Equal(@"test1.txt", files[4]);
+                }
+            }
+        }
+
+        [Fact]
+        public void PackageBuilderWorksWithFilesHavingTargetContainsDoubleDots()
+        {
+            // Act
+            var builder = new PackageBuilder { Id = "test", Version = NuGetVersion.Parse("1.0"), Description = "test" };
+            builder.Authors.Add("test");
+            builder.Files.Add(CreatePackageFile("." + Path.DirectorySeparatorChar + "test" + Path.DirectorySeparatorChar + ".." + Path.DirectorySeparatorChar + "test1.txt"));
+
+            // Assert
+            using (MemoryStream stream = new MemoryStream())
+            {
+                builder.Save(stream);
+
+                using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true))
+                {
+                    var files = archive.GetFiles().OrderBy(s => s).ToArray();
+
+                    // Linux sorts the first two in different order than Windows
+                    Assert.Contains<string>(@"[Content_Types].xml", files);
+                    Assert.Contains<string>(@"_rels/.rels", files);
+                    Assert.StartsWith(@"package/services/metadata/core-properties/", files[2]);
+                    Assert.Equal(@"test.nuspec", files[3]);
+                    Assert.Equal(@"test1.txt", files[4]);
+                }
+            }
+        }
+
+        [Fact]
+        public void PackageBuilderWorksWithFilesHavingTargetContainsMultipleDots()
+        {
+            // Act
+            var builder = new PackageBuilder { Id = "test", Version = NuGetVersion.Parse("1.0"), Description = "test" };
+            builder.Authors.Add("test");
+            builder.Files.Add(CreatePackageFile(@"test1\.\.\test2\..\test1.txt"));
+
+            // Assert
+            using (MemoryStream stream = new MemoryStream())
+            {
+                builder.Save(stream);
+
+                using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true))
+                {
+                    var files = archive.GetFiles().OrderBy(s => s).ToArray();
+
+                    // Linux sorts the first two in different order than Windows
+                    Assert.Contains<string>(@"[Content_Types].xml", files);
+                    Assert.Contains<string>(@"_rels/.rels", files);
+                    Assert.StartsWith(@"package/services/metadata/core-properties/", files[2]);
+                    Assert.Equal(@"test.nuspec", files[3]);
+                    Assert.Equal(@"test1/test1.txt", files[4]);
+                }
+            }
+        }        
+
+        [Fact]
+        public void PackageBuilderWorksWithFilesHavingTargetStartsWithDoubleDots()
+        {
+            // Act
+            var builder = new PackageBuilder { Id = "test", Version = NuGetVersion.Parse("1.0"), Description = "test" };
+            builder.Authors.Add("test");
+            builder.Files.Add(CreatePackageFile(".." + Path.DirectorySeparatorChar + "test1.txt"));
+
+            // Assert
+            using (MemoryStream stream = new MemoryStream())
+            {
+                builder.Save(stream);
+
+                using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true))
+                {
+                    var files = archive.GetFiles().OrderBy(s => s).ToArray();
+
+                    // Linux sorts the first two in different order than Windows
+                    Assert.Contains<string>(@"[Content_Types].xml", files);
+                    Assert.Contains<string>(@"_rels/.rels", files);
+                    Assert.StartsWith(@"package/services/metadata/core-properties/", files[2]);
+                    Assert.Equal(@"test.nuspec", files[3]);
+                    Assert.Equal(@"test1.txt", files[4]);
+                }
+            }
+        }
+
         private static IPackageFile CreatePackageFile(string name)
         {
             var file = new Mock<IPackageFile>();
