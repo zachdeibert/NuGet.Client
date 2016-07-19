@@ -43,6 +43,22 @@ namespace NuGet.Commands
         /// </summary>
         public LockFile PreviousLockFile { get; }
 
+        public RestoreResult(bool success,
+            LockFile lockFile,
+            string lockFilePath,
+            MSBuildRestoreResult msbuild,
+            IEnumerable<ToolRestoreResult> toolRestoreResults)
+        {
+            Success = success;
+            RestoreGraphs = new List<RestoreTargetGraph>();
+            CompatibilityCheckResults = new List<CompatibilityCheckResult>();
+            LockFile = lockFile;
+            LockFilePath = lockFilePath;
+            MSBuild = msbuild;
+            PreviousLockFile = lockFile;
+            ToolRestoreResults = toolRestoreResults;
+        }
+
         public RestoreResult(
             bool success,
             IEnumerable<RestoreTargetGraph> restoreGraphs,

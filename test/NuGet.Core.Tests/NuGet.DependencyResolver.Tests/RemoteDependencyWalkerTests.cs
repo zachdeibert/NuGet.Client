@@ -823,6 +823,8 @@ namespace NuGet.DependencyResolver.Tests
                 }
             }
 
+            public string RepositorySource => string.Empty;
+
             public Task CopyToAsync(LibraryIdentity match, Stream stream, CancellationToken cancellationToken)
             {
                 throw new NotImplementedException();

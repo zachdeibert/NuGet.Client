@@ -34,10 +34,14 @@ namespace NuGet.Commands
             IEnumerable<RestoreTargetGraph> targetGraphs,
             IReadOnlyList<NuGetv3LocalRepository> localRepositories,
             RemoteWalkContext context,
-            IEnumerable<ToolRestoreResult> toolRestoreResults)
+            IEnumerable<ToolRestoreResult> toolRestoreResults,
+            string projectHash,
+            bool success)
         {
             var lockFile = new LockFile();
             lockFile.Version = _lockFileVersion;
+            lockFile.Sha1 = projectHash;
+            lockFile.Success = success;
 
             var previousLibraries = previousLockFile?.Libraries.ToDictionary(l => Tuple.Create(l.Name, l.Version));
 

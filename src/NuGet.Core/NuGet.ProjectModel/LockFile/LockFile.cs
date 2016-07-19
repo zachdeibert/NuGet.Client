@@ -27,6 +27,10 @@ namespace NuGet.ProjectModel
         public IList<ProjectFileDependencyGroup> ProjectFileToolGroups { get; set; } = new List<ProjectFileDependencyGroup>();
         public IList<LockFileItem> PackageFolders { get; set; } = new List<LockFileItem>();
 
+        public string Sha1 { get; set; }
+
+        public bool Success { get; set; }
+
         public bool IsValidForPackageSpec(PackageSpec spec)
         {
             return IsValidForPackageSpec(spec, Version);
@@ -166,12 +170,19 @@ namespace NuGet.ProjectModel
             }
 
             return Version == other.Version
-                && ProjectFileDependencyGroups.OrderedEquals(other.ProjectFileDependencyGroups, group => group.FrameworkName, StringComparer.OrdinalIgnoreCase)
-                && Libraries.OrderedEquals(other.Libraries, library => library.Name, StringComparer.OrdinalIgnoreCase)
-                && Targets.OrderedEquals(other.Targets, target => target.Name, StringComparer.Ordinal)
-                && ProjectFileToolGroups.OrderedEquals(other.ProjectFileToolGroups, group => group.FrameworkName, StringComparer.OrdinalIgnoreCase)
-                && Tools.OrderedEquals(other.Tools, target => target.Name, StringComparer.Ordinal)
-                && PackageFolders.SequenceEqual<LockFileItem>(other.PackageFolders);
+                   &&
+                   ProjectFileDependencyGroups.OrderedEquals(other.ProjectFileDependencyGroups,
+                       group => group.FrameworkName, StringComparer.OrdinalIgnoreCase)
+                   &&
+                   Libraries.OrderedEquals(other.Libraries, library => library.Name, StringComparer.OrdinalIgnoreCase)
+                   && Targets.OrderedEquals(other.Targets, target => target.Name, StringComparer.Ordinal)
+                   &&
+                   ProjectFileToolGroups.OrderedEquals(other.ProjectFileToolGroups, group => group.FrameworkName,
+                       StringComparer.OrdinalIgnoreCase)
+                   && Tools.OrderedEquals(other.Tools, target => target.Name, StringComparer.Ordinal)
+                   && PackageFolders.SequenceEqual<LockFileItem>(other.PackageFolders)
+                   && Sha1.Equals(other.Sha1, StringComparison.Ordinal)
+                   && Success == other.Success;
         }
 
         public override bool Equals(object obj)

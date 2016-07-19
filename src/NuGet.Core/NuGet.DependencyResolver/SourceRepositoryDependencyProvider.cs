@@ -68,6 +68,8 @@ namespace NuGet.DependencyResolver
 
         public bool IsHttp => _sourceRepository.PackageSource.IsHttp;
 
+        public string RepositorySource => _sourceRepository.PackageSource.Source;
+
         public async Task<LibraryIdentity> FindLibraryAsync(LibraryRange libraryRange, NuGetFramework targetFramework, CancellationToken cancellationToken)
         {
             await EnsureResource();

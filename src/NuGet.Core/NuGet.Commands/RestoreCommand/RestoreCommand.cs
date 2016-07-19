@@ -8,8 +8,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NuGet.Client;
 using NuGet.Common;
@@ -20,6 +23,7 @@ using NuGet.LibraryModel;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
 using NuGet.ProjectModel;
+using NuGet.Protocol;
 using NuGet.Repositories;
 using NuGet.RuntimeModel;
 using NuGet.Versioning;
@@ -64,14 +68,54 @@ namespace NuGet.Commands
 
         public async Task<RestoreResult> ExecuteAsync(CancellationToken token)
         {
-            // Local package folders (non-sources)
-            var localRepositories = new List<NuGetv3LocalRepository>();
-            localRepositories.Add(_request.DependencyProviders.GlobalPackages);
-            localRepositories.AddRange(_request.DependencyProviders.FallbackPackageFolders);
+            _logger.LogMinimal(string.Format(CultureInfo.CurrentCulture, Strings.Log_RestoringPackages, _request.Project.FilePath));
 
             var projectLockFilePath = string.IsNullOrEmpty(_request.LockFilePath) ?
                 Path.Combine(_request.Project.BaseDirectory, LockFileFormat.LockFileName) :
                 _request.LockFilePath;
+
+            string projectHash = string.Empty;
+
+            if (_request.ExistingLockFile != null && _request.ExistingLockFile.Success)
+            {
+                var allDependencies = GetAllProjectDependencies();
+
+                var isFloatingRange =
+                    allDependencies.SelectMany(dep => dep.Value).Any(dep => dep.VersionRange.IsFloating);
+
+                if (!isFloatingRange)
+                {
+                    projectHash = GenerateShaHash(_request.Project, allDependencies.ToJson());
+                    if (string.Equals(_request.ExistingLockFile.Sha1, projectHash, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!IsAnyPackageMissing(_request.ExistingLockFile))
+                        {
+                            // Only execute tool restore if the request lock file version is 2 or greater.
+                            // Tools did not exist prior to v2 lock files.
+                            var toolRestoreResults2 = Enumerable.Empty<ToolRestoreResult>();
+                            if (_request.LockFileVersion >= 2)
+                            {
+                                toolRestoreResults2 = await ExecuteToolRestoresAsync(
+                                    _request.DependencyProviders.GlobalPackages,
+                                    _request.DependencyProviders.FallbackPackageFolders,
+                                    token);
+                            }
+
+                            return new RestoreResult(
+                                true,
+                                _request.ExistingLockFile,
+                                projectLockFilePath,
+                                new MSBuildRestoreResult(_request.Project.Name, _request.Project.BaseDirectory, true),
+                                toolRestoreResults2);
+                        }
+                    }
+                }
+            }
+
+            // Local package folders (non-sources)
+            var localRepositories = new List<NuGetv3LocalRepository>();
+            localRepositories.Add(_request.DependencyProviders.GlobalPackages);
+            localRepositories.AddRange(_request.DependencyProviders.FallbackPackageFolders);
 
             var contextForProject = CreateRemoteWalkContext(_request);
 
@@ -92,13 +136,22 @@ namespace NuGet.Commands
                                     token);
             }
 
+            // generate hash if not generated already
+            if (string.IsNullOrEmpty(projectHash))
+            {
+                var allDependencies = GetAllProjectDependencies();
+                projectHash = GenerateShaHash(_request.Project, allDependencies.ToJson());
+            }
+
             var lockFile = BuildLockFile(
                 _request.ExistingLockFile,
                 _request.Project,
                 graphs,
                 localRepositories,
                 contextForProject,
-                toolRestoreResults);
+                toolRestoreResults,
+                projectHash,
+                true);
 
             if (!ValidateRestoreGraphs(graphs, _logger))
             {
@@ -117,6 +170,9 @@ namespace NuGet.Commands
             {
                 _success = false;
             }
+
+            // update success attribute of lockfile
+            lockFile.Success = _success;
 
             // Generate Targets/Props files
             var msbuild = RestoreMSBuildFiles(_request.Project, graphs, localRepositories, contextForProject);
@@ -138,13 +194,160 @@ namespace NuGet.Commands
                 toolRestoreResults);
         }
 
+        private Dictionary<string, LibraryRange[]> GetAllProjectDependencies()
+        {
+            var projectDependencies = new Dictionary<string, LibraryRange[]>();
+
+            var dependencies = _request.Project.Dependencies.Select(lib => lib.LibraryRange).ToArray();
+            projectDependencies.Add(_request.Project.Name, dependencies);
+
+            // External references
+            var updatedExternalProjects = new List<ExternalProjectReference>(_request.ExternalProjects);
+
+            if (_request.ExternalProjects.Count > 0)
+            {
+                // There should be at most one match in the external projects.
+                var rootProjectMatches = _request.ExternalProjects.Where(proj =>
+                        string.Equals(
+                            _request.Project.Name,
+                            proj.PackageSpecProjectName,
+                            StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                var rootProject = rootProjectMatches.SingleOrDefault();
+
+                if (rootProject != null)
+                {
+                    // Replace the project spec with the passed in package spec,
+                    // for installs which are done in memory first this will be
+                    // different from the one on disk
+                    updatedExternalProjects.RemoveAll(project =>
+                            project.UniqueName.Equals(rootProject.UniqueName, StringComparison.Ordinal));
+
+                    var updatedReference = new ExternalProjectReference(
+                        rootProject.UniqueName,
+                        _request.Project,
+                        rootProject.MSBuildProjectPath,
+                        rootProject.ExternalProjectReferences);
+
+                    updatedExternalProjects.Add(updatedReference);
+
+                }
+            }
+
+            // the external project provider is specific to the current restore project
+            var projectResolver = new PackageSpecResolver(_request.Project);
+            var provider = new PackageSpecReferenceDependencyProvider(projectResolver, updatedExternalProjects, _logger);
+
+            var projectRange = new LibraryRange()
+            {
+                Name = _request.Project.Name,
+                VersionRange = new VersionRange(_request.Project.Version),
+                TypeConstraint = LibraryDependencyTarget.Project | LibraryDependencyTarget.ExternalProject
+            };
+
+            var library = new Library
+            {
+                LibraryRange = projectRange,
+                Identity = new LibraryIdentity
+                {
+                    Name = _request.Project.Name,
+                    Version = _request.Project.Version,
+                    Type = LibraryType.Project,
+                },
+                Path = _request.Project.FilePath,
+                Dependencies = _request.Project.Dependencies,
+                Resolved = true
+            };
+
+            var runtimeIds = RequestRuntimeUtility.GetRestoreRuntimes(_request);
+            var projectFrameworkRuntimePairs = CreateFrameworkRuntimePairs(_request.Project, runtimeIds);
+
+            foreach (var framework in projectFrameworkRuntimePairs)
+            {
+                ProcessDependencies(library, framework.Framework, provider, projectDependencies);                
+            }
+
+            return projectDependencies;
+        }
+
+        private void ProcessDependencies(Library library, NuGetFramework framework, PackageSpecReferenceDependencyProvider provider, Dictionary<string, LibraryRange[]> projectRefs)
+        {
+            foreach (var dependency in library.Dependencies)
+            {
+                if (provider.SupportsType(dependency.LibraryRange.TypeConstraint))
+                {
+                    var rootPath = GetRootPathForParentProject(library.Path);
+                    var match = provider.GetLibrary(dependency.LibraryRange, framework, rootPath);
+                    if (match != null && !projectRefs.ContainsKey(match.LibraryRange.Name))
+                    {
+                        projectRefs.Add(match.LibraryRange.Name, match.Dependencies.Select(lib => lib.LibraryRange).ToArray());
+                        ProcessDependencies(match, framework, provider, projectRefs);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns root directory of the parent project.
+        /// This will be null if the reference is from a non-project type.
+        /// </summary>
+        private string GetRootPathForParentProject(string path)
+        {
+            if (!string.IsNullOrEmpty(path))
+            {
+                var projectJsonPath = new FileInfo(path);
+
+                // For files in the root of the drive this will be null
+                if (projectJsonPath.Directory.Parent == null)
+                {
+                    return projectJsonPath.Directory.FullName;
+                }
+                else
+                {
+                    return projectJsonPath.Directory.Parent.FullName;
+                }
+            }
+
+            return null;
+        }
+
+        private bool IsAnyPackageMissing(LockFile lockFile)
+        {
+            var packageTypeLibraries =
+                lockFile.Libraries.Where(
+                    l => l.Type != LibraryType.Project && l.Type != LibraryType.ExternalProject).ToArray();
+
+            foreach (var library in packageTypeLibraries)
+            {
+                var packagePathResolver = new VersionFolderPathResolver(_request.PackagesDirectory);
+                var hashPath = packagePathResolver.GetHashPath(library.Name, library.Version);
+
+                if (!File.Exists(hashPath))
+                {
+                    return true;
+                }
+
+                var sha512 = File.ReadAllText(hashPath);
+
+                if (library.Sha512 != sha512)
+                {
+                    // A package has changed
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private LockFile BuildLockFile(
             LockFile existingLockFile,
             PackageSpec project,
             IEnumerable<RestoreTargetGraph> graphs,
             IReadOnlyList<NuGetv3LocalRepository> localRepositories,
             RemoteWalkContext contextForProject,
-            IEnumerable<ToolRestoreResult> toolRestoreResults)
+            IEnumerable<ToolRestoreResult> toolRestoreResults,
+            string projectHash,
+            bool success)
         {
             // Build the lock file
             var lockFile = new LockFileBuilder(_request.LockFileVersion, _logger, _includeFlagGraphs)
@@ -154,9 +357,68 @@ namespace NuGet.Commands
                         graphs,
                         localRepositories,
                         contextForProject,
-                        toolRestoreResults);
+                        toolRestoreResults,
+                        projectHash,
+                        success);
 
             return lockFile;
+        }
+
+        public string GenerateShaHash(PackageSpec project, string projDependenciesJson)
+        {
+            var items = new List<string>();
+            
+            // local providers
+            foreach (var provider in _request.DependencyProviders.LocalProviders)
+            {
+                
+                items.Add(provider.RepositorySource);
+            }
+
+            // remote providers
+            foreach (var provider in _request.DependencyProviders.RemoteProviders)
+            {
+                items.Add(provider.RepositorySource);
+            }
+
+            // project tools
+            if (project.Tools != null && project.Tools.Count > 0)
+            {
+                items.Add(project.Tools.ToJson());
+            }
+
+            // project target frameworks
+            if (project.TargetFrameworks != null && project.TargetFrameworks.Count > 0)
+            {
+                items.Add(project.TargetFrameworks.ToJson());
+            }
+
+            // project dependencies along with project ref dependencies
+            items.Add(projDependenciesJson);
+
+            var value = items.ToJson();
+            string hashValue;
+            using (var sha = SHA1.Create())
+            {
+                /* string b64 = ByteArrayToString(Encoding.ASCII.GetBytes(value));
+                 var b64Bytes = Encoding.ASCII.GetBytes(b64);
+                 var result = sha.ComputeHash(b64Bytes);
+                 hashValue = BitConverter.ToString(result).Replace("-", "").ToLower();*/
+
+                hashValue = Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(value)));
+            }
+
+            return hashValue;
+        }
+
+        public static string ByteArrayToString(byte[] ba)
+        {
+            StringBuilder hex = new StringBuilder(ba.Length * 2);
+            foreach (byte b in ba)
+            {
+                hex.AppendFormat("{0:x2}", b);
+            }
+            return hex.ToString().ToLower();
         }
 
         private static bool ValidateRestoreGraphs(IEnumerable<RestoreTargetGraph> graphs, ILogger logger)
@@ -320,6 +582,7 @@ namespace NuGet.Commands
                 // looking at the tool's consuming project's lock file to see if the tool has been
                 // restored before.
                 LockFile existingToolLockFile = null;
+                string toolHashValue = string.Empty;
                 if (_request.ExistingLockFile != null)
                 {
                     var existingTarget = _request
@@ -342,6 +605,34 @@ namespace NuGet.Commands
                             existingTarget.TargetFramework);
 
                         existingToolLockFile = LockFileUtilities.GetLockFile(existingLockFilePath, _logger);
+
+                        var isFloatingRange = tool.LibraryRange.VersionRange.IsFloating ||
+                                                  existingLibrary.Dependencies.Any(dep => dep.VersionRange.IsFloating);
+
+                        var sortedDependencies = existingLibrary.Dependencies.OrderBy(dep => dep.Id);
+
+                        toolHashValue = GenerateShaHash(toolPackageSpec, sortedDependencies.ToJson());
+
+                        if (existingToolLockFile != null && !isFloatingRange)
+                        {                            
+                            if (string.Equals(existingToolLockFile.Sha1, toolHashValue, StringComparison.Ordinal))
+                            {
+                                if (!IsAnyPackageMissing(existingToolLockFile))
+                                {
+                                    results.Add(new ToolRestoreResult(
+                                        tool.LibraryRange.Name,
+                                        true,
+                                        existingTarget,
+                                        existingLibrary,
+                                        existingLockFilePath,
+                                        existingToolLockFile,
+                                        existingToolLockFile));
+
+                                    // skip rest of the code and move to next tool
+                                    continue;
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -376,7 +667,7 @@ namespace NuGet.Commands
                 {
                     toolSuccess = false;
                     _success = false;
-                }
+                }                
 
                 // Create the lock file (in memory).
                 var toolLockFile = BuildLockFile(
@@ -385,7 +676,9 @@ namespace NuGet.Commands
                     graphs,
                     localRepositories,
                     contextForTool,
-                    Enumerable.Empty<ToolRestoreResult>());
+                    Enumerable.Empty<ToolRestoreResult>(),
+                    toolHashValue,
+                    true);
 
                 // Build the path based off of the resolved tool. For now, we assume there is only
                 // ever one target.
@@ -400,6 +693,13 @@ namespace NuGet.Commands
                         fileTargetLibrary.Name,
                         fileTargetLibrary.Version,
                         target.TargetFramework);
+
+                    //update hash value if required
+                    if (string.IsNullOrEmpty(toolHashValue))
+                    {
+                        var sortedDependencies = fileTargetLibrary.Dependencies.OrderBy(dep => dep.Id);
+                        toolLockFile.Sha1 = GenerateShaHash(toolPackageSpec, sortedDependencies.ToJson());
+                    }
                 }
 
                 // Validate the results.
@@ -422,6 +722,9 @@ namespace NuGet.Commands
                     toolSuccess = false;
                     _success = false;
                 }
+
+                // update tool success value in tool lock file
+                toolLockFile.Success = toolSuccess;
 
                 results.Add(new ToolRestoreResult(
                     tool.LibraryRange.Name,
@@ -447,9 +750,7 @@ namespace NuGet.Commands
                 _logger.LogError(string.Format(CultureInfo.CurrentCulture, Strings.Log_ProjectDoesNotSpecifyTargetFrameworks, _request.Project.Name, _request.Project.FilePath));
                 _success = false;
                 return Enumerable.Empty<RestoreTargetGraph>();
-            }
-
-            _logger.LogMinimal(string.Format(CultureInfo.CurrentCulture, Strings.Log_RestoringPackages, _request.Project.FilePath));
+            }            
 
             // External references
             var updatedExternalProjects = new List<ExternalProjectReference>(_request.ExternalProjects);

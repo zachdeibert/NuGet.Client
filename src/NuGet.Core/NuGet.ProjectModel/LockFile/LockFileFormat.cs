@@ -45,6 +45,8 @@ namespace NuGet.ProjectModel
         private const string ToolsProperty = "tools";
         private const string ProjectFileToolGroupsProperty = "projectFileToolGroups";
         private const string PackageFoldersProperty = "packageFolders";
+        private const string Sha1Property = "sha1";
+        private const string SuccessProperty = "success";
 
         // Legacy property names
         private const string RuntimeAssembliesProperty = "runtimeAssemblies";
@@ -174,6 +176,8 @@ namespace NuGet.ProjectModel
             lockFile.Tools = ReadObject(cursor[ToolsProperty] as JObject, ReadTarget);
             lockFile.ProjectFileToolGroups = ReadObject(cursor[ProjectFileToolGroupsProperty] as JObject, ReadProjectFileDependencyGroup);
             lockFile.PackageFolders = ReadObject(cursor[PackageFoldersProperty] as JObject, ReadFileItem);
+            lockFile.Sha1 = ReadString(cursor[Sha1Property]);
+            lockFile.Success = ReadBool(cursor, SuccessProperty, defaultValue: true);
             return lockFile;
         }
 
@@ -203,6 +207,10 @@ namespace NuGet.ProjectModel
             {
                 json[PackageFoldersProperty] = WriteObject(lockFile.PackageFolders, WriteFileItem);
             }
+
+            json[Sha1Property] = new JValue(lockFile.Sha1);
+
+            json[SuccessProperty] = new JValue(lockFile.Success);
 
             return json;
         }

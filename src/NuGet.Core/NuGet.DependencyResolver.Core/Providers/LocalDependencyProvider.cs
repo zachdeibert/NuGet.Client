@@ -22,6 +22,8 @@ namespace NuGet.DependencyResolver
 
         public bool IsHttp { get; private set; }
 
+        public string RepositorySource { get; private set; }
+
         public Task<LibraryIdentity> FindLibraryAsync(LibraryRange libraryRange, NuGetFramework targetFramework, CancellationToken cancellationToken)
         {
             var library = _dependencyProvider.GetLibrary(libraryRange, targetFramework);
