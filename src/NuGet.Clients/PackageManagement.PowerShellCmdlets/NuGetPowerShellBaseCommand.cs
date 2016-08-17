@@ -1101,7 +1101,8 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
         {
             BlockingCollection.Add(new ScriptMessage(scriptPath));
 
-            WaitHandle.WaitAny(new WaitHandle[] { ScriptEndSemaphore });
+            // added Token waitHandler as well in case token is being cancelled.
+            WaitHandle.WaitAny(new WaitHandle[] { ScriptEndSemaphore, Token.WaitHandle });
 
             if (_scriptException != null)
             {
