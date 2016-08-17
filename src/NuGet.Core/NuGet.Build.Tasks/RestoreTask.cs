@@ -53,6 +53,11 @@ namespace NuGet.Build.Tasks
         /// </summary>
         public bool RestoreIgnoreFailedSources { get; set; }
 
+        /// <summary>
+        /// Create restore target graphs for the given RIDs.
+        /// </summary>
+        public string[] RestoreRuntimes { get; set; }
+
         public override bool Execute()
         {
             if (RestoreGraphItems.Length < 1)

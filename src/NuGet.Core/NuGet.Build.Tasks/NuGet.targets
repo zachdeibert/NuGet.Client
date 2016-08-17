@@ -15,6 +15,7 @@ Copyright (c) .NET Foundation. All rights reserved.
     <RestoreTaskAssemblyFile Condition="$(RestoreTaskAssemblyFile) == ''">NuGet.Build.Tasks.dll</RestoreTaskAssemblyFile>
   </PropertyGroup>
   <UsingTask TaskName="NuGet.Build.Tasks.RestoreTask" AssemblyFile="$(RestoreTaskAssemblyFile)" />
+  <UsingTask TaskName="NuGet.Build.Tasks.GetProjectJsonTask" AssemblyFile="$(RestoreTaskAssemblyFile)" />
 
   <!--
     ============================================================
@@ -100,6 +101,9 @@ Copyright (c) .NET Foundation. All rights reserved.
       DependsOnTargets="_SplitProjectReferencesByFileExistence"
       Returns="@(_RestoreGraphEntry)">
 
+    <!-- disallow xproj -->
+    <Error Text="$(MSBuildProjectFullPath) is not supported!" Condition=" $(MSBuildThisFileExtension) == '.xproj' " />
+
     <ItemGroup>
       <!-- Filter out project references that specify ReferenceOutputAssembly=false -->
       <ValidProjectInputForRestoreGraph Include="@(ProjectReference)"
@@ -159,6 +163,9 @@ Copyright (c) .NET Foundation. All rights reserved.
           TaskParameter="TargetOutputs"
           ItemName="_RestoreGraphEntry" />
     </MSBuild>
+  
+    <!-- Read project.json if it exists -->
+    <GetProjectJsonTask RestoreProjectPath="$(MSBuildProjectFullPath)" Condition="$(RestoreGraphWriteEntryPoint)' == 'true' AND '$(RestoreOutputType)' == 'netcore' " />
   </Target>
 
   <!--
