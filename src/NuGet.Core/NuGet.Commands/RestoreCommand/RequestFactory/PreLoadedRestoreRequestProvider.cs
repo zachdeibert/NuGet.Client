@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using NuGet.Versioning;
+using Newtonsoft.Json.Linq;
 
 namespace NuGet.Commands
 {
@@ -93,6 +94,7 @@ namespace NuGet.Commands
                 var dependencies = new Dictionary<NuGetFramework, IList<LibraryDependency>>();
                 var properties = new Dictionary<NuGetFramework, IDictionary<string, string>>();
                 var specFrameworksById = new Dictionary<string, NuGetFramework>(StringComparer.OrdinalIgnoreCase);
+                var projectSpecs = new List<ProjectSpec>();
 
                 // Find all target frameworks
                 foreach (var spec in GetItemByType(projectItems, "ProjectSpec"))
@@ -222,12 +224,16 @@ namespace NuGet.Commands
                     dependencies.Keys,
                     dependencies,
                     properties);
+
+                projectSpecs.Add(projectSpec);
             }
 
-            foreach (var project in projectsByPath.Values)
+            foreach (var restoreSpec in restoreSpecs)
             {
+                // TODO: match restoreSpec to project spec
+
                 var request = Create(
-                    project,
+                    packageSpec,
                     restoreContext,
                     settingsOverride: null);
 
@@ -238,12 +244,15 @@ namespace NuGet.Commands
         }
 
         private RestoreSummaryRequest Create(
-            ExternalProjectReference project,
+            ProjectSpec project,
+            NuGetFramework framework,
+            string runtime,
+            List<string> supports,
             RestoreArgs restoreContext,
             ISettings settingsOverride)
         {
             // Get settings relative to the input file
-            var rootPath = Path.GetDirectoryName(project.PackageSpecPath);
+            var rootPath = Path.GetDirectoryName(project.MSBuildProjectPath);
 
             var settings = settingsOverride;
 
@@ -264,6 +273,76 @@ namespace NuGet.Commands
                 restoreContext.CacheContext,
                 restoreContext.Log);
 
+            // Create package spec
+            var frameworkInfoList = new List<TargetFrameworkInformation>(1);
+            var frameworkInfo = new TargetFrameworkInformation();
+            frameworkInfo.FrameworkName = framework;
+
+            // TODO: add imports
+
+            foreach (var dependency in project.GetDependencies(framework))
+            {
+                frameworkInfo.Dependencies.Add(dependency);
+            }
+
+            var packageSpec = new PackageSpec(frameworkInfoList);
+
+            // Create request
+            var request = new RestoreRequest(
+                packageSpec,
+                sharedCache,
+                restoreContext.Log,
+                disposeProviders: false);
+
+            restoreContext.ApplyStandardProperties(request);
+
+            // Find all external references
+            //var externalReferences = msbuildProvider.GetReferences(project.MSBuildProjectPath).ToList();
+            //request.ExternalProjects = externalReferences;
+
+            // Set output type
+            request.RestoreOutputType = RestoreOutputType.NETCore;
+            request.RestoreOutputPath = project.GetProperty(framework, "OutputPath");
+            request.LockFilePath = Path.Combine(request.RestoreOutputPath, "project.assets.json");
+
+            // The lock file is loaded later since this is an expensive operation
+            var summaryRequest = new RestoreSummaryRequest(
+                request,
+                project.MSBuildProjectPath,
+                settings,
+                sources);
+
+            return summaryRequest;
+        }
+
+        private RestoreSummaryRequest Create(
+            ExternalProjectReference project,
+            RestoreArgs restoreContext,
+            ISettings settingsOverride)
+        {
+            // Get settings relative to the input file
+            var rootPath = Path.GetDirectoryName(project.PackageSpec.FilePath);
+
+            var settings = settingsOverride;
+
+            if (settings == null)
+            {
+                settings = restoreContext.GetSettings(rootPath);
+            }
+
+            var globalPath = restoreContext.GetEffectiveGlobalPackagesFolder(rootPath, settings);
+            var fallbackPaths = restoreContext.GetEffectiveFallbackPackageFolders(settings);
+
+            var sources = restoreContext.GetEffectiveSources(settings);
+
+            var sharedCache = _providerCache.GetOrCreate(
+                globalPath,
+                fallbackPaths,
+                sources,
+                restoreContext.CacheContext,
+                restoreContext.Log);
+
+            // Create request
             var request = new RestoreRequest(
                 project.PackageSpec,
                 sharedCache,
@@ -277,12 +356,9 @@ namespace NuGet.Commands
             //request.ExternalProjects = externalReferences;
 
             // Set output type
-            if (StringComparer.OrdinalIgnoreCase.Equals("netcore", GetPropertyValue(project, "OutputType")))
-            {
-                request.RestoreOutputType = RestoreOutputType.NETCore;
-                request.RestoreOutputPath = GetPropertyValue(project, "OutputPath");
-                request.LockFilePath = Path.Combine(request.RestoreOutputPath, "project.assets.json");
-            }
+            request.RestoreOutputType = RestoreOutputType.UAP;
+            request.RestoreOutputPath = rootPath;
+            request.LockFilePath = Path.Combine(request.RestoreOutputPath, "project.lock.json");
 
             // The lock file is loaded later since this is an expensive operation
             var summaryRequest = new RestoreSummaryRequest(

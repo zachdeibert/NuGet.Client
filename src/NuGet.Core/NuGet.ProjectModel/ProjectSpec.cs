@@ -61,6 +61,21 @@ namespace NuGet.ProjectModel
         }
 
         /// <summary>
+        /// Retrieve msbuild property for the given framework.
+        /// </summary>
+        public string GetProperty(NuGetFramework framework, string name)
+        {
+            string val;
+            if (GetProperties(framework).TryGetValue(name, out val)
+                && !string.IsNullOrEmpty(val))
+            {
+                return val;
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Dependencies for the given framework, packages and projects.
         /// </summary>
         public IList<LibraryDependency> GetDependencies(NuGetFramework framework)
