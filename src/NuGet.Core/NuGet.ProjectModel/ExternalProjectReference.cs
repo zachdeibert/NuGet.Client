@@ -11,9 +11,10 @@ namespace NuGet.ProjectModel
     /// <summary>
     /// Represents a reference to a project produced by an external build system, such as msbuild.
     /// </summary>
-    public class ExternalProjectReference : IEquatable<ExternalProjectReference>, IComparable<ExternalProjectReference>
+    public class ExternalProjectReference : ProjectSpecBase
     {
         private PackageSpec _packageSpec;
+        private readonly List<string> _projectReferences;
 
         /// <summary>
         /// Represents a reference to a project produced by an external build system, such as msbuild.
@@ -36,24 +37,6 @@ namespace NuGet.ProjectModel
         /// Represents a reference to a project produced by an external build system, such as msbuild.
         /// </summary>
         /// <param name="uniqueName">unique project name or full path</param>
-        /// <param name="packageSpec">project.json package spec.</param>
-        /// <param name="msbuildProjectPath">project file if one exists</param>
-        /// <param name="projectReferences">unique names of the referenced projects</param>
-        public ExternalProjectReference(
-            string uniqueName,
-            PackageSpec packageSpec,
-            string msbuildProjectPath,
-            IEnumerable<string> projectReferences,
-            IReadOnlyDictionary<string, List<string>> properties)
-            : this(uniqueName, packageSpec?.Name, packageSpec?.FilePath, msbuildProjectPath, projectReferences, properties)
-        {
-            _packageSpec = packageSpec;
-        }
-
-        /// <summary>
-        /// Represents a reference to a project produced by an external build system, such as msbuild.
-        /// </summary>
-        /// <param name="uniqueName">unique project name or full path</param>
         /// <param name="packageSpecPath">project.json file path or null if none exists</param>
         /// <param name="msbuildProjectPath">project file if one exists</param>
         /// <param name="projectReferences">unique names of the referenced projects</param>
@@ -63,63 +46,18 @@ namespace NuGet.ProjectModel
             string packageSpecPath,
             string msbuildProjectPath,
             IEnumerable<string> projectReferences)
-            : this(
-                  uniqueName,
-                  packageSpecProjectName,
-                  packageSpecPath,
-                  msbuildProjectPath,
-                  projectReferences,
-                  new Dictionary<string, List<string>>(StringComparer.Ordinal))
+            : base(uniqueName, msbuildProjectPath)
         {
-        }
-
-        /// <summary>
-        /// Represents a reference to a project produced by an external build system, such as msbuild.
-        /// </summary>
-        /// <param name="uniqueName">unique project name or full path</param>
-        /// <param name="packageSpecPath">project.json file path or null if none exists</param>
-        /// <param name="msbuildProjectPath">project file if one exists</param>
-        /// <param name="projectReferences">unique names of the referenced projects</param>
-        public ExternalProjectReference(
-            string uniqueName,
-            string packageSpecProjectName,
-            string packageSpecPath,
-            string msbuildProjectPath,
-            IEnumerable<string> projectReferences,
-            IReadOnlyDictionary<string, List<string>> properties)
-        {
-            if (uniqueName == null)
-            {
-                throw new ArgumentNullException(nameof(uniqueName));
-            }
-
             if (projectReferences == null)
             {
                 throw new ArgumentNullException(nameof(projectReferences));
             }
 
-            if (properties == null)
-            {
-                throw new ArgumentNullException(nameof(properties));
-            }
-
-            UniqueName = uniqueName;
             PackageSpecPath = packageSpecPath;
-            MSBuildProjectPath = msbuildProjectPath;
             PackageSpecProjectName = packageSpecProjectName;
-            ExternalProjectReferences = projectReferences.ToList();
-            Properties = properties;
+
+            _projectReferences = projectReferences.ToList();
         }
-
-        /// <summary>
-        /// Unique name of the external project
-        /// </summary>
-        public string UniqueName { get; }
-
-        /// <summary>
-        /// Additional properties from MSBuild
-        /// </summary>
-        public IReadOnlyDictionary<string, List<string>> Properties { get; }
 
         /// <summary>
         /// The path to the project.json file representing the NuGet dependencies of the project
@@ -140,12 +78,13 @@ namespace NuGet.ProjectModel
         /// <summary>
         /// A list of other external projects this project references. Uses the UniqueName.
         /// </summary>
-        public IReadOnlyList<string> ExternalProjectReferences { get; }
-
-        /// <summary>
-        /// Path to msbuild project file. Ex: xproj, csproj
-        /// </summary>
-        public string MSBuildProjectPath { get; }
+        public IReadOnlyList<string> ExternalProjectReferences
+        {
+            get
+            {
+                return _projectReferences;
+            }
+        }
 
         /// <summary>
         /// Path to project.json
@@ -162,7 +101,7 @@ namespace NuGet.ProjectModel
         /// <summary>
         /// Project name from the package spec or msbuild file.
         /// </summary>
-        public string ProjectName
+        public override string ProjectName
         {
             get
             {
@@ -173,41 +112,6 @@ namespace NuGet.ProjectModel
                         ?? Path.GetFileNameWithoutExtension(MSBuildProjectPath)
                         ?? UniqueName;
             }
-        }
-
-        public override string ToString()
-        {
-            return UniqueName;
-        }
-
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as ExternalProjectReference);
-        }
-
-        public override int GetHashCode()
-        {
-            return StringComparer.Ordinal.GetHashCode(UniqueName);
-        }
-
-        public bool Equals(ExternalProjectReference other)
-        {
-            if (other == null)
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, other))
-            {
-                return true;
-            }
-
-            return UniqueName.Equals(other.UniqueName, StringComparison.Ordinal);
-        }
-
-        public int CompareTo(ExternalProjectReference other)
-        {
-            return StringComparer.Ordinal.Compare(UniqueName, other?.UniqueName);
         }
     }
 }

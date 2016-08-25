@@ -21,7 +21,7 @@ namespace NuGet.Build.Tasks
         /// DG file entries
         /// </summary>
         [Required]
-        public string[] RestoreGraphItems { get; set; }
+        public ITaskItem[] RestoreGraphItems { get; set; }
 
         /// <summary>
         /// NuGet sources, ; delimited
@@ -71,7 +71,10 @@ namespace NuGet.Build.Tasks
             log.LogDebug($"(in) RestoreNoCache '{RestoreNoCache}'");
             log.LogDebug($"(in) RestoreIgnoreFailedSources '{RestoreIgnoreFailedSources}'");
 
-            var graphLines = RestoreGraphItems;
+            // Log the graph input
+            Dump(RestoreGraphItems, log);
+
+            //var graphLines = RestoreGraphItems;
             var providerCache = new RestoreCommandProvidersCache();
 
             using (var cacheContext = new SourceCacheContext())
@@ -81,7 +84,7 @@ namespace NuGet.Build.Tasks
 
                 // Pre-loaded request provider containing the graph file
                 var providers = new List<IPreLoadedRestoreRequestProvider>();
-                providers.Add(new PreLoadedRestoreRequestProvider(providerCache, graphLines));
+                providers.Add(new PreLoadedRestoreRequestProvider(providerCache, RestoreGraphItems.Select(GetMSBuildItem).ToArray()));
 
                 var defaultSettings = Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null);
                 var sourceProvider = new CachingSourceProvider(new PackageSourceProvider(defaultSettings));
@@ -125,6 +128,55 @@ namespace NuGet.Build.Tasks
         private static string GetNullForEmpty(string s)
         {
             return string.IsNullOrEmpty(s) ? null : s;
+        }
+
+        private static MSBuildItem GetMSBuildItem(ITaskItem item)
+        {
+            var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var key in item.MetadataNames.OfType<string>())
+            {
+                try
+                {
+                    var val = item.GetMetadata(key);
+
+                    if (!string.IsNullOrEmpty(val))
+                    {
+                        properties.Add(key, val);
+                    }
+                }
+                catch
+                {
+                    // Ignore errors
+                }
+            }
+
+            return new MSBuildItem(item.ItemSpec, properties);
+        }
+
+        private static void Dump(ITaskItem[] items, MSBuildLogger log)
+        {
+            foreach (var item in items)
+            {
+                log.LogDebug($"Item: {item.ItemSpec}");
+
+                foreach (var key in item.MetadataNames.OfType<string>())
+                {
+                    try
+                    {
+                        var val = item.GetMetadata(key);
+
+                        if (!string.IsNullOrEmpty(val))
+                        {
+                            log.LogDebug($"  {key}={val}");
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors
+                    }
+                }
+            }
         }
     }
 }
