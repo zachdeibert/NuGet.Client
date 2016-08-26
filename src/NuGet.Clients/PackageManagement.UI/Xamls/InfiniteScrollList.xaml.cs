@@ -19,6 +19,7 @@ using NuGet.Packaging.Core;
 using Mvs = Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Threading;
 using Resx = NuGet.PackageManagement.UI;
+using NuGet.Protocol.Core.Types;
 
 namespace NuGet.PackageManagement.UI
 {
@@ -37,8 +38,9 @@ namespace NuGet.PackageManagement.UI
         public event UpdateButtonCllickEventHandler UpdateButtonClicked;
 
         private CancellationTokenSource _loadCts;
-        private IItemLoader<PackageItemListViewModel> _loader;
+        private PackageItemLoader _loader;
         private INuGetUILogger _logger;
+        private Task<SearchResult<IPackageSearchMetadata>> _initialSearchResultTask;
 
         private const string LogEntrySource = "NuGet Package Manager";
 
@@ -87,10 +89,15 @@ namespace NuGet.PackageManagement.UI
         public PackageItemListViewModel SelectedPackageItem => _list.SelectedItem as PackageItemListViewModel;
 
         // Load items using the specified loader
-        internal void LoadItems(IItemLoader<PackageItemListViewModel> loader, string loadingMessage, INuGetUILogger logger)
+        internal void LoadItems(
+            PackageItemLoader loader, 
+            string loadingMessage, 
+            INuGetUILogger logger, 
+            Task<SearchResult<IPackageSearchMetadata>> searchResultTask)
         {
             _loader = loader;
             _logger = logger;
+            _initialSearchResultTask = searchResultTask;
             _loadingStatusIndicator.Reset(loadingMessage);
             _loadingStatusBar.Visibility = Visibility.Hidden;
             _loadingStatusBar.Reset(loadingMessage, loader.IsMultiSource);
@@ -180,7 +187,7 @@ namespace NuGet.PackageManagement.UI
             });
         }
 
-        private async Task LoadItemsCoreAsync(IItemLoader<PackageItemListViewModel> currentLoader, CancellationToken token)
+        private async Task LoadItemsCoreAsync(PackageItemLoader currentLoader, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
 
@@ -211,21 +218,39 @@ namespace NuGet.PackageManagement.UI
             token.ThrowIfCancellationRequested();
         }
 
-        private async Task<IEnumerable<PackageItemListViewModel>> LoadNextPageAsync(IItemLoader<PackageItemListViewModel> currentLoader, CancellationToken token)
+        private async Task<IEnumerable<PackageItemListViewModel>> LoadNextPageAsync(PackageItemLoader currentLoader, CancellationToken token)
         {
             var progress = new Progress<IItemLoaderState>(
                 s => HandleItemLoaderStateChange(currentLoader, s));
 
-            // trigger loading
-            await currentLoader.LoadNextAsync(progress, token);
-
-            // run till first results are ready
-            for (var state = currentLoader.State;
-                state.LoadingStatus == LoadingStatus.Loading && state.ItemsCount == 0;
-                state = currentLoader.State)
+            // if searchResultTask is in progress then just wait for it to complete
+            // without creating new load task
+            if (_initialSearchResultTask != null)
             {
-                token.ThrowIfCancellationRequested();
-                await currentLoader.UpdateStateAsync(progress, token);
+                // update initial progress
+                var cleanState = SearchResult.Empty<IPackageSearchMetadata>();
+                await currentLoader.UpdateStateAndReportAsync(cleanState, progress, token);
+
+                var results = await _initialSearchResultTask;
+
+                // update state and progress
+                await currentLoader.UpdateStateAndReportAsync(results, progress, token);
+
+                _initialSearchResultTask = null;
+            }
+            else
+            {
+                // trigger loading
+                await currentLoader.LoadNextAsync(progress, token);
+
+                // run till first results are ready
+                for (var state = currentLoader.State;
+                    state.LoadingStatus == LoadingStatus.Loading && state.ItemsCount == 0;
+                    state = currentLoader.State)
+                {
+                    token.ThrowIfCancellationRequested();
+                    await currentLoader.UpdateStateAsync(progress, token);
+                }
             }
 
             return currentLoader.GetCurrent();
