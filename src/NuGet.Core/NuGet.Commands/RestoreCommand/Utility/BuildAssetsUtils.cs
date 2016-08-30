@@ -65,10 +65,6 @@ namespace NuGet.Commands
             // There must be at least one framework here since there are target graphs (checked above)
             var combinedTargetsAndProps = buildAssetsByFramework.Values.First();
 
-            // Sort the results by string case to keep the results consistent across internal nuget changes
-            combinedTargetsAndProps.Props.Sort(StringComparer.Ordinal);
-            combinedTargetsAndProps.Targets.Sort(StringComparer.Ordinal);
-
             // Targets files contain a macro for the repository root. If only the user package folder was used
             // allow a replacement. If fallback folders were used the macro cannot be applied.
             // Do not use macros for fallback folders. Use only the first repository which is the user folder.
@@ -177,10 +173,11 @@ namespace NuGet.Commands
 
             var flattenedFlags = IncludeFlagUtils.FlattenDependencyTypes(includeFlagGraphs, project, graph);
 
+            // sort graph nodes by dependencies order
+            var sortedItems = TopologicalSort(graph.Flattened);
+
             // First find all msbuild items in the packages
-            foreach (var library in graph.Flattened
-                .Distinct()
-                .OrderBy(g => g.Data.Match.Library))
+            foreach (var library in sortedItems)
             {
                 var includeLibrary = true;
 
@@ -213,6 +210,45 @@ namespace NuGet.Commands
             }
 
             return buildGroupSets;
+        }
+
+        private static IReadOnlyList<GraphItem<RemoteResolveResult>> TopologicalSort(IEnumerable<GraphItem<RemoteResolveResult>> items)
+        {
+            var sorted = new List<GraphItem<RemoteResolveResult>>();
+            var toSort = items.Distinct().ToList();
+
+            while (toSort.Count > 0)
+            {
+                // Order packages by parent count, take the child with the lowest number of parents
+                // and remove it from the list
+                var nextPackage = toSort.OrderBy(item => GetParentCount(toSort, item.Key.Name))
+                    .ThenBy(item => item.Key.Name, StringComparer.OrdinalIgnoreCase).First();
+
+                sorted.Add(nextPackage);
+                toSort.Remove(nextPackage);
+            }
+
+            // the list is ordered by parents first, reverse to run children first
+            sorted.Reverse();
+
+            return sorted;
+        }
+
+        private static int GetParentCount(List<GraphItem<RemoteResolveResult>> items, string name)
+        {
+            int count = 0;
+
+            foreach (var item in items)
+            {
+                if (item.Data != null && item.Data.Dependencies != null
+                    && item.Data.Dependencies.Any(dependency =>
+                        string.Equals(name, dependency.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         /// <summary>

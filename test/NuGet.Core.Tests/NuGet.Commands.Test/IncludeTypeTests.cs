@@ -1158,13 +1158,17 @@ namespace NuGet.Commands.Test
                 var targets = target.Libraries.ToDictionary(lib => lib.Name);
 
                 var msbuildTargets = GetInstalledTargets(workingDir);
+                var buildTargets = msbuildTargets["TestProject"].ToList();
 
                 // Assert
                 Assert.Equal(0, result.CompatibilityCheckResults.Sum(checkResult => checkResult.Issues.Count));
                 Assert.Equal(0, logger.Errors);
                 Assert.Equal(0, logger.Warnings);
 
-                Assert.Equal(3, msbuildTargets["TestProject"].Count);
+                Assert.Equal(3, buildTargets.Count);
+                Assert.Equal("packageZ", buildTargets[0]);
+                Assert.Equal("packageY", buildTargets[1]);
+                Assert.Equal("packageX", buildTargets[2]);
             }
         }
 
