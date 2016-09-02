@@ -44,7 +44,7 @@ namespace NuGet.ProjectModel
             PackageSpec packageSpec,
             string msbuildProjectPath,
             IEnumerable<string> projectReferences,
-            IReadOnlyDictionary<string, List<string>> properties)
+            IDictionary<string, string> properties)
             : this(uniqueName, packageSpec?.Name, packageSpec?.FilePath, msbuildProjectPath, projectReferences, properties)
         {
             _packageSpec = packageSpec;
@@ -69,7 +69,7 @@ namespace NuGet.ProjectModel
                   packageSpecPath,
                   msbuildProjectPath,
                   projectReferences,
-                  new Dictionary<string, List<string>>(StringComparer.Ordinal))
+                  new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase))
         {
         }
 
@@ -86,7 +86,7 @@ namespace NuGet.ProjectModel
             string packageSpecPath,
             string msbuildProjectPath,
             IEnumerable<string> projectReferences,
-            IReadOnlyDictionary<string, List<string>> properties)
+            IDictionary<string, string> properties)
         {
             if (uniqueName == null)
             {
@@ -119,7 +119,7 @@ namespace NuGet.ProjectModel
         /// <summary>
         /// Additional properties from MSBuild
         /// </summary>
-        public IReadOnlyDictionary<string, List<string>> Properties { get; }
+        public IDictionary<string, string> Properties { get; }
 
         /// <summary>
         /// The path to the project.json file representing the NuGet dependencies of the project

@@ -18,6 +18,13 @@ namespace NuGet.ProjectModel
     {
         public static readonly string PackageSpecFileName = "project.json";
 
+        public PackageSpec(IList<TargetFrameworkInformation> frameworks)
+            : this(new JObject())
+        {
+            TargetFrameworks = frameworks;
+            Properties = new JObject();
+        }
+
         public PackageSpec(JObject rawProperties)
         {
             Scripts = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);

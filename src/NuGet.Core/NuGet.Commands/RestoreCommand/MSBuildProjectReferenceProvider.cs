@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using NuGet.Common;
 using NuGet.ProjectModel;
 
@@ -27,18 +24,14 @@ namespace NuGet.Commands
             }
 
             var lookup = new Dictionary<string, Dictionary<string, HashSet<string>>>(StringComparer.OrdinalIgnoreCase);
-            var lookupProperties = new Dictionary<string, Dictionary<string, List<string>>>(StringComparer.OrdinalIgnoreCase);
 
             string entryPoint = null;
 
             foreach (var line in msbuildOutputLines)
             {
-                // Content with the prefix removed
-                var lineContent = line.Length > 2 ? line.Substring(2, line.Length - 2) : string.Empty;
-
                 if (line.StartsWith("#:", StringComparison.Ordinal))
                 {
-                    entryPoint = lineContent;
+                    entryPoint = line.Substring(2, line.Length - 2);
 
                     Debug.Assert(!lookup.ContainsKey(entryPoint), "Duplicate entry point in msbuild results");
 
@@ -46,61 +39,38 @@ namespace NuGet.Commands
                     {
                         lookup.Add(entryPoint,
                             new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase));
-
-                        lookupProperties.Add(entryPoint, new Dictionary<string, List<string>>(StringComparer.Ordinal));
                     }
 
                     continue;
                 }
-                else if (line.StartsWith("+:", StringComparison.Ordinal))
+
+                var parts = line.TrimEnd().Split('|');
+
+                if (parts.Length == 2)
                 {
-                    // Property
-                    var values = lineContent.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                    var parent = parts[0];
+                    var child = parts[1];
 
-                    if (values.Length > 1)
+                    var projectReferences = lookup[entryPoint];
+
+                    HashSet<string> children;
+                    if (!projectReferences.TryGetValue(parent, out children))
                     {
-                        var key = values[0];
-                        var properties = lookupProperties[entryPoint];
-
-                        if (!properties.ContainsKey(key))
-                        {
-                            properties.Add(key, new List<string>());
-                        }
-
-                        properties[key].AddRange(values.Skip(1));
+                        children = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        projectReferences.Add(parent, children);
                     }
+
+                    children.Add(child);
                 }
-                else if (line.StartsWith("=:", StringComparison.Ordinal))
+                else
                 {
-                    // P2P graph entry
-                    var parts = lineContent.TrimEnd().Split('|');
-
-                    if (parts.Length == 2)
-                    {
-                        var parent = parts[0];
-                        var child = parts[1];
-
-                        var projectReferences = lookup[entryPoint];
-
-                        HashSet<string> children;
-                        if (!projectReferences.TryGetValue(parent, out children))
-                        {
-                            children = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                            projectReferences.Add(parent, children);
-                        }
-
-                        children.Add(child);
-                    }
-                    else
-                    {
-                        Debug.Fail("Invalid: " + line);
-                    }
+                    Debug.Fail("Invalid: " + line);
                 }
             }
 
             foreach (var entryPointKey in lookup.Keys)
             {
-                var references = GetExternalProjectReferences(entryPointKey, lookup[entryPointKey], lookupProperties);
+                var references = GetExternalProjectReferences(entryPointKey, lookup[entryPointKey]);
 
                 _cache.Add(entryPointKey, references);
             }
@@ -151,37 +121,12 @@ namespace NuGet.Commands
             return projectJson;
         }
 
-        private static JObject GetGraphFile(IEnumerable<string> lines)
-        {
-            using (var stream = new MemoryStream())
-            {
-                // Write the graph file lines into a memory stream
-                using (var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 4096, leaveOpen: true))
-                {
-                    foreach (var line in lines)
-                    {
-                        writer.Write(line);
-                    }
-                }
-
-                stream.Seek(0, SeekOrigin.Begin);
-
-                // Read the memory stream into a JObject
-                using (var reader = new StreamReader(stream))
-                using (var jsonReader = new JsonTextReader(reader))
-                {
-                    return JObject.Load(jsonReader);
-                }
-            }
-        }
-
         /// <summary>
         /// MSBuild project -> ExternalProjectReference
         /// </summary>
         private Dictionary<string, ExternalProjectReference> GetExternalProjectReferences(
             string entryPoint,
-            Dictionary<string, HashSet<string>> projectReferences,
-            Dictionary<string, Dictionary<string, List<string>>> projectProperties)
+            Dictionary<string, HashSet<string>> projectReferences)
         {
             var results = new Dictionary<string, ExternalProjectReference>(StringComparer.OrdinalIgnoreCase);
 
@@ -196,13 +141,6 @@ namespace NuGet.Commands
             {
                 var projectJson = GetPackageSpec(projectPath);
 
-                Dictionary<string, List<string>> properties;
-                if (!projectProperties.TryGetValue(entryPoint, out properties))
-                {
-                    // Empty properties
-                    properties = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-                }
-
                 var childProjectNames = new List<string>();
                 HashSet<string> children;
                 if (projectReferences.TryGetValue(projectPath, out children))
@@ -214,8 +152,7 @@ namespace NuGet.Commands
                     projectPath,
                     projectJson,
                     projectPath,
-                    childProjectNames,
-                    properties);
+                    childProjectNames);
 
                 Debug.Assert(!results.ContainsKey(projectPath), "dupe: " + projectPath);
 
