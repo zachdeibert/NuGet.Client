@@ -1,4 +1,4 @@
-﻿namespace NuGet.Commands
+﻿namespace NuGet.ProjectModel
 {
     public enum RestoreOutputType : ushort
     {

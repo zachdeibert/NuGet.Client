@@ -104,6 +104,12 @@ namespace NuGet.ProjectModel
         public RuntimeGraph RuntimeGraph { get; set; }
 
         /// <summary>
+        /// Additional MSBuild properties.
+        /// </summary>
+        /// <remarks>Optional. This is normally set for internal use only.</remarks>
+        public ProjectMSBuildMetadata MSBuildMetadata { get; set; }
+
+        /// <summary>
         /// Gets a list of all properties found in the package spec, including
         /// those not recognized by the parser.
         /// </summary>
