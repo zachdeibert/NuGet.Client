@@ -13,10 +13,23 @@ namespace NuGet.ProjectModel.Test
         {
             // Arrange
 
+
             // Act
 
             // Assert
         }
 
+
+
+        [Fact]
+        public void DependencyGraphSpec_ReadMSBuildMetadata()
+        {
+            // Arrange
+
+
+            // Act
+
+            // Assert
+        }
     }
 }

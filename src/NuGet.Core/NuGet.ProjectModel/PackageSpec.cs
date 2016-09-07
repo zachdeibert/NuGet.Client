@@ -113,7 +113,6 @@ namespace NuGet.ProjectModel
         /// Gets a list of all properties found in the package spec, including
         /// those not recognized by the parser.
         /// </summary>
-        // TODO: Remove dependency on Newtonsoft.Json here.
         public JObject Properties { get; }
     }
 }

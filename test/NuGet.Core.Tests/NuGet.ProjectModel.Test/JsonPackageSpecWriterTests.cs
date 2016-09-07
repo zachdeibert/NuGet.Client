@@ -2,12 +2,23 @@
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NuGet.Test.Utility;
 using Xunit;
 
 namespace NuGet.ProjectModel.Test
 {
     public class JsonPackageSpecWriterTests
     {
+        [Fact]
+        public void PackageSpecWriter_RoundTripMSBuildMetadata()
+        {
+            // Arrange
+            var input = ResourceTestUtility.GetResource("NuGet.ProjectModel.Test.compiler.resources.project1.json", typeof(JsonPackageSpecWriterTests));
+
+            // Act && Assert
+            VerifyJsonPackageSpecRoundTrip(input);
+        }
+
         [Fact]
         public void PackageSpecWrite_ReadWriteDependencies()
         {
