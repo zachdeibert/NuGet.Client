@@ -41,23 +41,16 @@ namespace NuGet.ProjectModel.Test
             Assert.Equal("c:\\x\\project.json", msbuildMetadata.ProjectJsonPath);
             Assert.Equal(RestoreOutputType.NETCore, msbuildMetadata.OutputType);
             Assert.Equal("c:\\packages", msbuildMetadata.PackagesPath);
-            Assert.Equal("https://api.nuget.org/v3/index.json", string.Join("|", msbuildMetadata.Sources));
-            Assert.Equal("c:\\fallback1|c:\\fallback2", string.Join(" |", msbuildMetadata.FallbackFolders));
-            Assert.Equal("44B29B8D-8413-42D2-8DF4-72225659619B|c:\\a\\a.csproj|78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F|c:\\b\\b.csproj", string.Join(" |", msbuildMetadata.ProjectReferences.Select(e => $"{e.ProjectUniqueName}|{e.ProjectPath}")));
+            Assert.Equal("https://api.nuget.org/v3/index.json", string.Join("|", msbuildMetadata.Sources.Select(s => s.Source)));
+            Assert.Equal("c:\\fallback1|c:\\fallback2", string.Join("|", msbuildMetadata.FallbackFolders));
+            Assert.Equal("44B29B8D-8413-42D2-8DF4-72225659619B|c:\\a\\a.csproj|78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F|c:\\b\\b.csproj", string.Join("|", msbuildMetadata.ProjectReferences.Select(e => $"{e.ProjectUniqueName}|{e.ProjectPath}")));
         }
 
         [Fact]
         public void DependencyGraphSpec_VerifyMSBuildMetadataObject()
         {
             // Arrange && Act
-            var frameworks = new List<TargetFrameworkInformation>();
-            frameworks.Add(new TargetFrameworkInformation()
-            {
-                FrameworkName = NuGetFramework.Parse("net45")
-            });
-
-            var spec = new PackageSpec(frameworks);
-            var msbuildMetadata = spec.MSBuildMetadata;
+            var msbuildMetadata = new ProjectMSBuildMetadata();
 
             msbuildMetadata.ProjectUniqueName = "A55205E7-4D08-4672-8011-0925467CC45F";
             msbuildMetadata.ProjectPath = "c:\\x\\x.csproj";
@@ -78,6 +71,9 @@ namespace NuGet.ProjectModel.Test
                 ProjectPath = "c:\\b\\b.csproj"
             });
 
+            msbuildMetadata.FallbackFolders.Add("c:\\fallback1");
+            msbuildMetadata.FallbackFolders.Add("c:\\fallback2");
+
             // Assert
             Assert.NotNull(msbuildMetadata);
             Assert.Equal("A55205E7-4D08-4672-8011-0925467CC45F", msbuildMetadata.ProjectUniqueName);
@@ -86,9 +82,9 @@ namespace NuGet.ProjectModel.Test
             Assert.Equal("c:\\x\\project.json", msbuildMetadata.ProjectJsonPath);
             Assert.Equal(RestoreOutputType.NETCore, msbuildMetadata.OutputType);
             Assert.Equal("c:\\packages", msbuildMetadata.PackagesPath);
-            Assert.Equal("https://api.nuget.org/v3/index.json", string.Join("|", msbuildMetadata.Sources));
-            Assert.Equal("c:\\fallback1|c:\\fallback2", string.Join(" |", msbuildMetadata.FallbackFolders));
-            Assert.Equal("44B29B8D-8413-42D2-8DF4-72225659619B|c:\\a\\a.csproj|78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F|c:\\b\\b.csproj", string.Join(" |", msbuildMetadata.ProjectReferences.Select(e => $"{e.ProjectUniqueName}|{e.ProjectPath}")));
+            Assert.Equal("https://api.nuget.org/v3/index.json", string.Join("|", msbuildMetadata.Sources.Select(s => s.Source)));
+            Assert.Equal("c:\\fallback1|c:\\fallback2", string.Join("|", msbuildMetadata.FallbackFolders));
+            Assert.Equal("44B29B8D-8413-42D2-8DF4-72225659619B|c:\\a\\a.csproj|78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F|c:\\b\\b.csproj", string.Join("|", msbuildMetadata.ProjectReferences.Select(e => $"{e.ProjectUniqueName}|{e.ProjectPath}")));
         }
 
         [Fact]
@@ -102,7 +98,8 @@ namespace NuGet.ProjectModel.Test
             });
 
             var spec = new PackageSpec(frameworks);
-            var msbuildMetadata = spec.MSBuildMetadata;
+            var msbuildMetadata = new ProjectMSBuildMetadata();
+            spec.MSBuildMetadata = msbuildMetadata;
 
             msbuildMetadata.ProjectUniqueName = "A55205E7-4D08-4672-8011-0925467CC45F";
             msbuildMetadata.ProjectPath = "c:\\x\\x.csproj";
@@ -122,6 +119,9 @@ namespace NuGet.ProjectModel.Test
                 ProjectUniqueName = "78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F",
                 ProjectPath = "c:\\b\\b.csproj"
             });
+
+            msbuildMetadata.FallbackFolders.Add("c:\\fallback1");
+            msbuildMetadata.FallbackFolders.Add("c:\\fallback2");
 
             JObject json = new JObject();
 
@@ -138,9 +138,9 @@ namespace NuGet.ProjectModel.Test
             Assert.Equal("c:\\x\\project.json", msbuildMetadata2.ProjectJsonPath);
             Assert.Equal(RestoreOutputType.NETCore, msbuildMetadata2.OutputType);
             Assert.Equal("c:\\packages", msbuildMetadata2.PackagesPath);
-            Assert.Equal("https://api.nuget.org/v3/index.json", string.Join("|", msbuildMetadata2.Sources));
-            Assert.Equal("c:\\fallback1|c:\\fallback2", string.Join(" |", msbuildMetadata2.FallbackFolders));
-            Assert.Equal("44B29B8D-8413-42D2-8DF4-72225659619B|c:\\a\\a.csproj|78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F|c:\\b\\b.csproj", string.Join(" |", msbuildMetadata2.ProjectReferences.Select(e => $"{e.ProjectUniqueName}|{e.ProjectPath}")));
+            Assert.Equal("https://api.nuget.org/v3/index.json", string.Join("|", msbuildMetadata.Sources.Select(s => s.Source)));
+            Assert.Equal("c:\\fallback1|c:\\fallback2", string.Join("|", msbuildMetadata2.FallbackFolders));
+            Assert.Equal("44B29B8D-8413-42D2-8DF4-72225659619B|c:\\a\\a.csproj|78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F|c:\\b\\b.csproj", string.Join("|", msbuildMetadata2.ProjectReferences.Select(e => $"{e.ProjectUniqueName}|{e.ProjectPath}")));
         }
     }
 }

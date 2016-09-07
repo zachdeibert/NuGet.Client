@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NuGet.Configuration;
 using NuGet.Frameworks;
 using NuGet.LibraryModel;
 using NuGet.Packaging.Core;
@@ -155,6 +156,8 @@ namespace NuGet.ProjectModel
 
             packageSpec.PackOptions = GetPackOptions(packageSpec, rawPackageSpec);
 
+            packageSpec.MSBuildMetadata = GetMSBuildMetadata(packageSpec, rawPackageSpec);
+
             // Read the runtime graph
             packageSpec.RuntimeGraph = JsonRuntimeFormat.ReadRuntimeGraph(rawPackageSpec);
 
@@ -178,6 +181,71 @@ namespace NuGet.ProjectModel
             }
 
             return new NuGetVersion(version);
+        }
+
+        private static ProjectMSBuildMetadata GetMSBuildMetadata(PackageSpec packageSpec, JObject rawPackageSpec)
+        {
+            var rawMSBuildMetadata = rawPackageSpec.Value<JToken>(MSBuild) as JObject;
+            if (rawMSBuildMetadata == null)
+            {
+                return null;
+            }
+
+            var msbuildMetadata = new ProjectMSBuildMetadata();
+
+            msbuildMetadata.ProjectUniqueName = rawMSBuildMetadata.GetValue<string>("projectUniqueName");
+            msbuildMetadata.OutputPath = rawMSBuildMetadata.GetValue<string>("outputPath");
+
+            var outputTypeString = rawMSBuildMetadata.GetValue<string>("outputType");
+
+            RestoreOutputType outputType;
+            if (!string.IsNullOrEmpty(outputTypeString) 
+                && Enum.TryParse<RestoreOutputType>(outputTypeString, ignoreCase: true, result: out outputType))
+            {
+                msbuildMetadata.OutputType = outputType;
+            }
+
+            msbuildMetadata.PackagesPath = rawMSBuildMetadata.GetValue<string>("packagesPath");
+            msbuildMetadata.ProjectJsonPath = rawMSBuildMetadata.GetValue<string>("projectJsonPath");
+            msbuildMetadata.ProjectName = rawMSBuildMetadata.GetValue<string>("projectName");
+            msbuildMetadata.ProjectPath = rawMSBuildMetadata.GetValue<string>("projectPath");
+
+            msbuildMetadata.Sources = new List<PackageSource>();
+
+            var sourcesObj = rawMSBuildMetadata.GetValue<JObject>("sources");
+            if (sourcesObj != null)
+            {
+                foreach (var prop in sourcesObj.Properties())
+                {
+                    msbuildMetadata.Sources.Add(new PackageSource(prop.Name));
+                }
+            }
+
+            var projectsObj = rawMSBuildMetadata.GetValue<JObject>("projectReferences");
+            if (projectsObj != null)
+            {
+                foreach (var prop in projectsObj.Properties())
+                {
+                    msbuildMetadata.ProjectReferences.Add(new ProjectMSBuildReference()
+                    {
+                        ProjectUniqueName = prop.Name,
+                        ProjectPath = prop.Value.GetValue<string>("projectPath")
+                    });
+                }
+            }
+
+            msbuildMetadata.FallbackFolders = new List<string>();
+
+            var fallbackObj = rawMSBuildMetadata.GetValue<JArray>("fallbackFolders");
+            if (fallbackObj != null)
+            {
+                foreach (var fallbackFolder in fallbackObj.Select(t => t.Value<string>()))
+                {
+                    msbuildMetadata.FallbackFolders.Add(fallbackFolder);
+                }
+            }
+
+            return msbuildMetadata;
         }
 
         private static PackOptions GetPackOptions(PackageSpec packageSpec, JObject rawPackageSpec)

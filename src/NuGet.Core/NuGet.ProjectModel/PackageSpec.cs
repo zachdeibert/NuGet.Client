@@ -27,8 +27,6 @@ namespace NuGet.ProjectModel
 
         public PackageSpec(JObject rawProperties)
         {
-            Scripts = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
-            PackInclude = new Dictionary<string, string>();
             TargetFrameworks = new List<TargetFrameworkInformation>();
             Properties = rawProperties;
         }
@@ -89,17 +87,17 @@ namespace NuGet.ProjectModel
 
         public IList<string> ContentFiles { get; set; }
 
-        public IList<LibraryDependency> Dependencies { get; set; }
+        public IList<LibraryDependency> Dependencies { get; set; } = new List<LibraryDependency>();
 
-        public IList<ToolDependency> Tools { get; set; }
+        public IList<ToolDependency> Tools { get; set; } = new List<ToolDependency>();
 
-        public IDictionary<string, IEnumerable<string>> Scripts { get; private set; }
+        public IDictionary<string, IEnumerable<string>> Scripts { get; private set; } = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
 
-        public IDictionary<string, string> PackInclude { get; private set; }
+        public IDictionary<string, string> PackInclude { get; private set; } = new Dictionary<string, string>();
 
         public PackOptions PackOptions { get; set; }
 
-        public IList<TargetFrameworkInformation> TargetFrameworks { get; private set; }
+        public IList<TargetFrameworkInformation> TargetFrameworks { get; private set; } = new List<TargetFrameworkInformation>();
 
         public RuntimeGraph RuntimeGraph { get; set; }
 

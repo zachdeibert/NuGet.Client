@@ -83,7 +83,7 @@ namespace NuGet.ProjectModel
                     SetImports(frameworkObject, framework.Imports);
 
                     frameworks[framework.FrameworkName.GetShortFolderName()] = frameworkObject;
-                }                
+                }
 
                 SetValue(json, "frameworks", frameworks);
             }
@@ -221,7 +221,7 @@ namespace NuGet.ProjectModel
 
         private static void SetImports(JObject json, IReadOnlyList<NuGetFramework> frameworks)
         {
-            if (frameworks.Any())
+            if (frameworks?.Any() == true)
             {
                 JArray imports = new JArray();
                 foreach (var import in frameworks)
