@@ -46,6 +46,7 @@ namespace NuGet.ProjectModel
             SetArrayValue(json, "contentFiles", packageSpec.ContentFiles);
             SetDictionaryValue(json, "packInclude", packageSpec.PackInclude);
             SetPackOptions(json, packageSpec);
+            SetMSBuildMetadata(json, packageSpec);
             SetDictionaryValues(json, "scripts", packageSpec.Scripts);
 
             if (packageSpec.Dependencies.Any())
@@ -103,13 +104,13 @@ namespace NuGet.ProjectModel
             SetValue(rawMSBuildMetadata, "projectName", msbuildMetadata.ProjectName);
             SetValue(rawMSBuildMetadata, "projectPath", msbuildMetadata.ProjectPath);
             SetValue(rawMSBuildMetadata, "projectJsonPath", msbuildMetadata.ProjectJsonPath);
+            SetValue(rawMSBuildMetadata, "outputPath", msbuildMetadata.OutputPath);
 
             if (msbuildMetadata.OutputType != RestoreOutputType.Unknown)
             {
                 SetValue(rawMSBuildMetadata, "outputType", msbuildMetadata.OutputType.ToString());
             }
 
-            SetValue(rawMSBuildMetadata, "outputPath", msbuildMetadata.OutputPath);
             SetValue(rawMSBuildMetadata, "packagesPath", msbuildMetadata.PackagesPath);
 
 
