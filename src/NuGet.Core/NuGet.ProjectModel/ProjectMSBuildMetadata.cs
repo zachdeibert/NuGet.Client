@@ -38,21 +38,21 @@ namespace NuGet.ProjectModel
         /// <summary>
         /// Package feed sources.
         /// </summary>
-        public IReadOnlyList<PackageSource> Sources { get; set; } = new List<PackageSource>();
+        public IList<PackageSource> Sources { get; set; } = new List<PackageSource>();
 
         /// <summary>
         /// User packages folder path.
         /// </summary>
-        public IReadOnlyList<string> PackagesPath { get; set; }
+        public string PackagesPath { get; set; }
 
         /// <summary>
         /// Fallback folders.
         /// </summary>
-        public IReadOnlyList<string> FallbackFolders { get; set; } = new List<string>();
+        public IList<string> FallbackFolders { get; set; } = new List<string>();
 
         /// <summary>
         /// Project reference metadata. This will be added to the non-msbuild dependency reference in the package spec.
         /// </summary>
-        public IReadOnlyList<ProjectMSBuildReference> ProjectReferences { get; set; } = new List<ProjectMSBuildReference>();
+        public IList<ProjectMSBuildReference> ProjectReferences { get; set; } = new List<ProjectMSBuildReference>();
     }
 }
