@@ -16,11 +16,27 @@ namespace NuGet.ProjectModel.Test
         public void DependencyGraphSpec_ReadEmptyJObject()
         {
             // Arrange
-
+            var json = new JObject();
 
             // Act
+            var dg = new DependencyGraphSpec(json);
 
             // Assert
+            Assert.Equal(json, dg.Json);
+            Assert.Equal(0, dg.Restore.Count);
+            Assert.Equal(0, dg.Projects.Count);
+        }
+
+        [Fact]
+        public void DependencyGraphSpec_ReadEmpty()
+        {
+            // Arrange && Act
+            var dg = new DependencyGraphSpec();
+
+            // Assert
+            Assert.Equal(0, dg.Json.Properties().Count());
+            Assert.Equal(0, dg.Restore.Count);
+            Assert.Equal(0, dg.Projects.Count);
         }
 
         [Fact]

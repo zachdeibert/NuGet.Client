@@ -36,24 +36,6 @@ namespace NuGet.ProjectModel
         /// Represents a reference to a project produced by an external build system, such as msbuild.
         /// </summary>
         /// <param name="uniqueName">unique project name or full path</param>
-        /// <param name="packageSpec">project.json package spec.</param>
-        /// <param name="msbuildProjectPath">project file if one exists</param>
-        /// <param name="projectReferences">unique names of the referenced projects</param>
-        public ExternalProjectReference(
-            string uniqueName,
-            PackageSpec packageSpec,
-            string msbuildProjectPath,
-            IEnumerable<string> projectReferences,
-            IDictionary<string, string> properties)
-            : this(uniqueName, packageSpec?.Name, packageSpec?.FilePath, msbuildProjectPath, projectReferences, properties)
-        {
-            _packageSpec = packageSpec;
-        }
-
-        /// <summary>
-        /// Represents a reference to a project produced by an external build system, such as msbuild.
-        /// </summary>
-        /// <param name="uniqueName">unique project name or full path</param>
         /// <param name="packageSpecPath">project.json file path or null if none exists</param>
         /// <param name="msbuildProjectPath">project file if one exists</param>
         /// <param name="projectReferences">unique names of the referenced projects</param>
@@ -63,30 +45,6 @@ namespace NuGet.ProjectModel
             string packageSpecPath,
             string msbuildProjectPath,
             IEnumerable<string> projectReferences)
-            : this(
-                  uniqueName,
-                  packageSpecProjectName,
-                  packageSpecPath,
-                  msbuildProjectPath,
-                  projectReferences,
-                  new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase))
-        {
-        }
-
-        /// <summary>
-        /// Represents a reference to a project produced by an external build system, such as msbuild.
-        /// </summary>
-        /// <param name="uniqueName">unique project name or full path</param>
-        /// <param name="packageSpecPath">project.json file path or null if none exists</param>
-        /// <param name="msbuildProjectPath">project file if one exists</param>
-        /// <param name="projectReferences">unique names of the referenced projects</param>
-        public ExternalProjectReference(
-            string uniqueName,
-            string packageSpecProjectName,
-            string packageSpecPath,
-            string msbuildProjectPath,
-            IEnumerable<string> projectReferences,
-            IDictionary<string, string> properties)
         {
             if (uniqueName == null)
             {
@@ -98,28 +56,17 @@ namespace NuGet.ProjectModel
                 throw new ArgumentNullException(nameof(projectReferences));
             }
 
-            if (properties == null)
-            {
-                throw new ArgumentNullException(nameof(properties));
-            }
-
             UniqueName = uniqueName;
             PackageSpecPath = packageSpecPath;
             MSBuildProjectPath = msbuildProjectPath;
             PackageSpecProjectName = packageSpecProjectName;
             ExternalProjectReferences = projectReferences.ToList();
-            Properties = properties;
         }
 
         /// <summary>
         /// Unique name of the external project
         /// </summary>
         public string UniqueName { get; }
-
-        /// <summary>
-        /// Additional properties from MSBuild
-        /// </summary>
-        public IDictionary<string, string> Properties { get; }
 
         /// <summary>
         /// The path to the project.json file representing the NuGet dependencies of the project

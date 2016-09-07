@@ -40,24 +40,27 @@ namespace NuGet.ProjectModel
 
         public static PackageSpec GetPackageSpec(string json, string name, string packageSpecPath)
         {
-            var ms = new MemoryStream(Encoding.UTF8.GetBytes(json));
-            return GetPackageSpec(ms, name, packageSpecPath, null);
+            using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(json)))
+            {
+                return GetPackageSpec(ms, name, packageSpecPath, null);
+            }
         }
 
         public static PackageSpec GetPackageSpec(Stream stream, string name, string packageSpecPath, string snapshotValue)
         {
             // Load the raw JSON into the package spec object
-            var reader = new JsonTextReader(new StreamReader(stream));
-
             JObject rawPackageSpec;
 
-            try
+            using (var reader = new JsonTextReader(new StreamReader(stream)))
             {
-                rawPackageSpec = JObject.Load(reader);
-            }
-            catch (JsonReaderException ex)
-            {
-                throw FileFormatException.Create(ex, packageSpecPath);
+                try
+                {
+                    rawPackageSpec = JObject.Load(reader);
+                }
+                catch (JsonReaderException ex)
+                {
+                    throw FileFormatException.Create(ex, packageSpecPath);
+                }
             }
 
             var packageSpec = new PackageSpec(rawPackageSpec);
