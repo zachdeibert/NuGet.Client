@@ -78,7 +78,6 @@ namespace NuGet.ProjectModel.Test
                 ProjectPath = "c:\\b\\b.csproj"
             });
 
-
             // Assert
             Assert.NotNull(msbuildMetadata);
             Assert.Equal("A55205E7-4D08-4672-8011-0925467CC45F", msbuildMetadata.ProjectUniqueName);

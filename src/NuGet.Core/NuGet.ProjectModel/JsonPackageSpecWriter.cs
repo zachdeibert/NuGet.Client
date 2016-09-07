@@ -90,6 +90,61 @@ namespace NuGet.ProjectModel
             JsonRuntimeFormat.WriteRuntimeGraph(json, packageSpec.RuntimeGraph);
         }
 
+        private static void SetMSBuildMetadata(JObject json, PackageSpec packageSpec)
+        {
+            var msbuildMetadata = packageSpec.MSBuildMetadata;
+            if (msbuildMetadata == null)
+            {
+                return;
+            }
+
+            var rawMSBuildMetadata = new JObject();
+            SetValue(rawMSBuildMetadata, "projectUniqueName", msbuildMetadata.ProjectUniqueName);
+            SetValue(rawMSBuildMetadata, "projectName", msbuildMetadata.ProjectName);
+            SetValue(rawMSBuildMetadata, "projectPath", msbuildMetadata.ProjectPath);
+            SetValue(rawMSBuildMetadata, "projectJsonPath", msbuildMetadata.ProjectJsonPath);
+
+            if (msbuildMetadata.OutputType != RestoreOutputType.Unknown)
+            {
+                SetValue(rawMSBuildMetadata, "outputType", msbuildMetadata.OutputType.ToString());
+            }
+
+            SetValue(rawMSBuildMetadata, "outputPath", msbuildMetadata.OutputPath);
+            SetValue(rawMSBuildMetadata, "packagesPath", msbuildMetadata.PackagesPath);
+
+
+            SetArrayValue(rawMSBuildMetadata, "fallbackFolders", msbuildMetadata.FallbackFolders);
+
+            if (msbuildMetadata.Sources?.Count > 0)
+            {
+                var sourcesObj = new JObject();
+                rawMSBuildMetadata["sources"] = sourcesObj;
+
+                foreach (var source in msbuildMetadata.Sources)
+                {
+                    // "source": {}
+                    sourcesObj[source.Source] = new JObject();
+                }
+            }
+
+            if (msbuildMetadata.ProjectReferences?.Count > 0)
+            {
+                var projectReferencesObj = new JObject();
+                rawMSBuildMetadata["projectReferences"] = projectReferencesObj;
+
+                foreach (var project in msbuildMetadata.ProjectReferences)
+                {
+                    projectReferencesObj[project.ProjectUniqueName] = new JObject();
+                    projectReferencesObj[project.ProjectUniqueName]["projectPath"] = project.ProjectPath;
+                }
+            }
+
+            if (rawMSBuildMetadata.Count > 0)
+            {
+                SetValue(json, JsonPackageSpecReader.MSBuild, rawMSBuildMetadata);
+            }
+        }
+
         private static void SetPackOptions(JObject json, PackageSpec packageSpec)
         {
             var packOptions = packageSpec.PackOptions;

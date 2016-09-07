@@ -19,6 +19,7 @@ namespace NuGet.ProjectModel
 {
     public class JsonPackageSpecReader
     {
+        public static readonly string MSBuild = "msbuild";
         public static readonly string PackOptions = "packOptions";
         public static readonly string PackageType = "packageType";
         public static readonly string Files = "files";
