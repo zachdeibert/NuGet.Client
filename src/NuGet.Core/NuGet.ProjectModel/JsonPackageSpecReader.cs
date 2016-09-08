@@ -46,6 +46,11 @@ namespace NuGet.ProjectModel
             }
         }
 
+        public static PackageSpec GetPackageSpec(JObject json, string name, string packageSpecPath)
+        {
+            return GetPackageSpec(json, name, packageSpecPath, snapshotValue: null);
+        }
+
         public static PackageSpec GetPackageSpec(Stream stream, string name, string packageSpecPath, string snapshotValue)
         {
             // Load the raw JSON into the package spec object
@@ -63,6 +68,11 @@ namespace NuGet.ProjectModel
                 }
             }
 
+            return GetPackageSpec(rawPackageSpec, name, packageSpecPath, snapshotValue);
+        }
+
+        public static PackageSpec GetPackageSpec(JObject rawPackageSpec, string name, string packageSpecPath, string snapshotValue)
+        {
             var packageSpec = new PackageSpec(rawPackageSpec);
 
             // Parse properties we know about

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -58,28 +59,52 @@ namespace NuGet.ProjectModel
             return project;
         }
 
-        public IDictionary<string, IList<PackageSpec>> GetClosure(string rootUniqueName)
+        /// <summary>
+        /// Retrieve the full project closure including the root project itself.
+        /// </summary>
+        public IReadOnlyList<PackageSpec> GetClosure(string rootUniqueName)
         {
             if (rootUniqueName == null)
             {
                 throw new ArgumentNullException(nameof(rootUniqueName));
             }
 
-            var closure = new SortedDictionary<string, IList<PackageSpec>>(StringComparer.Ordinal);
+            var closure = new List<PackageSpec>();
 
-            
+            var added = new SortedSet<string>(StringComparer.Ordinal);
+            var toWalk = new Stack<PackageSpec>();
+
+            // Start with the root
+            toWalk.Push(GetProjectSpec(rootUniqueName));
+
+            while (toWalk.Count > 0)
+            {
+                var spec = toWalk.Pop();
+
+                if (spec != null)
+                {
+                    // Add every spec to the closure
+                    closure.Add(spec);
+
+                    // Find children
+                    foreach (var projectName in GetProjectReferenceNames(spec))
+                    {
+                        if (added.Add(projectName))
+                        {
+                            toWalk.Push(GetProjectSpec(projectName));
+                        }
+                    }
+                }
+            }
 
             return closure;
         }
 
-        public IDictionary<string, IList<PackageSpec>> GetClosure(PackageSpec rootProject)
+        private static IEnumerable<string> GetProjectReferenceNames(PackageSpec spec)
         {
-            if (rootProject == null)
-            {
-                throw new ArgumentNullException(nameof(rootProject));
-            }
-
-            return GetClosure(rootProject.MSBuildMetadata.ProjectUniqueName);
+            // Handle projects which may not have specs, and which may not have references
+            return spec?.MSBuildMetadata?.ProjectReferences?.Select(project => project.ProjectUniqueName)
+                ?? Enumerable.Empty<string>();
         }
 
         public void AddRestore(string projectUniqueName)
@@ -124,8 +149,47 @@ namespace NuGet.ProjectModel
         private static JObject GetJson(DependencyGraphSpec spec)
         {
             var json = new JObject();
+            var restoreObj = new JObject();
+            var projectsObj = new JObject();
+            json["restore"] = restoreObj;
+            json["projects"] = projectsObj;
+
+            foreach (var restoreName in spec.Restore)
+            {
+                restoreObj[restoreName] = new JObject();
+            }
+
+            foreach (var project in spec.Projects)
+            {
+                // Convert package spec to json
+                var projectObj = new JObject();
+                JsonPackageSpecWriter.WritePackageSpec(project, projectObj);
+
+                restoreObj[project.MSBuildMetadata.ProjectUniqueName] = projectObj;
+            }
 
             return json;
+        }
+
+        private void ParseJson(JObject json)
+        {
+            var restoreObj = json.GetValue<JObject>("restore");
+            if (restoreObj != null)
+            {
+                _restore.UnionWith(restoreObj.Properties().Select(prop => prop.Name));
+            }
+
+            var projectsObj = json.GetValue<JObject>("projects");
+            if (projectsObj != null)
+            {
+                foreach (var prop in projectsObj.Properties())
+                {
+                    var specJson = (JObject)prop.Value;
+                    var spec = JsonPackageSpecReader.GetPackageSpec(specJson, prop.Name, packageSpecPath: null);
+
+                    _projects.Add(prop.Name, spec);
+                }
+            }
         }
 
         private static JObject ReadJson(string packageSpecPath)
