@@ -89,7 +89,7 @@ namespace NuGet.Build.Tasks
 
                 var dgFile = CreateDGFile(RestoreGraphItems.Select(GetMSBuildItem));
 
-                providers.Add(new PreLoadedRestoreRequestProvider(providerCache, dgFile));
+                providers.Add(new DependencyGraphSpecRequestProvider(providerCache, dgFile));
 
                 var defaultSettings = Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null);
                 var sourceProvider = new CachingSourceProvider(new PackageSourceProvider(defaultSettings));

@@ -16,15 +16,15 @@ namespace NuGet.Commands
     /// <summary>
     /// In Memory dg file provider.
     /// </summary>
-    public class PreLoadedRestoreRequestProvider : IPreLoadedRestoreRequestProvider
+    public class DependencyGraphSpecRequestProvider : IPreLoadedRestoreRequestProvider
     {
-        private readonly JObject _dgFile;
+        private readonly DependencyGraphSpec _dgFile;
         private readonly RestoreCommandProvidersCache _providerCache;
         private readonly Dictionary<string, PackageSpec> _projectJsonCache = new Dictionary<string, PackageSpec>(StringComparer.Ordinal);
 
-        public PreLoadedRestoreRequestProvider(
+        public DependencyGraphSpecRequestProvider(
             RestoreCommandProvidersCache providerCache,
-            JObject dgFile)
+            DependencyGraphSpec dgFile)
         {
             _dgFile = dgFile;
             _providerCache = providerCache;
@@ -37,18 +37,16 @@ namespace NuGet.Commands
             return Task.FromResult<IReadOnlyList<RestoreSummaryRequest>>(requests);
         }
 
-        private IReadOnlyList<RestoreSummaryRequest> GetRequestsFromItems(RestoreArgs restoreContext, JObject dgFile)
+        private IReadOnlyList<RestoreSummaryRequest> GetRequestsFromItems(RestoreArgs restoreContext, DependencyGraphSpec dgFile)
         {
             var requests = new List<RestoreSummaryRequest>();
 
-            var dgSpec = DependencyGraphSpec.Load(dgFile);
+            //var reference = new ExternalProjectReference(uniqueName, spec, projectPath, projectReferences);
 
-            var reference = new ExternalProjectReference(uniqueName, spec, projectPath, projectReferences);
+            //foreach (var projectNameToRestore in dgSpec.Restore)
+            //{
 
-            foreach (var projectNameToRestore in dgSpec.Restore)
-            {
-
-            }
+            //}
 
             return requests;
         }
