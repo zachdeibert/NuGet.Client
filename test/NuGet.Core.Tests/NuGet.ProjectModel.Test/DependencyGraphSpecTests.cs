@@ -13,6 +13,32 @@ namespace NuGet.ProjectModel.Test
     public class DependencyGraphSpecTests
     {
         [Fact]
+        public void DependencyGraphSpec_ReadFileWithProjects_GetClosures()
+        {
+            // Arrange
+            var json = JObject.Parse(ResourceTestUtility.GetResource("NuGet.ProjectModel.Test.compiler.resources.test1.dg", typeof(DependencyGraphSpecTests)));
+
+            // Act
+            var dg = DependencyGraphSpec.Load(json);
+
+            var xClosure = dg.GetClosure("A55205E7-4D08-4672-8011-0925467CC45F").ToList();
+            var yClosure = dg.GetClosure("78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F").ToList();
+            var zClosure = dg.GetClosure("44B29B8D-8413-42D2-8DF4-72225659619B").ToList();
+
+            // Assert
+            Assert.Equal(3, xClosure.Count);
+            Assert.Equal("A55205E7-4D08-4672-8011-0925467CC45F", xClosure[0].MSBuildMetadata.ProjectUniqueName);
+            Assert.Equal("78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F", xClosure[1].MSBuildMetadata.ProjectUniqueName);
+            Assert.Equal("44B29B8D-8413-42D2-8DF4-72225659619B", xClosure[2].MSBuildMetadata.ProjectUniqueName);
+
+            Assert.Equal(1, yClosure.Count);
+            Assert.Equal("78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F", yClosure.Single().MSBuildMetadata.ProjectUniqueName);
+
+            Assert.Equal(1, zClosure.Count);
+            Assert.Equal("44B29B8D-8413-42D2-8DF4-72225659619B", zClosure.Single().MSBuildMetadata.ProjectUniqueName);
+        }
+
+        [Fact]
         public void DependencyGraphSpec_ReadEmptyJObject()
         {
             // Arrange

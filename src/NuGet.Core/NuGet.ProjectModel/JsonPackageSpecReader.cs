@@ -46,9 +46,9 @@ namespace NuGet.ProjectModel
             }
         }
 
-        public static PackageSpec GetPackageSpec(JObject json, string name, string packageSpecPath)
+        public static PackageSpec GetPackageSpec(JObject json)
         {
-            return GetPackageSpec(json, name, packageSpecPath, snapshotValue: null);
+            return GetPackageSpec(json, name: null, packageSpecPath: null, snapshotValue: null);
         }
 
         public static PackageSpec GetPackageSpec(Stream stream, string name, string packageSpecPath, string snapshotValue)
@@ -81,7 +81,7 @@ namespace NuGet.ProjectModel
             var contentFiles = rawPackageSpec["contentFiles"];
 
             packageSpec.Name = name;
-            packageSpec.FilePath = Path.GetFullPath(packageSpecPath);
+            packageSpec.FilePath = name == null ? null : Path.GetFullPath(packageSpecPath);
 
             if (version == null)
             {
@@ -173,6 +173,19 @@ namespace NuGet.ProjectModel
 
             // Read the runtime graph
             packageSpec.RuntimeGraph = JsonRuntimeFormat.ReadRuntimeGraph(rawPackageSpec);
+
+            // Read the name/path if it exists
+            if (packageSpec.Name == null)
+            {
+                packageSpec.Name = packageSpec.MSBuildMetadata?.ProjectName;
+            }
+
+            // Use the project.json path if one is set, otherwise use the project path
+            if (packageSpec.FilePath == null)
+            {
+                packageSpec.FilePath = packageSpec.MSBuildMetadata?.ProjectJsonPath
+                    ?? packageSpec.MSBuildMetadata?.ProjectPath;
+            }
 
             return packageSpec;
         }

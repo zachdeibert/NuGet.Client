@@ -41,31 +41,13 @@ namespace NuGet.Commands
         {
             var requests = new List<RestoreSummaryRequest>();
 
-            // All projects
-            var externalProjects = new Dictionary<string, ExternalProjectReference>(StringComparer.Ordinal);
+            var dgSpec = DependencyGraphSpec.Load(dgFile);
 
-            foreach (var project in dgFile.GetValue<JObject>("projects").Properties())
+            var reference = new ExternalProjectReference(uniqueName, spec, projectPath, projectReferences);
+
+            foreach (var projectNameToRestore in dgSpec.Restore)
             {
-                var uniqueName = project.Name;
-                var specJson = (JObject)project.Value;
-                var msbuild = specJson.GetValue<JObject>("msbuild");
 
-                var projectPath = msbuild.GetValue<string>("projectPath");
-                var projectJsonPath = msbuild.GetValue<string>("projectJsonPath");
-
-                var spec = new PackageSpec(specJson);
-                spec.Name = Path.GetFileNameWithoutExtension(projectPath);
-                spec.FilePath = projectJsonPath;
-
-                var projectReferences = new HashSet<string>(
-                    msbuild.GetValue<JObject>("projectReferences")
-                        .Properties()
-                        .Select(p => p.GetValue<string>("projectPath")),
-                    StringComparer.Ordinal);
-
-                var reference = new ExternalProjectReference(uniqueName, spec, projectPath, projectReferences);
-
-                externalProjects.Add(reference.UniqueName, reference);
             }
 
             return requests;

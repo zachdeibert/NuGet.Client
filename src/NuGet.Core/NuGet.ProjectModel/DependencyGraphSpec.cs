@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -16,6 +14,13 @@ namespace NuGet.ProjectModel
 
         public DependencyGraphSpec(JObject json)
         {
+            if (json == null)
+            {
+                throw new ArgumentNullException(nameof(json));
+            }
+
+            ParseJson(json);
+
             Json = json;
         }
 
@@ -185,7 +190,7 @@ namespace NuGet.ProjectModel
                 foreach (var prop in projectsObj.Properties())
                 {
                     var specJson = (JObject)prop.Value;
-                    var spec = JsonPackageSpecReader.GetPackageSpec(specJson, prop.Name, packageSpecPath: null);
+                    var spec = JsonPackageSpecReader.GetPackageSpec(specJson);
 
                     _projects.Add(prop.Name, spec);
                 }
