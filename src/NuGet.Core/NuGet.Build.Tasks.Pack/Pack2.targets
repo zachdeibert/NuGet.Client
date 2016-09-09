@@ -22,7 +22,8 @@ Copyright (c) .NET Foundation. All rights reserved.
     <PackageVersion Condition=" '$(PackageVersion)' == '' ">$(Version)</PackageVersion>
     <PackageOutputPath Condition=" '$(PackageOutputPath )' == '' ">$(TargetDir)</PackageOutputPath>
     <IncludeContentInPack Condition="'$(IncludeContentInPack)'==''">true</IncludeContentInPack>
-    <GenerateNuspecDependsOn>_LoadPackInputItems; _GetProjectToProjectReferences; _GetReferences; _GetPackageReferences; _GetPackageFilesFromReferencedProjects;
+    <GenerateNuspecDependsOn>
+      _LoadPackInputItems; _GetProjectToProjectReferences; _GetReferences; _GetPackageReferences; _GetPackageFilesFromReferencedProjects;
       _GetSourceFilesForSymbols; _GetTargetPaths
     </GenerateNuspecDependsOn>
     <Description Condition="'$(Description)'==''">Package Description</Description>
@@ -40,7 +41,7 @@ Copyright (c) .NET Foundation. All rights reserved.
   <PropertyGroup Condition="$(NuspecFile) != ''">
     <PackDependsOn>PackUsingNuspec</PackDependsOn>
   </PropertyGroup>
-  
+
   <!--
     ============================================================
     Pack
@@ -131,7 +132,7 @@ Copyright (c) .NET Foundation. All rights reserved.
     ============================================================
   -->
   <Target Name="_GetProjectToProjectReferences">
-    
+
     <!-- Validate -->
     <Error Text="There are no projects to restore!" Condition="$(PackProjectInputFile) == ''"/>
 
@@ -173,7 +174,7 @@ Copyright (c) .NET Foundation. All rights reserved.
     <PropertyGroup Condition=" $(IsPackage) == '' OR $(IsPackage) == 'auto'">
       <IsPackage>$(IsPackable)</IsPackage>
     </PropertyGroup>
-    
+
     <ItemGroup Condition="$(PackGraphWriteEntryPoint) == 'true' OR $(IsPackage) == 'false'">
       <!-- Filter out project references that specify ReferenceOutputAssembly=false -->
       <ValidProjectInputForPackGraph Include="@(ProjectReference)"
@@ -198,7 +199,7 @@ Copyright (c) .NET Foundation. All rights reserved.
         <ExcludeAssets>$(ExcludeAssets)</ExcludeAssets>
         <PrivateAssets>$(PrivateAssets)</PrivateAssets>
       </_ProjectReferences>
-        
+
     </ItemGroup>
 
     <!-- Recurse into referenced projects -->
@@ -264,7 +265,7 @@ Copyright (c) .NET Foundation. All rights reserved.
     <PropertyGroup Condition=" $(IsPackage) == '' OR $(IsPackage) == 'auto'">
       <IsPackage>$(IsPackable)</IsPackage>
     </PropertyGroup>
-    
+
     <ItemGroup Condition="$(IsPackage) == 'false'">
       <!-- Filter out project references that specify ReferenceOutputAssembly=false -->
       <ValidProjectInputForPackGraph Include="@(ProjectReference)"
@@ -368,8 +369,8 @@ Copyright (c) .NET Foundation. All rights reserved.
           ItemName="_SourceFiles" />
     </MSBuild>
   </Target>
-  
-<!--
+
+  <!--
     ============================================================
     _GetReferences
     Entry point for getting the source files for the project & it's references.
@@ -441,8 +442,8 @@ Copyright (c) .NET Foundation. All rights reserved.
           ItemName="_References" />
     </MSBuild>
   </Target>
-  
-<!--
+
+  <!--
     ============================================================
     _GetPackageReferences
     Entry point for getting the package references for a project and it's references
@@ -486,7 +487,7 @@ Copyright (c) .NET Foundation. All rights reserved.
     <PropertyGroup Condition=" $(IsPackage) == '' OR $(IsPackage) == 'auto'">
       <IsPackage>$(IsPackable)</IsPackage>
     </PropertyGroup>
-    
+
     <ItemGroup Condition="$(IsPackage) == 'false'">
       <!-- Filter out project references that specify ReferenceOutputAssembly=false -->
       <ValidProjectInputForPackGraph Include="@(ProjectReference)"
@@ -514,5 +515,5 @@ Copyright (c) .NET Foundation. All rights reserved.
           ItemName="_PackageReferences" />
     </MSBuild>
   </Target>
-  
+
 </Project>
