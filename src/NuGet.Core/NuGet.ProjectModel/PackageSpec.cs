@@ -99,7 +99,7 @@ namespace NuGet.ProjectModel
 
         public IList<TargetFrameworkInformation> TargetFrameworks { get; private set; } = new List<TargetFrameworkInformation>();
 
-        public RuntimeGraph RuntimeGraph { get; set; }
+        public RuntimeGraph RuntimeGraph { get; set; } = new RuntimeGraph();
 
         /// <summary>
         /// Additional MSBuild properties.

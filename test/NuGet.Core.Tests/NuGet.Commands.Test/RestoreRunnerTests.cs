@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NuGet.Configuration;
+using NuGet.Frameworks;
+using NuGet.LibraryModel;
 using NuGet.ProjectModel;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
@@ -227,7 +229,7 @@ namespace NuGet.Commands.Test
 
                 var dgContent = new StringBuilder();
                 dgContent.AppendLine($"#:{projPath1}");
-                dgContent.AppendLine($"=:{projPath1}|{projPath2}");
+                dgContent.AppendLine($"{projPath1}|{projPath2}");
                 dgContent.AppendLine($"#:{projPath2}");
 
                 File.WriteAllText(dgPath, dgContent.ToString());
@@ -275,33 +277,28 @@ namespace NuGet.Commands.Test
             // Arrange
             var sources = new List<PackageSource>();
 
-            var project1Json = @"
-            {
-              ""version"": ""1.0.0"",
-              ""description"": """",
-              ""authors"": [ ""author"" ],
-              ""tags"": [ """" ],
-              ""projectUrl"": """",
-              ""licenseUrl"": """",
-              ""frameworks"": {
-                ""net45"": {
-                }
-              }
-            }";
+            var targetFrameworkInfo1 = new TargetFrameworkInformation();
+            targetFrameworkInfo1.FrameworkName = NuGetFramework.Parse("net45");
+            var frameworks1 = new[] { targetFrameworkInfo1 };
 
-            var project2Json = @"
-            {
-              ""version"": ""1.0.0"",
-              ""description"": """",
-              ""authors"": [ ""author"" ],
-              ""tags"": [ """" ],
-              ""projectUrl"": """",
-              ""licenseUrl"": """",
-              ""frameworks"": {
-                ""net45"": {
-                }
-              }
-            }";
+            var targetFrameworkInfo2 = new TargetFrameworkInformation();
+            targetFrameworkInfo2.FrameworkName = NuGetFramework.Parse("net45");
+            var frameworks2 = new[] { targetFrameworkInfo2 };
+
+            // Create two net45 projects
+            var spec1 = new PackageSpec(frameworks1);
+            spec1.MSBuildMetadata = new ProjectMSBuildMetadata();
+            spec1.MSBuildMetadata.ProjectUniqueName = "project1";
+            spec1.MSBuildMetadata.ProjectName = "project1";
+            spec1.MSBuildMetadata.OutputType = RestoreOutputType.NETCore;
+
+            var spec2 = new PackageSpec(frameworks2);
+            spec2.MSBuildMetadata = new ProjectMSBuildMetadata();
+            spec2.MSBuildMetadata.ProjectUniqueName = "project2";
+            spec2.MSBuildMetadata.ProjectName = "project2";
+            spec2.MSBuildMetadata.OutputType = RestoreOutputType.NETCore;
+
+            var specs = new[] { spec1, spec2 };
 
             using (var workingDir = TestFileSystemUtility.CreateRandomTestFolder())
             {
@@ -315,39 +312,52 @@ namespace NuGet.Commands.Test
                 project2.Create();
                 sources.Add(new PackageSource(packageSource.FullName));
 
-                File.WriteAllText(Path.Combine(project1.FullName, "project.json"), project1Json);
-                File.WriteAllText(Path.Combine(project2.FullName, "project.json"), project1Json);
-
-                var specPath1 = Path.Combine(project1.FullName, "project.json");
-                var spec1 = JsonPackageSpecReader.GetPackageSpec(project1Json, "project1", specPath1);
-
-                var specPath2 = Path.Combine(project2.FullName, "project.json");
-                var spec2 = JsonPackageSpecReader.GetPackageSpec(project2Json, "project2", specPath2);
-
                 var projPath1 = Path.Combine(project1.FullName, "project1.csproj");
                 var projPath2 = Path.Combine(project2.FullName, "project2.csproj");
                 File.WriteAllText(projPath1, string.Empty);
                 File.WriteAllText(projPath2, string.Empty);
 
+                spec1.MSBuildMetadata.ProjectPath = projPath1;
+                spec1.FilePath = projPath1;
+                spec1.Name = "project1";
+                spec2.MSBuildMetadata.ProjectPath = projPath2;
+                spec2.FilePath = projPath1;
+                spec2.Name = "project2";
+
                 var logger = new TestLogger();
-                var objPath1 = Path.Combine(project1.FullName, "obj", "bin");
-                var objPath2 = Path.Combine(project2.FullName, "obj", "bin");
+                var objPath1 = Path.Combine(project1.FullName, "obj");
+                var objPath2 = Path.Combine(project2.FullName, "obj");
+
+                spec1.MSBuildMetadata.OutputPath = objPath1;
+                spec2.MSBuildMetadata.OutputPath = objPath2;
 
                 var lockPath1 = Path.Combine(objPath1, "project.assets.json");
                 var lockPath2 = Path.Combine(objPath2, "project.assets.json");
 
-                var dgPath = Path.Combine(workingDir, "external.dg");
+                // Link projects
+                spec1.TargetFrameworks.Single().Dependencies.Add(new LibraryDependency()
+                {
+                    LibraryRange = new LibraryRange()
+                    {
+                        Name = "project2",
+                        TypeConstraint = LibraryDependencyTarget.ExternalProject
+                    }
+                });
 
-                var dgContent = new StringBuilder();
-                dgContent.AppendLine($"#:{projPath1}");
-                dgContent.AppendLine($"+:RestoreOutputType|netcore");
-                dgContent.AppendLine($"+:RestoreOutputPath|{objPath1}");
-                dgContent.AppendLine($"=:{projPath1}|{projPath2}");
-                dgContent.AppendLine($"#:{projPath2}");
-                dgContent.AppendLine($"+:RestoreOutputType|netcore");
-                dgContent.AppendLine($"+:RestoreOutputPath|{objPath2}");
+                spec1.MSBuildMetadata.ProjectReferences.Add(new ProjectMSBuildReference()
+                {
+                    ProjectPath = projPath2,
+                    ProjectUniqueName = "project2"
+                });
 
-                File.WriteAllText(dgPath, dgContent.ToString());
+                // Create dg file
+                var dgFile = new DependencyGraphSpec();
+
+                foreach (var spec in specs)
+                {
+                    dgFile.AddRestore(spec.MSBuildMetadata.ProjectName);
+                    dgFile.AddProject(spec);
+                }
 
                 var sourceRepos = sources.Select(source => Repository.Factory.GetCoreV3(source.Source)).ToList();
 
@@ -355,18 +365,15 @@ namespace NuGet.Commands.Test
 
                 var restoreContext = new RestoreArgs()
                 {
-
                     CacheContext = new SourceCacheContext(),
                     DisableParallel = true,
                     GlobalPackagesFolder = packagesDir.FullName,
                     Sources = new List<string>() { packageSource.FullName },
-                    Inputs = new List<string>() { dgPath },
                     Log = logger,
                     CachingSourceProvider = new CachingSourceProvider(new TestPackageSourceProvider(sources)),
-                    RequestProviders = new List<IRestoreRequestProvider>()
+                    PreLoadedRequestProviders = new List<IPreLoadedRestoreRequestProvider>()
                     {
-                        new MSBuildP2PRestoreRequestProvider(providerCache),
-                        new ProjectJsonRestoreRequestProvider(providerCache)
+                        new DependencyGraphSpecRequestProvider(providerCache, dgFile)
                     }
                 };
 

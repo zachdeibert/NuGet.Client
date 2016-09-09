@@ -41,14 +41,32 @@ namespace NuGet.Commands
         {
             var requests = new List<RestoreSummaryRequest>();
 
-            //var reference = new ExternalProjectReference(uniqueName, spec, projectPath, projectReferences);
+            foreach (var projectNameToRestore in dgFile.Restore)
+            {
+                var closure = dgFile.GetClosure(projectNameToRestore);
 
-            //foreach (var projectNameToRestore in dgSpec.Restore)
-            //{
+                var externalClosure = new HashSet<ExternalProjectReference>(closure.Select(GetExternalProject));
 
-            //}
+                var rootProject = externalClosure.Single(p =>
+                    StringComparer.Ordinal.Equals(projectNameToRestore, p.ProjectName));
+
+                var request = Create(rootProject, externalClosure, restoreContext, settingsOverride: null);
+
+                requests.Add(request);
+            }
 
             return requests;
+        }
+
+        private static ExternalProjectReference GetExternalProject(PackageSpec rootProject)
+        {
+            var projectReferences = rootProject.MSBuildMetadata?.ProjectReferences ?? new List<ProjectMSBuildReference>();
+
+            return new ExternalProjectReference(
+                rootProject.MSBuildMetadata.ProjectUniqueName,
+                rootProject,
+                rootProject.MSBuildMetadata?.ProjectPath,
+                projectReferences.Select(p => p.ProjectUniqueName));
         }
 
         private RestoreSummaryRequest Create(
@@ -86,15 +104,15 @@ namespace NuGet.Commands
                 restoreContext.Log,
                 disposeProviders: false);
 
+            // Set output type
+            request.RestoreOutputType = project.PackageSpec?.MSBuildMetadata?.OutputType ?? RestoreOutputType.Unknown;
+            request.RestoreOutputPath = project.PackageSpec?.MSBuildMetadata?.OutputPath ?? rootPath;
+
+            // Standard properties
             restoreContext.ApplyStandardProperties(request);
 
             // Add project references
             request.ExternalProjects = projectReferenceClosure.ToList();
-
-            // Set output type
-            request.RestoreOutputType = RestoreOutputType.UAP;
-            request.RestoreOutputPath = rootPath;
-            request.LockFilePath = Path.Combine(request.RestoreOutputPath, "project.lock.json");
 
             // The lock file is loaded later since this is an expensive operation
             var summaryRequest = new RestoreSummaryRequest(
