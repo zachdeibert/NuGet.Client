@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using NuGet.Configuration;
 using NuGet.ProjectModel;
+using NuGet.Protocol.Core.Types;
 
 namespace NuGet.Commands
 {
@@ -120,12 +121,14 @@ namespace NuGet.Commands
                 restoreContext.CacheContext,
                 restoreContext.Log);
 
+            var cacheContext = new SourceCacheContext();
+
             // Create request
             var request = new RestoreRequest(
                 project.PackageSpec,
                 sharedCache,
-                restoreContext.Log,
-                disposeProviders: false);
+                cacheContext,
+                restoreContext.Log);
 
             // Set output type
             request.RestoreOutputType = project.PackageSpec?.RestoreMetadata?.OutputType ?? RestoreOutputType.Unknown;
