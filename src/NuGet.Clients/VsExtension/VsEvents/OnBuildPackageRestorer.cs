@@ -403,7 +403,8 @@ namespace NuGetVSExtension
                                         packageSpec.TargetFrameworks.FirstOrDefault().Dependencies.Add(
                                             new NuGet.LibraryModel.LibraryDependency
                                             {
-                                                LibraryRange = new NuGet.LibraryModel.LibraryRange(reference.ProjectName, NuGet.LibraryModel.LibraryDependencyTarget.Project)
+                                                LibraryRange = new NuGet.LibraryModel.LibraryRange(
+                                                    reference.ProjectName, NuGet.LibraryModel.LibraryDependencyTarget.ExternalProject)
                                             });
 
                                         msBuildMetadata.ProjectReferences.Add(
