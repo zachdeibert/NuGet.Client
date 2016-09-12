@@ -217,8 +217,13 @@ namespace NuGet.ProjectModel
                     SetValue(dependencyObject, "target", dependency.LibraryRange.TypeConstraint.ToString());
                 }
 
-                var versionString = dependency.LibraryRange.VersionRange?.ToLegacyShortString()
-                    ?? VersionRange.All.ToNormalizedString();
+                var versionString = string.Empty;
+
+                if (dependency.LibraryRange.VersionRange != null
+                    && !VersionRange.All.Equals(dependency.LibraryRange.VersionRange))
+                {
+                    versionString = dependency.LibraryRange.VersionRange.ToLegacyShortString();
+                }
 
                 if (expandedMode && !string.IsNullOrEmpty(versionString))
                 {
