@@ -236,10 +236,12 @@ namespace NuGet.PackageManagement
         /// Verifies that the caches contain the same projects and that each project contains the same closure.
         /// This is used to detect if any projects have changed before verifying the lock files.
         /// </summary>
-        public static bool CacheHasChanges(
+        public static IDictionary<string, bool> CacheHasChanges(
             IReadOnlyDictionary<string, BuildIntegratedProjectCacheEntry> previousCache,
             IReadOnlyDictionary<string, BuildIntegratedProjectCacheEntry> currentCache)
         {
+            var results = new Dictionary<string, bool>();
+
             foreach (var item in currentCache)
             {
                 var projectName = item.Key;
@@ -247,24 +249,26 @@ namespace NuGet.PackageManagement
                 if (!previousCache.TryGetValue(projectName, out projectInfo))
                 {
                     // A new project was added, this needs a restore
-                    return true;
+                    results.Add(projectName, true);
                 }
-
-                if (item.Value.ProjectConfigLastModified?.Equals(projectInfo.ProjectConfigLastModified) != true)
+                else if (item.Value.ProjectConfigLastModified?.Equals(projectInfo.ProjectConfigLastModified) != true)
                 {
                     // project.json has been modified
-                    return true;
+                    results.Add(projectName, true);
                 }
-
-                if (!item.Value.ReferenceClosure.SetEquals(projectInfo.ReferenceClosure))
+                else if (!item.Value.ReferenceClosure.SetEquals(projectInfo.ReferenceClosure))
                 {
                     // The project closure has changed
-                    return true;
+                    results.Add(projectName, true);
+                }
+                else
+                {
+                    results.Add(projectName, false);
                 }
             }
 
             // no project changes have occurred
-            return false;
+            return results;
         }
 
         /// <summary>
@@ -273,13 +277,14 @@ namespace NuGet.PackageManagement
         /// If a full restore is required this will return false.
         /// </summary>
         /// <remarks>Floating versions and project.json files with supports require a full restore.</remarks>
-        public static bool IsRestoreRequired(
+        public static IDictionary<string, bool> IsRestoreRequired(
             IReadOnlyList<BuildIntegratedNuGetProject> projects,
             IReadOnlyList<string> packageFolderPaths,
             ExternalProjectReferenceContext referenceContext)
         {
             var packagesChecked = new HashSet<PackageIdentity>();
             var pathResolvers = packageFolderPaths.Select(path => new VersionFolderPathResolver(path));
+            var results = new Dictionary<string, bool>();
 
             // Validate project.lock.json files
             foreach (var project in projects)
@@ -289,64 +294,73 @@ namespace NuGet.PackageManagement
                 if (!File.Exists(lockFilePath))
                 {
                     // If the lock file does not exist a restore is needed
-                    return true;
+                    results.Add(project.ProjectName, true);
                 }
-
-                var lockFileFormat = new LockFileFormat();
-                var lockFile = lockFileFormat.Read(lockFilePath, referenceContext.Logger);
-
-                var packageSpec = referenceContext.GetOrCreateSpec(project.ProjectName, project.JsonConfigPath);
-
-                if (!lockFile.IsValidForPackageSpec(packageSpec, LockFileFormat.Version))
+                else
                 {
-                    // The project.json file has been changed and the lock file needs to be updated.
-                    return true;
-                }
+                    var lockFileFormat = new LockFileFormat();
+                    var lockFile = lockFileFormat.Read(lockFilePath, referenceContext.Logger);
 
-                // Verify all libraries are on disk
-                var packages = lockFile.Libraries.Where(library => library.Type == LibraryType.Package);
+                    var packageSpec = referenceContext.GetOrCreateSpec(project.ProjectName, project.JsonConfigPath);
 
-                foreach (var library in packages)
-                {
-                    var identity = new PackageIdentity(library.Name, library.Version);
-
-                    // Each id/version only needs to be checked once
-                    if (packagesChecked.Add(identity))
+                    if (!lockFile.IsValidForPackageSpec(packageSpec, LockFileFormat.Version))
                     {
-                        var found = false;
+                        // The project.json file has been changed and the lock file needs to be updated.
+                        results.Add(project.ProjectName, true);
+                    }
+                    else
+                    {
+                        // Verify all libraries are on disk
+                        var packages = lockFile.Libraries.Where(library => library.Type == LibraryType.Package);
 
-                        //  Check each package folder. These need to match the order used for restore.
-                        foreach (var resolver in pathResolvers)
+                        foreach (var library in packages)
                         {
-                            // Verify the SHA for each package
-                            var hashPath = resolver.GetHashPath(library.Name, library.Version);
+                            var identity = new PackageIdentity(library.Name, library.Version);
 
-                            if (File.Exists(hashPath))
+                            // Each id/version only needs to be checked once
+                            if (packagesChecked.Add(identity))
                             {
-                                found = true;
-                                var sha512 = File.ReadAllText(hashPath);
+                                var found = false;
 
-                                if (library.Sha512 != sha512)
+                                //  Check each package folder. These need to match the order used for restore.
+                                foreach (var resolver in pathResolvers)
                                 {
-                                    // A package has changed
-                                    return true;
+                                    // Verify the SHA for each package
+                                    var hashPath = resolver.GetHashPath(library.Name, library.Version);
+
+                                    if (File.Exists(hashPath))
+                                    {
+                                        found = true;
+                                        var sha512 = File.ReadAllText(hashPath);
+
+                                        if (library.Sha512 != sha512)
+                                        {
+                                            // A package has changed
+                                            results.Add(project.ProjectName, true);
+                                        }
+
+                                        // Skip checking the rest of the package folders
+                                        break;
+                                    }
                                 }
 
-                                // Skip checking the rest of the package folders
-                                break;
+                                if (!found)
+                                {
+                                    // A package is missing
+                                    results.Add(project.ProjectName, true);
+                                }
                             }
-                        }
-
-                        if (!found)
-                        {
-                            // A package is missing
-                            return true;
                         }
                     }
                 }
+
+                if (!results.ContainsKey(project.ProjectName))
+                {
+                    results.Add(project.ProjectName, false);
+                }
             }
 
-            return false;
+            return results;
         }
 
         /// <summary>

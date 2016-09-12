@@ -23,6 +23,8 @@ using NuGet.PackageManagement.VisualStudio;
 using NuGet.Packaging;
 using NuGet.ProjectManagement;
 using NuGet.ProjectManagement.Projects;
+using NuGet.ProjectModel;
+using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using Task = System.Threading.Tasks.Task;
 
@@ -326,8 +328,10 @@ namespace NuGetVSExtension
                 // Cache p2ps discovered from DTE 
                 var referenceContext = new ExternalProjectReferenceContext(logger: this);
 
+                var isRestoreRequired = await IsRestoreRequired(buildEnabledProjects, forceRestore, referenceContext);
+
                 // No-op all project closures are up to date and all packages exist on disk.
-                if (await IsRestoreRequired(buildEnabledProjects, forceRestore, referenceContext))
+                if (isRestoreRequired.Any(kvp => kvp.Value == true))
                 {
                     var waitDialogFactory
                         = ServiceLocator.GetGlobalService<SVsThreadedWaitDialogFactory,
@@ -353,48 +357,100 @@ namespace NuGetVSExtension
 
                         // Cache resources between requests
                         var providerCache = new RestoreCommandProvidersCache();
-                        var tasks = new List<Task<KeyValuePair<string, Exception>>>();
-                        var maxTasks = 4;
 
-                        // Restore packages and create the lock file for each project
+                        var nugetPathContext = NuGetPathContext.Create(Settings);
+
+                        var dgFile = new DependencyGraphSpec();
+
+                        // add project's unique name for which restore required.
+                        foreach(var kvp in isRestoreRequired)
+                        {
+                            if(kvp.Value)
+                            {
+                                dgFile.AddRestore(kvp.Key);
+                            }
+                        }
+
                         foreach (var project in buildEnabledProjects)
                         {
-                            // Mark this as having missing packages so that we will not 
-                            // display a noop message in the summary
-                            _hasMissingPackages = true;
-                            _displayRestoreSummary = true;
+                            var packageSpec = project.PackageSpec;
 
-                            if (tasks.Count >= maxTasks)
+                            if (packageSpec.MSBuildMetadata == null)
                             {
-                                await ProcessTask(tasks);
+                                var msBuildMetadata = new ProjectMSBuildMetadata();
+                                msBuildMetadata.ProjectPath = project.MSBuildProjectPath;
+                                msBuildMetadata.ProjectJsonPath = project.JsonConfigPath;
+                                msBuildMetadata.OutputType = RestoreOutputType.UAP;
+                                msBuildMetadata.ProjectName = project.ProjectName;
+                                msBuildMetadata.ProjectUniqueName = NuGetProject.GetUniqueNameOrName(project);
+                                msBuildMetadata.Sources = enabledSources.Select(source => source.PackageSource).ToList();
+                                msBuildMetadata.PackagesPath = nugetPathContext.UserPackageFolder;
+                                msBuildMetadata.FallbackFolders = nugetPathContext.FallbackPackageFolders.ToList();
+
+                                IReadOnlyList<ExternalProjectReference> references = null;
+                                if (referenceContext.Cache.TryGetValue(msBuildMetadata.ProjectUniqueName, out references))
+                                {
+                                    foreach(var reference in references)
+                                    {
+                                        // project.json exists
+                                        msBuildMetadata.ProjectReferences.Add(
+                                            new ProjectMSBuildReference
+                                            {
+                                                ProjectUniqueName = reference.UniqueName,
+                                                ProjectPath = reference.MSBuildProjectPath
+                                            });
+
+                                        if (reference.PackageSpecPath == null)
+                                        {
+                                            var packageConfig = new PackageSpec(packageSpec.TargetFrameworks);
+
+                                            var pcBasedBuildData = new ProjectMSBuildMetadata();
+                                            pcBasedBuildData.ProjectPath = reference.MSBuildProjectPath;
+                                            pcBasedBuildData.OutputType = RestoreOutputType.Unknown;
+                                            pcBasedBuildData.ProjectName = reference.ProjectName;
+                                            pcBasedBuildData.ProjectUniqueName = reference.UniqueName;
+                                            pcBasedBuildData.Sources = enabledSources.Select(source => source.PackageSource).ToList();
+                                            pcBasedBuildData.PackagesPath = nugetPathContext.UserPackageFolder;
+                                            pcBasedBuildData.FallbackFolders = nugetPathContext.FallbackPackageFolders.ToList();
+
+                                            packageConfig.MSBuildMetadata = pcBasedBuildData;
+                                            dgFile.AddProject(packageConfig);
+                                        }
+                                    }
+                                }
+
+                                packageSpec.MSBuildMetadata = msBuildMetadata;
                             }
 
-                            // Skip further restores if the user has clicked cancel
-                            if (!Token.IsCancellationRequested)
+                            dgFile.AddProject(packageSpec);                            
+                        }
+
+                        using (var cacheContext = new SourceCacheContext())
+                        {
+                            var providers = new List<IPreLoadedRestoreRequestProvider>();
+                            providers.Add(new DependencyGraphSpecRequestProvider(providerCache, dgFile));
+
+                            var defaultSettings = NuGet.Configuration.Settings.LoadDefaultSettings(root: null, configFileName: null, machineWideSettings: null);
+                            var sourceProvider = new CachingSourceProvider(new PackageSourceProvider(defaultSettings));
+
+                            var restoreContext = new RestoreArgs()
                             {
-                                var projectName = NuGetProject.GetUniqueNameOrName(project);
+                                CacheContext = cacheContext,
+                                LockFileVersion = LockFileFormat.Version,
+                                ConfigFile = null,
+                                DisableParallel = false,
+                                GlobalPackagesFolder = nugetPathContext.UserPackageFolder,
+                                Log = this,
+                                MachineWideSettings = new XPlatMachineWideSetting(),
+                                PreLoadedRequestProviders = providers,
+                                CachingSourceProvider = sourceProvider,
+                                Sources = enabledSources.Select(source => source.PackageSource.Source).ToList()
+                            };
 
-                                // Restore and create a project.lock.json file
-                                tasks.Add(RestoreProject(projectName, async () =>
-                                    await BuildIntegratedProjectRestoreAsync(
-                                        project,
-                                        solutionDirectory,
-                                        enabledSources,
-                                        referenceContext,
-                                        providerCache,
-                                        Token)));
-                            }
-                        }
+                            var restoreSummaries = RestoreRunner.Run(restoreContext).Result;
 
-                        // Wait for the remaining tasks
-                        while (tasks.Count > 0)
-                        {
-                            await ProcessTask(tasks);
-                        }
-
-                        if (Token.IsCancellationRequested)
-                        {
-                            _canceled = true;
+                            // Summary
+                            RestoreSummary.Log(this, restoreSummaries);
                         }
                     }
                 }
@@ -442,11 +498,15 @@ namespace NuGetVSExtension
         /// where all packages are already on disk and no server requests are needed
         /// we can skip the restore after some validation checks.
         /// </summary>
-        private async Task<bool> IsRestoreRequired(
+        private async Task<IDictionary<string, bool>> IsRestoreRequired(
             List<BuildIntegratedProjectSystem> projects,
             bool forceRestore,
             ExternalProjectReferenceContext referenceContext)
         {
+            var defaultResults = projects.ToDictionary(project => project.ProjectName, project => true);
+
+            IDictionary<string, bool> results = null;
+
             try
             {
                 // Swap caches 
@@ -459,13 +519,15 @@ namespace NuGetVSExtension
                 if (forceRestore)
                 {
                     // The cache has been updated, now skip the check since we are doing a restore anyways.
-                    return true;
+                    return defaultResults;
                 }
 
-                if (BuildIntegratedRestoreUtility.CacheHasChanges(oldCache, _buildIntegratedCache))
+                results = BuildIntegratedRestoreUtility.CacheHasChanges(oldCache, _buildIntegratedCache);
+
+                if (results.Any(kvp => kvp.Value == true))
                 {
                     // A new project has been added
-                    return true;
+                    return results;
                 }
 
                 // Read package folder locations
@@ -477,16 +539,10 @@ namespace NuGetVSExtension
                 packageFolderPaths.AddRange(nugetPaths.FallbackPackageFolders);
 
                 // Verify all packages exist and have the expected hashes
-                var restoreRequired = BuildIntegratedRestoreUtility.IsRestoreRequired(
+                results = BuildIntegratedRestoreUtility.IsRestoreRequired(
                     projects,
                     packageFolderPaths,
                     referenceContext);
-
-                if (restoreRequired)
-                {
-                    // The project.json file does not match the lock file
-                    return true;
-                }
             }
             catch (Exception ex)
             {
@@ -498,11 +554,10 @@ namespace NuGetVSExtension
 
                 // If we are unable to validate, run a full restore
                 // This may occur if the lock files are corrupt
-                return true;
+                return defaultResults;
             }
 
-            // Validation passed, no restore is needed
-            return false;
+            return results;
         }
 
         private async Task BuildIntegratedProjectRestoreAsync(
@@ -687,7 +742,7 @@ namespace NuGetVSExtension
 
                 if (!packages.Any())
                 {
-                    if (!isSolutionAvailable 
+                    if (!isSolutionAvailable
                         && GetProjectFolderPath().Any(p => CheckPackagesConfig(p.ProjectPath, p.ProjectName)))
                     {
                         MessageHelper.ShowError(_errorListProvider,

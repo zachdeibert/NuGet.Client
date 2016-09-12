@@ -305,7 +305,7 @@ namespace NuGet.Test
                 var b = BuildIntegratedRestoreUtility.IsRestoreRequired(projects, packageFolders, context);
 
                 // Assert
-                Assert.True(b);
+                Assert.True(b.Any(kvp => kvp.Value == true));
             }
         }
 
@@ -369,7 +369,7 @@ namespace NuGet.Test
                 var b = BuildIntegratedRestoreUtility.IsRestoreRequired(projects, packageFolders, context);
 
                 // Assert
-                Assert.True(b);
+                Assert.True(b.Any(kvp => kvp.Value == true));
             }
         }
 
@@ -430,7 +430,7 @@ namespace NuGet.Test
                 var b = BuildIntegratedRestoreUtility.IsRestoreRequired(projects, packageFolders, context);
 
                 // Assert
-                Assert.True(b);
+                Assert.True(b.Any(kvp => kvp.Value == true));
             }
         }
 
@@ -486,7 +486,7 @@ namespace NuGet.Test
                 var b = BuildIntegratedRestoreUtility.IsRestoreRequired(projects, packageFolders, context);
 
                 // Assert
-                Assert.False(b);
+                Assert.False(!b.Any(kvp => kvp.Value == true));
             }
         }
 
@@ -542,7 +542,7 @@ namespace NuGet.Test
                 var b = BuildIntegratedRestoreUtility.IsRestoreRequired(projects, packageFolders, context);
 
                 // Assert
-                Assert.False(b);
+                Assert.False(!b.Any(kvp => kvp.Value == true));
             }
         }
 
@@ -599,7 +599,7 @@ namespace NuGet.Test
                 var b = BuildIntegratedRestoreUtility.IsRestoreRequired(projects, packageFolders, context);
 
                 // Assert
-                Assert.False(b);
+                Assert.False(!b.Any(kvp => kvp.Value == true));
             }
         }
 
@@ -668,7 +668,7 @@ namespace NuGet.Test
                 var b = BuildIntegratedRestoreUtility.IsRestoreRequired(projects, packageFolders, context);
 
                 // Assert
-                Assert.False(b);
+                Assert.False(!b.Any(kvp => kvp.Value == true));
             }
         }
 
@@ -733,7 +733,7 @@ namespace NuGet.Test
                 var b = BuildIntegratedRestoreUtility.CacheHasChanges(cache, cache2);
 
                 // Assert
-                Assert.True(b);
+                Assert.True(b.Any(kvp => kvp.Value == true));
             }
         }
 
@@ -806,7 +806,7 @@ namespace NuGet.Test
                 var result1 = BuildIntegratedRestoreUtility.CacheHasChanges(cache, cache2);
 
                 // Assert 1
-                Assert.True(result1);
+                Assert.True(result1.Any(kvp => kvp.Value == true));
 
                 // Act 2
                 var cache3 = await BuildIntegratedRestoreUtility.CreateBuildIntegratedProjectStateCache(
@@ -815,7 +815,7 @@ namespace NuGet.Test
                 var result2 = BuildIntegratedRestoreUtility.CacheHasChanges(cache2, cache3);
 
                 // Assert 2
-                Assert.False(result2);
+                Assert.False(!result2.Any(kvp => kvp.Value == true));
             }
         }
 
@@ -873,7 +873,7 @@ namespace NuGet.Test
                 var b = BuildIntegratedRestoreUtility.CacheHasChanges(cache, cache2);
 
                 // Assert
-                Assert.True(b);
+                Assert.True(b.Any(kvp => kvp.Value == true));
             }
         }
 
@@ -929,7 +929,7 @@ namespace NuGet.Test
                 var b = BuildIntegratedRestoreUtility.CacheHasChanges(cache, cache2);
 
                 // Assert
-                Assert.False(b);
+                Assert.False(!b.Any(kvp => kvp.Value == true));
             }
         }
 
