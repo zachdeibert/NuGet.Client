@@ -222,7 +222,12 @@ namespace NuGet.ProjectModel
                 if (dependency.LibraryRange.VersionRange != null
                     && !VersionRange.All.Equals(dependency.LibraryRange.VersionRange))
                 {
-                    versionString = dependency.LibraryRange.VersionRange.ToLegacyShortString();
+                    versionString = dependency.LibraryRange.VersionRange.OriginalString;
+
+                    if (string.IsNullOrEmpty(versionString))
+                    {
+                        versionString = dependency.LibraryRange.VersionRange.ToNormalizedString();
+                    }
                 }
 
                 if (expandedMode && !string.IsNullOrEmpty(versionString))
