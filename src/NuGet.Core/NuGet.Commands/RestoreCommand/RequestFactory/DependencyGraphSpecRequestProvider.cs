@@ -121,13 +121,11 @@ namespace NuGet.Commands
                 restoreContext.CacheContext,
                 restoreContext.Log);
 
-            var cacheContext = new SourceCacheContext();
-
             // Create request
             var request = new RestoreRequest(
                 project.PackageSpec,
                 sharedCache,
-                cacheContext,
+                restoreContext.CacheContext,
                 restoreContext.Log);
 
             // Set output type
