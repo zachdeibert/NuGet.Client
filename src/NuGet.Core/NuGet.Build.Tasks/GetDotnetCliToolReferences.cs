@@ -47,7 +47,7 @@ namespace NuGet.Build.Tasks
                 properties.Add("Type", "DotnetCliToolReferenceSpec");
                 properties.Add("Id", msbuildItem.ItemSpec);
                 properties.Add("ProjectPath", ProjectPath);
-                BuildTasksUtility.CopyPropertyIfExists(msbuildItem, properties, "Version", "VersionRange");
+                BuildTasksUtility.CopyPropertyIfExists(msbuildItem, properties, "Version");
 
                 entries.Add(new TaskItem(Guid.NewGuid().ToString(), properties));
             }
