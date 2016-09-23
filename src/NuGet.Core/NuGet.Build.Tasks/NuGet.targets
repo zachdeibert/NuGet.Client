@@ -19,6 +19,7 @@ Copyright (c) .NET Foundation. All rights reserved.
   <UsingTask TaskName="NuGet.Build.Tasks.WriteRestoreGraphTask" AssemblyFile="$(RestoreTaskAssemblyFile)" />
   <UsingTask TaskName="NuGet.Build.Tasks.GetProjectReferences" AssemblyFile="$(RestoreTaskAssemblyFile)" />
   <UsingTask TaskName="NuGet.Build.Tasks.GetPackageReferences" AssemblyFile="$(RestoreTaskAssemblyFile)" />
+  <UsingTask TaskName="NuGet.Build.Tasks.GetDotnetCliToolReferences" AssemblyFile="$(RestoreTaskAssemblyFile)" />
 
   <!--
     ============================================================
@@ -96,6 +97,23 @@ Copyright (c) .NET Foundation. All rights reserved.
           ItemName="_RestoreGraphEntry" />
     </MsBuild>
 
+    <!-- Collect tool references -->
+    <MsBuild
+        Projects="@(RestoreGraphProjectInputItems)"
+        Targets="_GenerateDotnetCliToolReferenceSpecs"
+        BuildInParallel="false"
+        Properties="
+                %(_MSBuildProjectReferenceExistent.SetConfiguration);
+                %(_MSBuildProjectReferenceExistent.SetPlatform);
+                CustomAfterMicrosoftCommonTargets=$(MSBuildThisFileFullPath);
+                BuildProjectReferences=false;"
+        RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
+
+      <Output
+          TaskParameter="TargetOutputs"
+          ItemName="_RestoreGraphEntry" />
+    </MsBuild>
+
     <!-- Walk the project references for each project -->
     <MsBuild
         Projects="@(RestoreGraphProjectInputItems)"
@@ -131,6 +149,27 @@ Copyright (c) .NET Foundation. All rights reserved.
         <ProjectUniqueName>$(MSBuildProjectFullPath)</ProjectUniqueName>
       </_RestoreGraphEntry>
     </ItemGroup>
+  </Target>
+
+  <!--
+    ============================================================
+    _GenerateDotnetCliToolReferenceSpecs
+    Collect DotnetCliToolReferences
+    ============================================================
+  -->
+  <Target Name="_GenerateDotnetCliToolReferenceSpecs"
+      Returns="@(_RestoreGraphEntry)">
+
+    <!-- Write out tool references -->
+    <GetDotnetCliToolReferences
+      ProjectUniqueName="$(MSBuildProjectFullPath)"
+      ProjectPath="$(MSBuildProjectFullPath)"
+      ProjectReferences="@(DotnetCliToolReference)">
+
+      <Output
+        TaskParameter="RestoreGraphItems"
+        ItemName="_RestoreGraphEntry" />
+    </GetDotnetCliToolReferences>
   </Target>
 
   <!--

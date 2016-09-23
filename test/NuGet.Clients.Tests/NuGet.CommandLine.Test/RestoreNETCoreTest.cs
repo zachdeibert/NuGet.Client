@@ -19,6 +19,52 @@ namespace NuGet.CommandLine.Test
     public class RestoreNetCoreTest
     {
         [Fact]
+        public async Task RestoreNetCore_SingleToolRestore()
+        {
+            // Arrange
+            using (var pathContext = new SimpleTestPathContext())
+            {
+                // Set up solution, project, and packages
+                var solution = new SimpleTestSolutionContext(pathContext.SolutionRoot);
+
+                var projectA = SimpleTestProjectContext.CreateNETCore(
+                    "a",
+                    pathContext.SolutionRoot,
+                    NuGetFramework.Parse("net45"));
+
+                var packageX = new SimpleTestPackageContext()
+                {
+                    Id = "x",
+                    Version = "1.0.0"
+                };
+
+                projectA.AddPackageToAllFrameworks(packageX);
+
+                projectA.DotnetCLIToolReferences.Add(new SimpleTestPackageContext()
+                {
+                    Id = "z",
+                    Version = "1.0.0"
+                });
+
+                solution.Projects.Add(projectA);
+                solution.Create(pathContext.SolutionRoot);
+
+                await SimpleTestPackageUtility.CreateFolderFeedV3(
+                    pathContext.PackageSource,
+                    PackageSaveMode.Defaultv3,
+                    packageX);
+
+                var path = Path.Combine(pathContext.UserPackagesFolder, ".tools", "z", "1.0.0", "project.lock.json");
+
+                // Act
+                var r = RestoreSolution(pathContext);
+
+                // Assert
+                Assert.True(File.Exists(path), r.Item2);
+            }
+        }
+
+        [Fact]
         public async Task RestoreNetCore_VerifyBuildCrossTargeting_VerifyImportOrder()
         {
             // Arrange
