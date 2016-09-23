@@ -67,6 +67,11 @@ namespace NuGet.Test.Utility
         public RestoreOutputType Type { get; set; }
 
         /// <summary>
+        /// Tool references
+        /// </summary>
+        public List<SimpleTestPackageContext> DotnetCLIToolReferences { get; set; } = new List<SimpleTestPackageContext>();
+
+        /// <summary>
         /// Project.json file
         /// </summary>
         public JObject ProjectJson { get; set; }
@@ -343,6 +348,20 @@ namespace NuGet.Test.Utility
                             referenceFramework,
                             props);
                     }
+                }
+
+                // Add tool references
+                foreach (var tool in DotnetCLIToolReferences)
+                {
+                    var props = new Dictionary<string, string>();
+                    props.Add("Version", tool.Version.ToString());
+
+                    AddItem(
+                        xml,
+                        "DotnetCLIToolReference",
+                        $"{tool.Id}",
+                        NuGetFramework.AnyFramework,
+                        props);
                 }
             }
             else

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NuGet.Versioning;
 
 namespace NuGet.ProjectModel
 {
@@ -11,6 +12,7 @@ namespace NuGet.ProjectModel
     {
         private readonly SortedSet<string> _restore = new SortedSet<string>(StringComparer.Ordinal);
         private readonly SortedDictionary<string, PackageSpec> _projects = new SortedDictionary<string, PackageSpec>(StringComparer.Ordinal);
+        private readonly List<DotnetCLIToolReferenceSpec> _tools = new List<DotnetCLIToolReferenceSpec>();
 
         public DependencyGraphSpec(JObject json)
         {
@@ -48,6 +50,17 @@ namespace NuGet.ProjectModel
             get
             {
                 return _projects.Values.ToList();
+            }
+        }
+
+        /// <summary>
+        /// Tools to restore, this may contain duplicates.
+        /// </summary>
+        public IReadOnlyList<DotnetCLIToolReferenceSpec> DotnetCLIToolReferences
+        {
+            get
+            {
+                return _tools;
             }
         }
 
@@ -126,6 +139,11 @@ namespace NuGet.ProjectModel
             _projects.Add(projectUniqueName, projectSpec);
         }
 
+        public void AddDotnetCLIToolReference(DotnetCLIToolReferenceSpec tool)
+        {
+            _tools.Add(tool);
+        }
+
         public static DependencyGraphSpec Load(string path)
         {
             var json = ReadJson(path);
@@ -151,13 +169,16 @@ namespace NuGet.ProjectModel
             }
         }
 
-        private static JObject GetJson(DependencyGraphSpec spec)
+        public static JObject GetJson(DependencyGraphSpec spec)
         {
             var json = new JObject();
             var restoreObj = new JObject();
             var projectsObj = new JObject();
+            var toolsArray = new JArray();
+            json["format"] = 1;
             json["restore"] = restoreObj;
             json["projects"] = projectsObj;
+            json["dotnetCLIToolReferences"] = toolsArray;
 
             foreach (var restoreName in spec.Restore)
             {
@@ -171,6 +192,16 @@ namespace NuGet.ProjectModel
                 JsonPackageSpecWriter.WritePackageSpec(project, projectObj);
 
                 projectsObj[project.RestoreMetadata.ProjectUniqueName] = projectObj;
+            }
+
+            foreach (var tool in spec.DotnetCLIToolReferences)
+            {
+                var toolObj = new JObject();
+                toolsArray.Add(toolObj);
+
+                toolObj["id"] = tool.Id;
+                toolObj["version"] = tool.Version.ToNormalizedString();
+                toolObj["projectPath"] = tool.ProjectPath;
             }
 
             return json;
@@ -193,6 +224,26 @@ namespace NuGet.ProjectModel
                     var spec = JsonPackageSpecReader.GetPackageSpec(specJson);
 
                     _projects.Add(prop.Name, spec);
+                }
+            }
+
+            var toolsArray = json.GetValue<JArray>("dotnetCLIToolReferences");
+            if (toolsArray != null)
+            {
+                var tools = new List<DotnetCLIToolReferenceSpec>();
+
+                foreach (var val in toolsArray)
+                {
+                    var toolSpecJson = (JObject)val;
+
+                    var toolSpec = new DotnetCLIToolReferenceSpec()
+                    {
+                        Id = toolSpecJson.GetValue<string>("id"),
+                        Version = VersionRange.Parse(toolSpecJson.GetValue<string>("version")),
+                        ProjectPath = toolSpecJson.GetValue<string>("projectPath"),
+                    };
+
+                    AddDotnetCLIToolReference(toolSpec);
                 }
             }
         }

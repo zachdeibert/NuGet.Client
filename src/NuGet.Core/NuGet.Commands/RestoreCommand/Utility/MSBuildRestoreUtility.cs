@@ -94,6 +94,7 @@ namespace NuGet.Commands
             var itemsById = new Dictionary<string, List<IMSBuildItem>>(StringComparer.Ordinal);
             var restoreSpecs = new HashSet<string>(StringComparer.Ordinal);
             var validForRestore = new HashSet<string>(StringComparer.Ordinal);
+            var toolItems = new List<IMSBuildItem>();
 
             // Sort items and add restore specs
             foreach (var item in items)
@@ -104,6 +105,10 @@ namespace NuGet.Commands
                 if ("restorespec".Equals(type, StringComparison.Ordinal))
                 {
                     restoreSpecs.Add(projectUniqueName);
+                }
+                else if ("dotnetclitoolreferencespec".Equals(type, StringComparison.Ordinal))
+                {
+                    toolItems.Add(item);
                 }
                 else if (!string.IsNullOrEmpty(projectUniqueName))
                 {
@@ -134,6 +139,12 @@ namespace NuGet.Commands
             foreach (var projectUniqueName in restoreSpecs.Intersect(validForRestore))
             {
                 graphSpec.AddRestore(projectUniqueName);
+            }
+
+            // Add tool references
+            foreach (var tool in toolItems.Select(GetDotnetCLIToolReferenceSpec))
+            {
+                graphSpec.AddDotnetCLIToolReference(tool);
             }
 
             return graphSpec;
@@ -219,6 +230,18 @@ namespace NuGet.Commands
             }
 
             return result;
+        }
+
+        public static DotnetCLIToolReferenceSpec GetDotnetCLIToolReferenceSpec(IMSBuildItem item)
+        {
+            var spec = new DotnetCLIToolReferenceSpec()
+            {
+                Id = item.GetProperty("Id"),
+                Version = VersionRange.Parse(item.GetProperty("Version")),
+                ProjectPath = item.GetProperty("ProjectPath"),
+            };
+
+            return spec;
         }
 
         private static void AddProjectReferences(PackageSpec spec, IEnumerable<IMSBuildItem> items)

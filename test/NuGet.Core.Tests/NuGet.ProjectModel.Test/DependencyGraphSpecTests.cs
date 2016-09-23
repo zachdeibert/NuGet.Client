@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using NuGet.Configuration;
 using NuGet.Frameworks;
 using NuGet.Test.Utility;
+using NuGet.Versioning;
 using Xunit;
 
 namespace NuGet.ProjectModel.Test
@@ -86,6 +88,31 @@ namespace NuGet.ProjectModel.Test
             Assert.Equal("https://api.nuget.org/v3/index.json", string.Join("|", msbuildMetadata.Sources.Select(s => s.Source)));
             Assert.Equal("c:\\fallback1|c:\\fallback2", string.Join("|", msbuildMetadata.FallbackFolders));
             Assert.Equal("44B29B8D-8413-42D2-8DF4-72225659619B|c:\\a\\a.csproj|78A6AD3F-9FA5-47F6-A54E-84B46A48CB2F|c:\\b\\b.csproj", string.Join("|", msbuildMetadata.ProjectReferences.Select(e => $"{e.ProjectUniqueName}|{e.ProjectPath}")));
+        }
+
+        [Fact]
+        public void DependencyGraphSpec_RoundTripTools()
+        {
+            // Arrange
+            var dgFile = new DependencyGraphSpec();
+            dgFile.AddDotnetCLIToolReference(new DotnetCLIToolReferenceSpec()
+            {
+                Id = "a",
+                Version = VersionRange.Parse("1.0.*"),
+                ProjectPath = "c:\\fake.csproj"
+            });
+
+            // Act
+            var json = DependencyGraphSpec.GetJson(dgFile);
+            var dgFile2 = DependencyGraphSpec.Load(json);
+            var json2 = DependencyGraphSpec.GetJson(dgFile2);
+
+            // Assert
+            Assert.Equal(json.ToString(), json2.ToString());
+            Assert.Equal(1, dgFile2.DotnetCLIToolReferences.Count);
+            Assert.Equal("a", dgFile2.DotnetCLIToolReferences[0].Id);
+            Assert.Equal("[1.0.*, )", dgFile2.DotnetCLIToolReferences[0].Version.ToNormalizedString());
+            Assert.Equal("c:\\fake.csproj", dgFile2.DotnetCLIToolReferences[0].ProjectPath);
         }
 
         [Fact]
