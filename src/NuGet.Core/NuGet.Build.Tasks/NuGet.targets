@@ -164,7 +164,7 @@ Copyright (c) .NET Foundation. All rights reserved.
     <GetDotnetCliToolReferences
       ProjectUniqueName="$(MSBuildProjectFullPath)"
       ProjectPath="$(MSBuildProjectFullPath)"
-      ProjectReferences="@(DotnetCliToolReference)">
+      DotnetCliToolReferences="@(DotnetCliToolReference)">
 
       <Output
         TaskParameter="RestoreGraphItems"
