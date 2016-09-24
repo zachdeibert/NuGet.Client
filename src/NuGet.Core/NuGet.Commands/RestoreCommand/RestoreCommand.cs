@@ -69,23 +69,9 @@ namespace NuGet.Commands
             localRepositories.Add(_request.DependencyProviders.GlobalPackages);
             localRepositories.AddRange(_request.DependencyProviders.FallbackPackageFolders);
 
-            // Determine the lock file output path
-            var projectLockFilePath = _request.LockFilePath;
-
-            if (string.IsNullOrEmpty(projectLockFilePath))
-            {
-                if (_request.RestoreOutputType == RestoreOutputType.NETCore)
-                {
-                    projectLockFilePath = Path.Combine(_request.RestoreOutputPath, LockFileFormat.AssetsFileName);
-                }
-                else
-                {
-                    projectLockFilePath = Path.Combine(_request.Project.BaseDirectory, LockFileFormat.LockFileName);
-                }
-            }
-
             var contextForProject = CreateRemoteWalkContext(_request);
 
+            // Restore
             var graphs = await ExecuteRestoreAsync(
                 _request.DependencyProviders.GlobalPackages,
                 _request.DependencyProviders.FallbackPackageFolders,
@@ -94,8 +80,9 @@ namespace NuGet.Commands
 
             // Only execute tool restore if the request lock file version is 2 or greater.
             // Tools did not exist prior to v2 lock files.
+            // This will be removed once xproj support goes away, limit to Unknown restore types!
             var toolRestoreResults = Enumerable.Empty<ToolRestoreResult>();
-            if (_request.LockFileVersion >= 2)
+            if (_request.LockFileVersion >= 2 && _request.RestoreOutputType == RestoreOutputType.Unknown)
             {
                 toolRestoreResults = await ExecuteToolRestoresAsync(
                                     _request.DependencyProviders.GlobalPackages,
@@ -103,6 +90,7 @@ namespace NuGet.Commands
                                     token);
             }
 
+            // Create assets file
             var lockFile = BuildLockFile(
                 _request.ExistingLockFile,
                 _request.Project,
@@ -116,6 +104,7 @@ namespace NuGet.Commands
                 _success = false;
             }
 
+            // Check package compatibility
             var checkResults = VerifyCompatibility(
                 _request.Project,
                 _includeFlagGraphs,
@@ -138,13 +127,57 @@ namespace NuGet.Commands
                 _request,
                 _includeFlagGraphs);
 
-            // If the request is for a v1 lock file then downgrade it and remove all v2 properties
-            if (_request.LockFileVersion == 1)
+            // If the request is for a lower lock file version, downgrade it appropriately
+            DowngradeLockFileIfNeeded(lockFile);
+
+            // Revert to the original case if needed
+            await FixCaseForLegacyReaders(graphs, toolRestoreResults, lockFile, token);
+
+            // Determine the lock file output path
+            var projectLockFilePath = _request.LockFilePath;
+
+            if (string.IsNullOrEmpty(projectLockFilePath))
+            {
+                if (_request.RestoreOutputType == RestoreOutputType.NETCore)
+                {
+                    projectLockFilePath = Path.Combine(_request.RestoreOutputPath, LockFileFormat.AssetsFileName);
+                }
+                else
+                {
+                    projectLockFilePath = Path.Combine(_request.Project.BaseDirectory, LockFileFormat.LockFileName);
+                }
+            }
+
+            return new RestoreResult(
+                _success,
+                graphs,
+                checkResults,
+                lockFile,
+                _request.ExistingLockFile,
+                projectLockFilePath,
+                msbuild,
+                toolRestoreResults);
+        }
+
+        private void DowngradeLockFileIfNeeded(LockFile lockFile)
+        {
+            if (_request.LockFileVersion <= 2)
+            {
+                DowngradeLockFileToV2(lockFile);
+            }
+
+            if (_request.LockFileVersion <= 1)
             {
                 DowngradeLockFileToV1(lockFile);
             }
+        }
 
-
+        private async Task FixCaseForLegacyReaders(
+            IEnumerable<RestoreTargetGraph> graphs,
+            IEnumerable<ToolRestoreResult> toolRestoreResults,
+            LockFile lockFile,
+            CancellationToken token)
+        {
             // The main restore operation restores packages with lowercase ID and version. If the
             // restore request is for lowercase packages, then take this additional post-processing
             // step.
@@ -167,16 +200,6 @@ namespace NuGet.Commands
                 // Convert the project lock file contents.
                 originalCase.ConvertLockFileToOriginalCase(lockFile);
             }
-
-            return new RestoreResult(
-                _success,
-                graphs,
-                checkResults,
-                lockFile,
-                _request.ExistingLockFile,
-                projectLockFilePath,
-                msbuild,
-                toolRestoreResults);
         }
 
         private LockFile BuildLockFile(
@@ -332,26 +355,7 @@ namespace NuGet.Commands
                 // Build a package spec in memory to execute the tool restore as if it were
                 // its own project. For now, we always restore for a null runtime and a single
                 // constant framework.
-                var toolPackageSpec = new PackageSpec(new JObject())
-                {
-                    Name = Guid.NewGuid().ToString(), // make sure this package never collides with a dependency
-                    Dependencies = new List<LibraryDependency>(),
-                    Tools = new List<ToolDependency>(),
-                    TargetFrameworks =
-                    {
-                        new TargetFrameworkInformation
-                        {
-                            FrameworkName = framework,
-                            Dependencies = new List<LibraryDependency>
-                            {
-                                new LibraryDependency
-                                {
-                                    LibraryRange = tool.LibraryRange
-                                }
-                            }
-                        }
-                    }
-                };
+                var toolPackageSpec = ToolRestoreUtility.GetSpec(tool.LibraryRange.Name, tool.LibraryRange.VersionRange, framework);
 
                 // Try to find the existing lock file. Since the existing lock file is pathed under
                 // a folder that includes the resolved tool's version, this is a bit of a chicken
@@ -686,6 +690,11 @@ namespace NuGet.Commands
             }
 
             return context;
+        }
+
+        private void DowngradeLockFileToV2(LockFile lockFile)
+        {
+            // noop
         }
 
         private void DowngradeLockFileToV1(LockFile lockFile)
