@@ -93,7 +93,9 @@ namespace NuGet.Commands
             PackageSpec projectSpec = null;
 
             if (type == RestoreOutputType.NETCore
-                || type == RestoreOutputType.UAP)
+                || type == RestoreOutputType.UAP
+                || type == RestoreOutputType.DotnetCliTool
+                || type == RestoreOutputType.Standalone)
             {
                 projectSpec = rootProject;
             }
