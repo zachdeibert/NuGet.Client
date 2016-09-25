@@ -25,5 +25,14 @@ namespace NuGet.Build.Tasks
                 properties.Add(toKey, propertyValue);
             }
         }
+
+        public static void AddPropertyIfExists(IDictionary<string, string> properties, string key, string value)
+        {
+            if (!string.IsNullOrEmpty(value)
+                && !properties.ContainsKey(key))
+            {
+                properties.Add(key, value);
+            }
+        }
     }
 }

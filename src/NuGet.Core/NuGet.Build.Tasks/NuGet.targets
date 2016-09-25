@@ -143,7 +143,7 @@ Copyright (c) .NET Foundation. All rights reserved.
     <Message Text="Restore entry point $(MSBuildProjectFullPath)" Importance="low" />
 
     <!-- Mark entry point -->
-    <ItemGroup>
+    <ItemGroup Condition=" '$(RestoreProjects)' == '' OR '$(RestoreProjects)' == 'true' ">
       <_RestoreGraphEntry Include="$([System.Guid]::NewGuid())">
         <Type>RestoreSpec</Type>
         <ProjectUniqueName>$(MSBuildProjectFullPath)</ProjectUniqueName>
@@ -160,10 +160,15 @@ Copyright (c) .NET Foundation. All rights reserved.
   <Target Name="_GenerateDotnetCliToolReferenceSpecs"
       Returns="@(_RestoreGraphEntry)">
 
+    <PropertyGroup>
+      <DotnetCliToolTargetFramework Condition=" '$(DotnetCliToolTargetFramework)' == '' ">netcoreapp1.0</DotnetCliToolTargetFramework>
+    </PropertyGroup>
+    
     <!-- Write out tool references -->
     <GetDotnetCliToolReferences
-      ProjectUniqueName="$(MSBuildProjectFullPath)"
+      Condition=" '$(RestoreDotnetCliToolReferences)' == '' OR '$(RestoreDotnetCliToolReferences)' == 'true' "
       ProjectPath="$(MSBuildProjectFullPath)"
+      ToolFramework="$(DotnetCliToolTargetFramework)"
       DotnetCliToolReferences="@(DotnetCliToolReference)">
 
       <Output

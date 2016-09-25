@@ -164,6 +164,19 @@ namespace NuGet.Commands
             // Add project references
             request.ExternalProjects = projectReferenceClosure.ToList();
 
+            // Attempt to find the best existing lock file match for tool restores
+            if (request.ExistingLockFile == null
+                && request.RestoreOutputType == RestoreOutputType.DotnetCliTool)
+            {
+                var lockFileInfo = ToolRestoreUtility.GetToolLockFilePath(request.PackagesDirectory, request.Project);
+
+                if (lockFileInfo?.Exists == true)
+                {
+                    var lockFileFormat = new LockFileFormat();
+                    request.ExistingLockFile = lockFileFormat.Read(lockFileInfo.FullName);
+                }
+            }
+
             // The lock file is loaded later since this is an expensive operation
             var summaryRequest = new RestoreSummaryRequest(
                 request,

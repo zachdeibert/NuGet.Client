@@ -143,6 +143,22 @@ namespace NuGet.Commands
         /// <summary>
         /// Get the best matching version that exists or null.
         /// </summary>
+        public static FileInfo GetToolLockFilePath(string packagesDirectory, PackageSpec toolSpec)
+        {
+            var toolPathResolver = new ToolPathResolver(packagesDirectory);
+            var toolsDir = new DirectoryInfo(toolPathResolver.GetToolsBasePath());
+            var dependency = GetToolDependencyOrNullFromSpec(toolSpec);
+
+            return GetToolLockFilePath(
+                toolsDir,
+                dependency.Name,
+                toolSpec.TargetFrameworks.Single().FrameworkName,
+                dependency.LibraryRange.VersionRange);
+        }
+
+        /// <summary>
+        /// Get the best matching version that exists or null.
+        /// </summary>
         public static FileInfo GetToolLockFilePath(DirectoryInfo toolsDir, string id, NuGetFramework framework, VersionRange range)
         {
             if (string.IsNullOrEmpty(id))
@@ -202,10 +218,14 @@ namespace NuGet.Commands
 
             if (toolsDir.Exists)
             {
-                foreach (var file in toolsDir.GetFiles("project.lock.json", SearchOption.AllDirectories)
-                    .Where(f => toolsDir == f.Directory.Parent.Parent.Parent))
+                foreach (var file in toolsDir.GetFiles(LockFileFormat.LockFileName, SearchOption.AllDirectories))
                 {
                     var foundId = GetIdOrNullFromPath(file);
+
+                    if (file.Directory.Parent.Parent.Parent.FullName != toolsDir.FullName)
+                    {
+                        continue;
+                    }
 
                     if (id.Equals(foundId, StringComparison.OrdinalIgnoreCase))
                     {

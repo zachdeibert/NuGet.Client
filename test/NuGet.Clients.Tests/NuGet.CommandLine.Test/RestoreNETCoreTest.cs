@@ -24,6 +24,8 @@ namespace NuGet.CommandLine.Test
             // Arrange
             using (var pathContext = new SimpleTestPathContext())
             {
+                pathContext.CleanUp = false;
+
                 // Set up solution, project, and packages
                 var solution = new SimpleTestSolutionContext(pathContext.SolutionRoot);
 
@@ -37,6 +39,20 @@ namespace NuGet.CommandLine.Test
                     Id = "x",
                     Version = "1.0.0"
                 };
+
+                var packageZ = new SimpleTestPackageContext()
+                {
+                    Id = "z",
+                    Version = "1.0.0"
+                };
+
+                var packageY = new SimpleTestPackageContext()
+                {
+                    Id = "y",
+                    Version = "1.0.0"
+                };
+
+                packageZ.Dependencies.Add(packageY);
 
                 projectA.AddPackageToAllFrameworks(packageX);
 
@@ -52,15 +68,86 @@ namespace NuGet.CommandLine.Test
                 await SimpleTestPackageUtility.CreateFolderFeedV3(
                     pathContext.PackageSource,
                     PackageSaveMode.Defaultv3,
-                    packageX);
+                    packageX,
+                    packageZ,
+                    packageY);
 
-                var path = Path.Combine(pathContext.UserPackagesFolder, ".tools", "z", "1.0.0", "project.lock.json");
+                var path = Path.Combine(pathContext.UserPackagesFolder, ".tools", "z", "1.0.0", "netcoreapp1.0", "project.lock.json");
 
                 // Act
                 var r = RestoreSolution(pathContext);
 
                 // Assert
                 Assert.True(File.Exists(path), r.Item2);
+            }
+        }
+
+        [Fact]
+        public async Task RestoreNetCore_SingleToolRestore_Noop()
+        {
+            // Arrange
+            using (var pathContext = new SimpleTestPathContext())
+            {
+                // Set up solution, project, and packages
+                var solution = new SimpleTestSolutionContext(pathContext.SolutionRoot);
+
+                var projectA = SimpleTestProjectContext.CreateNETCore(
+                    "a",
+                    pathContext.SolutionRoot,
+                    NuGetFramework.Parse("net45"));
+
+                var packageX = new SimpleTestPackageContext()
+                {
+                    Id = "x",
+                    Version = "1.0.0"
+                };
+
+                var packageZ = new SimpleTestPackageContext()
+                {
+                    Id = "z",
+                    Version = "1.0.0"
+                };
+
+                var packageY = new SimpleTestPackageContext()
+                {
+                    Id = "y",
+                    Version = "1.0.0"
+                };
+
+                packageZ.Dependencies.Add(packageY);
+
+                projectA.AddPackageToAllFrameworks(packageX);
+
+                projectA.DotnetCLIToolReferences.Add(new SimpleTestPackageContext()
+                {
+                    Id = "z",
+                    Version = "1.0.0"
+                });
+
+                solution.Projects.Add(projectA);
+                solution.Create(pathContext.SolutionRoot);
+
+                await SimpleTestPackageUtility.CreateFolderFeedV3(
+                    pathContext.PackageSource,
+                    PackageSaveMode.Defaultv3,
+                    packageX,
+                    packageZ,
+                    packageY);
+
+                var path = Path.Combine(pathContext.UserPackagesFolder, ".tools", "z", "1.0.0", "netcoreapp1.0", "project.lock.json");
+
+                // Act
+                var r = RestoreSolution(pathContext);
+
+                File.AppendAllText(path, "\n\n\n\n\n");
+
+                r = RestoreSolution(pathContext);
+
+                var text = File.ReadAllText(path);
+
+                // Assert
+                Assert.True(File.Exists(path), r.Item2);
+                Assert.EndsWith("\n\n\n\n\n", text);
             }
         }
 
