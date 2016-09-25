@@ -134,19 +134,7 @@ namespace NuGet.Commands
             await FixCaseForLegacyReaders(graphs, toolRestoreResults, lockFile, token);
 
             // Determine the lock file output path
-            var projectLockFilePath = _request.LockFilePath;
-
-            if (string.IsNullOrEmpty(projectLockFilePath))
-            {
-                if (_request.RestoreOutputType == RestoreOutputType.NETCore)
-                {
-                    projectLockFilePath = Path.Combine(_request.RestoreOutputPath, LockFileFormat.AssetsFileName);
-                }
-                else
-                {
-                    projectLockFilePath = Path.Combine(_request.Project.BaseDirectory, LockFileFormat.LockFileName);
-                }
-            }
+            var projectLockFilePath = GetLockFilePath(lockFile);
 
             return new RestoreResult(
                 _success,
@@ -157,6 +145,42 @@ namespace NuGet.Commands
                 projectLockFilePath,
                 msbuild,
                 toolRestoreResults);
+        }
+
+        private string GetLockFilePath(LockFile lockFile)
+        {
+            var projectLockFilePath = _request.LockFilePath;
+
+            if (string.IsNullOrEmpty(projectLockFilePath))
+            {
+                if (_request.RestoreOutputType == RestoreOutputType.NETCore
+                    || _request.RestoreOutputType == RestoreOutputType.Standalone)
+                {
+                    projectLockFilePath = Path.Combine(_request.RestoreOutputPath, LockFileFormat.AssetsFileName);
+                }
+                else if (_request.RestoreOutputType == RestoreOutputType.DotnetCliTool)
+                {
+                    var toolName = ToolRestoreUtility.GetToolIdOrNullFromSpec(_request.Project);
+                    var lockFileLibrary = ToolRestoreUtility.GetToolTargetLibrary(lockFile, toolName);
+
+                    if (lockFileLibrary != null)
+                    {
+                        var version = lockFileLibrary.Version;
+
+                        var toolPathResolver = new ToolPathResolver(_request.PackagesDirectory);
+                        projectLockFilePath = toolPathResolver.GetLockFilePath(
+                            toolName,
+                            version,
+                            lockFile.Targets.First().TargetFramework);
+                    }
+                }
+                else
+                {
+                    projectLockFilePath = Path.Combine(_request.Project.BaseDirectory, LockFileFormat.LockFileName);
+                }
+            }
+
+            return projectLockFilePath;
         }
 
         private void DowngradeLockFileIfNeeded(LockFile lockFile)
@@ -355,7 +379,11 @@ namespace NuGet.Commands
                 // Build a package spec in memory to execute the tool restore as if it were
                 // its own project. For now, we always restore for a null runtime and a single
                 // constant framework.
-                var toolPackageSpec = ToolRestoreUtility.GetSpec(tool.LibraryRange.Name, tool.LibraryRange.VersionRange, framework);
+                var toolPackageSpec = ToolRestoreUtility.GetSpec(
+                    _request.Project.FilePath,
+                    tool.LibraryRange.Name,
+                    tool.LibraryRange.VersionRange,
+                    framework);
 
                 // Try to find the existing lock file. Since the existing lock file is pathed under
                 // a folder that includes the resolved tool's version, this is a bit of a chicken
@@ -434,9 +462,7 @@ namespace NuGet.Commands
                 // Build the path based off of the resolved tool. For now, we assume there is only
                 // ever one target.
                 var target = toolLockFile.Targets.Single();
-                var fileTargetLibrary = target
-                    .Libraries
-                    .FirstOrDefault(l => StringComparer.OrdinalIgnoreCase.Equals(tool.LibraryRange.Name, l.Name));
+                var fileTargetLibrary = ToolRestoreUtility.GetToolTargetLibrary(toolLockFile, tool.LibraryRange.Name);
                 string toolLockFilePath = null;
                 if (fileTargetLibrary != null)
                 {
@@ -533,7 +559,8 @@ namespace NuGet.Commands
                     updatedExternalProjects.Add(updatedReference);
 
                     // Determine if the targets and props files should be written out.
-                    context.IsMsBuildBased = XProjUtility.IsMSBuildBasedProject(rootProject.MSBuildProjectPath);
+                    context.IsMsBuildBased = _request.RestoreOutputType != RestoreOutputType.DotnetCliTool
+                        && XProjUtility.IsMSBuildBasedProject(rootProject.MSBuildProjectPath);
                 }
                 else
                 {

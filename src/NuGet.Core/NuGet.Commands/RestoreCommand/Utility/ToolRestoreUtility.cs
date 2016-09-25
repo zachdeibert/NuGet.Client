@@ -18,11 +18,14 @@ namespace NuGet.Commands
         /// its own project. For now, we always restore for a null runtime and a single
         /// constant framework.
         /// </summary>
-        public static PackageSpec GetSpec(string id, VersionRange versionRange, NuGetFramework framework)
+        public static PackageSpec GetSpec(string projectFilePath, string id, VersionRange versionRange, NuGetFramework framework)
         {
+            var name = $"{id}-{Guid.NewGuid().ToString()}";
+
             return new PackageSpec(new JObject())
             {
-                Name = $"{id}-{Guid.NewGuid().ToString()}", // make sure this package never collides with a dependency
+                Name = name, // make sure this package never collides with a dependency
+                FilePath = projectFilePath,
                 Dependencies = new List<LibraryDependency>(),
                 Tools = new List<ToolDependency>(),
                 TargetFrameworks =
@@ -38,6 +41,13 @@ namespace NuGet.Commands
                             }
                         }
                     }
+                },
+                RestoreMetadata = new ProjectRestoreMetadata()
+                {
+                    OutputType = RestoreOutputType.DotnetCliTool,
+                    ProjectName = name,
+                    ProjectUniqueName = name,
+                    ProjectPath = projectFilePath
                 }
             };
         }
@@ -242,6 +252,14 @@ namespace NuGet.Commands
             }
 
             return NuGetFramework.ParseFolder(dirName);
+        }
+
+        public static LockFileTargetLibrary GetToolTargetLibrary(LockFile toolLockFile, string toolId)
+        {
+            var target = toolLockFile.Targets.Single();
+            return target
+                .Libraries
+                .FirstOrDefault(l => StringComparer.OrdinalIgnoreCase.Equals(toolId, l.Name));
         }
     }
 }
