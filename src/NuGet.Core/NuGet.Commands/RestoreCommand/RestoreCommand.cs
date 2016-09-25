@@ -141,12 +141,6 @@ namespace NuGet.Commands
                 && _request.RestoreOutputType == RestoreOutputType.DotnetCliTool)
             {
                 _request.LockFilePath = projectLockFilePath;
-
-                if (File.Exists(projectLockFilePath))
-                {
-                    var lockFileFormat = new LockFileFormat();
-                    _request.ExistingLockFile = lockFileFormat.Read(projectLockFilePath);
-                }
             }
 
             // Create result
@@ -158,7 +152,8 @@ namespace NuGet.Commands
                 _request.ExistingLockFile,
                 projectLockFilePath,
                 msbuild,
-                toolRestoreResults);
+                toolRestoreResults,
+                _request.RestoreOutputType);
         }
 
         private string GetLockFilePath(LockFile lockFile)

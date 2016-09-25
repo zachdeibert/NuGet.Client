@@ -274,7 +274,7 @@ namespace NuGet.CommandLine.Test
             }
         }
 
-        [Fact]
+        [Fact(Skip="Not supported")]
         public async Task RestoreNetCore_SingleToolRestore_Noop()
         {
             // Arrange
