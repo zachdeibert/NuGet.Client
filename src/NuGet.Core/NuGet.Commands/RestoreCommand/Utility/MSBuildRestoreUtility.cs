@@ -106,10 +106,6 @@ namespace NuGet.Commands
                 {
                     restoreSpecs.Add(projectUniqueName);
                 }
-                else if ("dotnetclitoolreferencespec".Equals(type, StringComparison.Ordinal))
-                {
-                    toolItems.Add(item);
-                }
                 else if (!string.IsNullOrEmpty(projectUniqueName))
                 {
                     List<IMSBuildItem> idItems;

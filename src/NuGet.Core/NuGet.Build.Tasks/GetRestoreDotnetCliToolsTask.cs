@@ -9,13 +9,19 @@ using NuGet.ProjectModel;
 
 namespace NuGet.Build.Tasks
 {
-    public class GetDotnetCliToolReferences : Task
+    public class GetRestoreDotnetCliToolsTask : Task
     {
         /// <summary>
         /// Full path to the msbuild project.
         /// </summary>
         [Required]
         public string ProjectPath { get; set; }
+
+        /// <summary>
+        /// Output items
+        /// </summary>
+        [Output]
+        public ITaskItem[] RestoreGraphItems { get; set; }
 
         /// <summary>
         /// Tool runtime framework where this will be executed.
@@ -40,12 +46,6 @@ namespace NuGet.Build.Tasks
 
         [Required]
         public ITaskItem[] DotnetCliToolReferences { get; set; }
-
-        /// <summary>
-        /// Output items
-        /// </summary>
-        [Output]
-        public ITaskItem[] RestoreGraphItems { get; set; }
 
         public override bool Execute()
         {

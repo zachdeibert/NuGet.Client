@@ -65,7 +65,8 @@ namespace NuGet.CommandLine
         public static DependencyGraphSpec GetProjectReferences(
             string msbuildDirectory,
             string[] projectPaths,
-            int timeOut)
+            int timeOut,
+            IConsole console)
         {
             string msbuildPath = Path.Combine(msbuildDirectory, "msbuild.exe");
 
@@ -95,7 +96,7 @@ namespace NuGet.CommandLine
 
                 var argumentBuilder = new StringBuilder(
                     "/t:GenerateRestoreGraphFile " +
-                    "/nologo /nr:false /v:q " +
+                    "/nologo /nr:false /v:diag " +
                     "/p:BuildProjectReferences=false");
 
                 argumentBuilder.Append(" /p:RestoreTaskAssemblyFile=");
@@ -121,6 +122,8 @@ namespace NuGet.CommandLine
                     Arguments = argumentBuilder.ToString(),
                     RedirectStandardError = true
                 };
+
+                console.LogDebug($"{processStartInfo.FileName} {processStartInfo.Arguments}");
 
                 using (var process = Process.Start(processStartInfo))
                 {
