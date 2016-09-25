@@ -15,32 +15,6 @@ namespace NuGet.Commands.Test
     public class MSBuildRestoreUtilityTests
     {
         [Fact]
-        public void MSBuildRestoreUtility_GetDotnetCLIToolSpec()
-        {
-            using (var workingDir = TestFileSystemUtility.CreateRandomTestFolder())
-            {
-                // Arrange
-                var projectPath = Path.Combine(workingDir, "a.csproj");
-
-                var item = CreateItems(new Dictionary<string, string>()
-                {
-                    { "Type", "dotnetclitoolreferencespec" },
-                    { "ProjectPath", projectPath },
-                    { "Id", "a" },
-                    { "Version", "1.0.0-*" },
-                });
-
-                // Act
-                var spec = MSBuildRestoreUtility.GetDotnetCLIToolReferenceSpec(item);
-
-                // Assert
-                Assert.Equal("a", spec.Id);
-                Assert.Equal("[1.0.0-*, )", spec.Version.ToNormalizedString());
-                Assert.Equal(projectPath, spec.ProjectPath);
-            }
-        }
-
-        [Fact]
         public void MSBuildRestoreUtility_GetPackageSpec_NetCoreVerifyIncludeFlags()
         {
             using (var workingDir = TestFileSystemUtility.CreateRandomTestFolder())

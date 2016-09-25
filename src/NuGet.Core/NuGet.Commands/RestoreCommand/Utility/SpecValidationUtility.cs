@@ -45,15 +45,9 @@ namespace NuGet.Commands
                 }
 
                 // Verify restore contains at least one project or tool
-                if (restoreSet.Count < 1 && spec.DotnetCLIToolReferences.Count < 1)
+                if (restoreSet.Count < 1)
                 {
                     throw RestoreSpecException.Create(Strings.SpecValidationZeroRestoreRequests, Enumerable.Empty<string>());
-                }
-
-                // Verify tools
-                foreach (var tool in spec.DotnetCLIToolReferences)
-                {
-                    ValidateDotnetCLIToolReferenceSpec(tool);
                 }
             }
             catch (Exception ex) when (!(ex is RestoreSpecException))
@@ -297,40 +291,6 @@ namespace NuGet.Commands
                     CultureInfo.CurrentCulture,
                     Strings.PropertyNotAllowed,
                     nameof(spec.Dependencies));
-
-                throw RestoreSpecException.Create(message, files);
-            }
-        }
-
-        public static void ValidateDotnetCLIToolReferenceSpec(DotnetCLIToolReferenceSpec spec)
-        {
-            if (spec == null)
-            {
-                throw new ArgumentNullException(nameof(spec));
-            }
-
-            // Track the spec path
-            var files = new Stack<string>();
-            files.Push(spec.ProjectPath);
-
-            // verify id
-            if (string.IsNullOrEmpty(spec.Id))
-            {
-                var message = string.Format(
-                    CultureInfo.CurrentCulture,
-                    Strings.MissingRequiredProperty,
-                    nameof(spec.Id));
-
-                throw RestoreSpecException.Create(message, files);
-            }
-
-            // verify project path
-            if (string.IsNullOrEmpty(spec.ProjectPath))
-            {
-                var message = string.Format(
-                    CultureInfo.CurrentCulture,
-                    Strings.MissingRequiredProperty,
-                    nameof(spec.ProjectPath));
 
                 throw RestoreSpecException.Create(message, files);
             }

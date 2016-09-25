@@ -24,9 +24,6 @@ namespace NuGet.Commands.Test
             // Arrange
             using (var pathContext = new SimpleTestPathContext())
             {
-                pathContext.CleanUp = false;
-
-
                 var logger = new TestLogger();
                 var dgFile = new DependencyGraphSpec();
 

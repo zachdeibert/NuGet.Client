@@ -91,31 +91,6 @@ namespace NuGet.ProjectModel.Test
         }
 
         [Fact]
-        public void DependencyGraphSpec_RoundTripTools()
-        {
-            // Arrange
-            var dgFile = new DependencyGraphSpec();
-            dgFile.AddDotnetCLIToolReference(new DotnetCLIToolReferenceSpec()
-            {
-                Id = "a",
-                Version = VersionRange.Parse("1.0.*"),
-                ProjectPath = "c:\\fake.csproj"
-            });
-
-            // Act
-            var json = DependencyGraphSpec.GetJson(dgFile);
-            var dgFile2 = DependencyGraphSpec.Load(json);
-            var json2 = DependencyGraphSpec.GetJson(dgFile2);
-
-            // Assert
-            Assert.Equal(json.ToString(), json2.ToString());
-            Assert.Equal(1, dgFile2.DotnetCLIToolReferences.Count);
-            Assert.Equal("a", dgFile2.DotnetCLIToolReferences[0].Id);
-            Assert.Equal("[1.0.*, )", dgFile2.DotnetCLIToolReferences[0].Version.ToNormalizedString());
-            Assert.Equal("c:\\fake.csproj", dgFile2.DotnetCLIToolReferences[0].ProjectPath);
-        }
-
-        [Fact]
         public void DependencyGraphSpec_VerifyMSBuildMetadataObject()
         {
             // Arrange && Act

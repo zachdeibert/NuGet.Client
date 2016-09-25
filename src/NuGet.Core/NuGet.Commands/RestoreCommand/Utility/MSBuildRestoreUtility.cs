@@ -141,12 +141,6 @@ namespace NuGet.Commands
                 graphSpec.AddRestore(projectUniqueName);
             }
 
-            // Add tool references
-            foreach (var tool in toolItems.Select(GetDotnetCLIToolReferenceSpec))
-            {
-                graphSpec.AddDotnetCLIToolReference(tool);
-            }
-
             return graphSpec;
         }
 
@@ -230,18 +224,6 @@ namespace NuGet.Commands
             }
 
             return result;
-        }
-
-        public static DotnetCLIToolReferenceSpec GetDotnetCLIToolReferenceSpec(IMSBuildItem item)
-        {
-            var spec = new DotnetCLIToolReferenceSpec()
-            {
-                Id = item.GetProperty("Id"),
-                Version = VersionRange.Parse(item.GetProperty("Version")),
-                ProjectPath = item.GetProperty("ProjectPath"),
-            };
-
-            return spec;
         }
 
         private static void AddProjectReferences(PackageSpec spec, IEnumerable<IMSBuildItem> items)
