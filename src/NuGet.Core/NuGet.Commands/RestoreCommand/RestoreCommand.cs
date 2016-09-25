@@ -136,6 +136,20 @@ namespace NuGet.Commands
             // Determine the lock file output path
             var projectLockFilePath = GetLockFilePath(lockFile);
 
+            // Tool restores are unique since the output path is not known until after restore
+            if (_request.LockFilePath == null
+                && _request.RestoreOutputType == RestoreOutputType.DotnetCliTool)
+            {
+                _request.LockFilePath = projectLockFilePath;
+
+                if (File.Exists(projectLockFilePath))
+                {
+                    var lockFileFormat = new LockFileFormat();
+                    _request.ExistingLockFile = lockFileFormat.Read(projectLockFilePath);
+                }
+            }
+
+            // Create result
             return new RestoreResult(
                 _success,
                 graphs,
