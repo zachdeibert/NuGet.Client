@@ -24,7 +24,6 @@ namespace NuGet.Commands.Test
             using (var cacheContext = new SourceCacheContext())
             using (var pathContext = new SimpleTestPathContext())
             {
-                pathContext.CleanUp = false;
                 var logger = new TestLogger();
                 var sources = new List<PackageSource>();
                 sources.Add(new PackageSource(pathContext.PackageSource));
@@ -88,7 +87,6 @@ namespace NuGet.Commands.Test
             using (var cacheContext = new SourceCacheContext())
             using (var pathContext = new SimpleTestPathContext())
             {
-                pathContext.CleanUp = false;
                 var logger = new TestLogger();
                 var sources = new List<PackageSource>();
                 sources.Add(new PackageSource(pathContext.PackageSource));
@@ -149,7 +147,6 @@ namespace NuGet.Commands.Test
             using (var cacheContext = new SourceCacheContext())
             using (var pathContext = new SimpleTestPathContext())
             {
-                pathContext.CleanUp = false;
                 var logger = new TestLogger();
                 var sources = new List<PackageSource>();
                 sources.Add(new PackageSource(pathContext.PackageSource));
@@ -210,7 +207,6 @@ namespace NuGet.Commands.Test
             using (var cacheContext = new SourceCacheContext())
             using (var pathContext = new SimpleTestPathContext())
             {
-                pathContext.CleanUp = false;
                 var logger = new TestLogger();
                 var sources = new List<PackageSource>();
                 sources.Add(new PackageSource(pathContext.PackageSource));
@@ -271,7 +267,6 @@ namespace NuGet.Commands.Test
             using (var cacheContext = new SourceCacheContext())
             using (var pathContext = new SimpleTestPathContext())
             {
-                pathContext.CleanUp = false;
                 var logger = new TestLogger();
                 var sources = new List<PackageSource>();
                 sources.Add(new PackageSource(pathContext.PackageSource));
@@ -332,7 +327,6 @@ namespace NuGet.Commands.Test
             using (var cacheContext = new SourceCacheContext())
             using (var pathContext = new SimpleTestPathContext())
             {
-                pathContext.CleanUp = false;
                 var logger = new TestLogger();
                 var sources = new List<PackageSource>();
                 sources.Add(new PackageSource(pathContext.PackageSource));

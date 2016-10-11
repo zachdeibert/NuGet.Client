@@ -334,7 +334,11 @@ Copyright (c) .NET Foundation. All rights reserved.
       <_RestoreProjectName Condition=" '$(_ProjectRestoreType)' == 'NETCore' AND '$(AssemblyName)' != '' ">$(AssemblyName)</_RestoreProjectName>
       <_RestoreProjectName Condition=" '$(_ProjectRestoreType)' == 'NETCore' AND '$(PackageId)' != '' ">$(PackageId)</_RestoreProjectName>
     </PropertyGroup>
-
+    
+    <!-- Determine if this will use cross targeting -->
+    <PropertyGroup Condition=" '$(_ProjectRestoreType)' == 'NETCore' AND '$(TargetFrameworks)' != '' ">
+      <_RestoreCrossTargeting>true</_RestoreCrossTargeting>
+    </PropertyGroup>
 
     <!-- Write properties for the top level entry point -->
     <ItemGroup Condition=" '$(_ProjectRestoreType)' == 'NETCore' ">
@@ -352,7 +356,7 @@ Copyright (c) .NET Foundation. All rights reserved.
         <TargetFrameworks>@(_RestoreTargetFrameworksOutputFiltered)</TargetFrameworks>
         <RuntimeIdentifiers>$(RuntimeIdentifiers);$(RuntimeIdentifier)</RuntimeIdentifiers>
         <RuntimeSupports>$(RuntimeSupports)</RuntimeSupports>
-        <CrossTargeting Condition=" '$(TargetFrameworks)' != '' ">true</CrossTargeting>
+        <CrossTargeting>$(_RestoreCrossTargeting)</CrossTargeting>
       </_RestoreGraphEntry>
     </ItemGroup>
 
