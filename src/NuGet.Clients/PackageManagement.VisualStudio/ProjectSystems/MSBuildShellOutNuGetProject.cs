@@ -480,6 +480,9 @@ namespace NuGet.PackageManagement.VisualStudio
                         argumentBuilder.Append($" {msbuildAdditionalArgs} ");
                     }
 
+                    // Disallow the import of targets/props from packages
+                    argumentBuilder.Append(" /p:ExcludeRestorePackageImports=true ");
+
                     argumentBuilder.Append(" /p:RestoreTaskAssemblyFile=");
                     AppendQuoted(argumentBuilder, buildTasksPath);
 
