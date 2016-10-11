@@ -17,12 +17,12 @@ namespace NuGet.Commands
         /// <summary>
         /// Conditions applied to the item group. These will be AND'd together.
         /// </summary>
-        public IList<string> Conditions { get; set; } = new List<string>();
+        public List<string> Conditions { get; set; } = new List<string>();
 
         /// <summary>
         /// Project paths to import.
         /// </summary>
-        public IList<string> Imports { get; set; } = new List<string>();
+        public List<string> Imports { get; set; } = new List<string>();
 
         /// <summary>
         /// Combined conditions

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using NuGet.Client;
@@ -22,6 +23,10 @@ namespace NuGet.Commands
     public static class BuildAssetsUtils
     {
         internal static readonly string CrossTargetingCondition = "'$(IsCrossTargetingBuild)' == 'true'";
+        internal static readonly string TargetFrameworkCondition = "'$(TargetFramework)' == '{0}'";
+        internal static readonly string ExcludeAllCondition = "'$(ExcludeRestorePackageImports)' != 'true'";
+        internal static readonly string ExcludeBuildCondition = "'$(ExcludeRestorePackageBuildImports)' != 'true'";
+        internal static readonly string ExcludeCrossCondition = "'$(ExcludeRestorePackageBuildCrossTargetingImports)' != 'true'";
 
         internal static MSBuildRestoreResult RestoreMSBuildFiles(PackageSpec project,
             IEnumerable<RestoreTargetGraph> targetGraphs,
@@ -77,13 +82,14 @@ namespace NuGet.Commands
             // Conditionals for targets and props are only supported by NETCore
             if (project.RestoreMetadata?.OutputType == RestoreOutputType.NETCore)
             {
-                var propsGroup = new MSBuildRestoreImportGroup();
-                var targetsGroup = new MSBuildRestoreImportGroup();
+                // Add additional conditionals for cross targeting
+                var isCrossTargeting = request.Project.RestoreMetadata.CrossTargeting
+                    || request.Project.TargetFrameworks.Count > 1;
 
-                // Add conditionals for multi framework projects
-                var isMultiFramework = request.Project.TargetFrameworks.Count > 1;
+                Debug.Assert(request.Project.RestoreMetadata.CrossTargeting == (request.Project.TargetFrameworks.Count > 1),
+                    "Invalid crosstargeting and framework count combination");
 
-                if (isMultiFramework)
+                if (isCrossTargeting)
                 {
                     // Find all global targets from buildCrossTargeting
                     var crossTargetingAssets = GetTargetsAndPropsForCrossTargeting(
@@ -93,19 +99,22 @@ namespace NuGet.Commands
                             request,
                             includeFlagGraphs);
 
-                    var crossTargetProps = new MSBuildRestoreImportGroup();
-                    var crossTargetTargets = new MSBuildRestoreImportGroup();
+                    var crossProps = new MSBuildRestoreImportGroup();
+                    crossProps.Position = 0;
+                    crossProps.Conditions.Add(CrossTargetingCondition);
+                    crossProps.Conditions.Add(ExcludeAllCondition);
+                    crossProps.Conditions.Add(ExcludeCrossCondition);
+                    crossProps.Imports.AddRange(crossTargetingAssets.Props);
+                    props.Add(crossProps);
 
-                    // TODO: add props
+                    var crossTargets = new MSBuildRestoreImportGroup();
+                    crossTargets.Position = 0;
+                    crossTargets.Conditions.Add(CrossTargetingCondition);
+                    crossTargets.Conditions.Add(ExcludeAllCondition);
+                    crossTargets.Conditions.Add(ExcludeCrossCondition);
+                    crossTargets.Imports.AddRange(crossTargetingAssets.Targets);
+                    targets.Add(crossTargets);
                 }
-
-                // Add targets/props under the condition they need
-                var propsGroup = new MSBuildRestoreImportGroup();
-                propsGroup.Conditions.Add(CrossTargetingCondition)
-
-                props.Add();
-                    , crossTargetingAssets.Props);
-                targets.Add(CrossTargetingCondition, crossTargetingAssets.Targets);
 
                 // Find TFM specific assets from the build folder
                 foreach (var pair in buildAssetsByFramework)
@@ -113,26 +122,41 @@ namespace NuGet.Commands
                     // There could be multiple string matches
                     foreach (var match in GetMatchingFrameworkStrings(project, pair.Key))
                     {
+                        var frameworkCondition = string.Format(CultureInfo.InvariantCulture, TargetFrameworkCondition, match);
+
                         // Add entries regardless of if imports exist,
                         // this is needed to trigger conditionals
-                        if (!props.ContainsKey(match))
-                        {
-                            props.Add(match, pair.Value.Props);
-                        }
+                        var propsGroup = new MSBuildRestoreImportGroup();
+                        propsGroup.Conditions.Add(frameworkCondition);
+                        propsGroup.Conditions.Add(ExcludeAllCondition);
+                        propsGroup.Conditions.Add(ExcludeBuildCondition);
+                        propsGroup.Imports.AddRange(pair.Value.Props);
+                        propsGroup.Position = 2;
+                        props.Add(propsGroup);
 
-                        if (!targets.ContainsKey(match))
-                        {
-                            targets.Add(match, pair.Value.Targets);
-                        }
+                        var targetsGroup = new MSBuildRestoreImportGroup();
+                        targetsGroup.Conditions.Add(frameworkCondition);
+                        targetsGroup.Conditions.Add(ExcludeAllCondition);
+                        targetsGroup.Conditions.Add(ExcludeBuildCondition);
+                        targetsGroup.Imports.AddRange(pair.Value.Targets);
+                        targetsGroup.Position = 2;
+                        targets.Add(targetsGroup);
                     }
                 }
             }
             else
             {
                 // Copy targets and props over, there can only be 1 tfm here
+                // No conditionals are added
                 var targetsAndProps = buildAssetsByFramework.First();
-                props.Add(string.Empty, targetsAndProps.Value.Props);
-                targets.Add(string.Empty, targetsAndProps.Value.Targets);
+
+                var propsGroup = new MSBuildRestoreImportGroup();
+                propsGroup.Imports.AddRange(targetsAndProps.Value.Props);
+                props.Add(propsGroup);
+
+                var targetsGroup = new MSBuildRestoreImportGroup();
+                targetsGroup.Imports.AddRange(targetsAndProps.Value.Targets);
+                targets.Add(targetsGroup);
             }
 
             // Targets files contain a macro for the repository root. If only the user package folder was used
