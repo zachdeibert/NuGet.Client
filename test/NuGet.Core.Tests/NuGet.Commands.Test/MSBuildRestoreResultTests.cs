@@ -35,14 +35,17 @@ namespace NuGet.Commands.Test
                     var propsName = $"{projectName}.nuget.props";
                     var propsPath = Path.Combine(randomProjectDirectory, propsName);
 
-                    var targets = new Dictionary<string, IList<string>>();
-                    targets.Add(string.Empty, new List<string>() { "blah" });
+                    var targets = new List<MSBuildRestoreImportGroup>();
+                    targets.Add(new MSBuildRestoreImportGroup()
+                    {
+                        Imports = new List<string>() { "blah" }
+                    });
 
-                      var msBuildRestoreResult = new MSBuildRestoreResult(
+                    var msBuildRestoreResult = new MSBuildRestoreResult(
                         targetsPath,
                         propsPath,
                         globalPackagesFolder,
-                        new Dictionary<string, IList<string>>(),
+                        new List<MSBuildRestoreImportGroup>(),
                         targets);
 
                     // Assert
