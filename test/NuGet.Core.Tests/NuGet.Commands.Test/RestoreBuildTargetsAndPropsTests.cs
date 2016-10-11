@@ -264,6 +264,142 @@ namespace NuGet.Commands.Test
             }
         }
 
+        [Fact]
+        public async Task RestoreBuildTargetsAndProps_VerifyRestoreNoop()
+        {
+            // Arrange
+            using (var cacheContext = new SourceCacheContext())
+            using (var pathContext = new SimpleTestPathContext())
+            {
+                pathContext.CleanUp = false;
+                var logger = new TestLogger();
+                var sources = new List<PackageSource>();
+                sources.Add(new PackageSource(pathContext.PackageSource));
+
+                var spec = GetProject("projectA", "net462", "netstandard1.6");
+
+                spec.RestoreMetadata.CrossTargeting = true;
+                spec.Dependencies.Add(new LibraryDependency()
+                {
+                    LibraryRange = new LibraryRange("x", LibraryDependencyTarget.Package)
+                });
+
+                // Create fake projects, the real data is in the specs
+                var projects = CreateProjectsFromSpecs(pathContext, spec);
+
+                // Create dg file
+                var dgFile = new DependencyGraphSpec();
+                dgFile.AddProject(spec);
+                dgFile.AddRestore(spec.RestoreMetadata.ProjectUniqueName);
+                dgFile.Save(Path.Combine(pathContext.WorkingDirectory, "out.dg"));
+
+                var packageX = new SimpleTestPackageContext()
+                {
+                    Id = "x",
+                    Version = "1.0.0"
+                };
+
+                packageX.AddFile("build/x.targets");
+                packageX.AddFile("build/x.props");
+                packageX.AddFile("contentFiles/any/any/_._");
+
+                SimpleTestPackageUtility.CreatePackages(pathContext.PackageSource, packageX);
+
+                var project = projects[0];
+
+                // First restore
+                var summaries = await RunRestore(pathContext, logger, sources, dgFile, cacheContext);
+                var success = summaries.All(s => s.Success);
+                Assert.True(success, "Failed: " + string.Join(Environment.NewLine, logger.Messages));
+
+                // Act
+                var secondLogger = new TestLogger();
+                summaries = await RunRestore(pathContext, secondLogger, sources, dgFile, cacheContext);
+                success = summaries.All(s => s.Success);
+                var messages = string.Join(Environment.NewLine, secondLogger.Messages);
+                Assert.True(success, "Failed: " + messages);
+
+                // Verify the file was not rewritten
+                Assert.Contains("No changes found. Skipping write of imports file to disk", messages);
+                Assert.DoesNotContain("Writing imports file to disk", messages);
+            }
+        }
+
+        [Fact]
+        public async Task RestoreBuildTargetsAndProps_VerifyRestoreChange()
+        {
+            // Arrange
+            using (var cacheContext = new SourceCacheContext())
+            using (var pathContext = new SimpleTestPathContext())
+            {
+                pathContext.CleanUp = false;
+                var logger = new TestLogger();
+                var sources = new List<PackageSource>();
+                sources.Add(new PackageSource(pathContext.PackageSource));
+
+                var spec = GetProject("projectA", "net462", "netstandard1.6");
+
+                spec.RestoreMetadata.CrossTargeting = true;
+                spec.Dependencies.Add(new LibraryDependency()
+                {
+                    LibraryRange = new LibraryRange("x", LibraryDependencyTarget.Package)
+                });
+
+                // Create fake projects, the real data is in the specs
+                var projects = CreateProjectsFromSpecs(pathContext, spec);
+
+                // Create dg file
+                var dgFile = new DependencyGraphSpec();
+                dgFile.AddProject(spec);
+                dgFile.AddRestore(spec.RestoreMetadata.ProjectUniqueName);
+                dgFile.Save(Path.Combine(pathContext.WorkingDirectory, "out.dg"));
+
+                var packageX = new SimpleTestPackageContext()
+                {
+                    Id = "x",
+                    Version = "1.0.0"
+                };
+
+                var packageY = new SimpleTestPackageContext()
+                {
+                    Id = "y",
+                    Version = "1.0.0"
+                };
+
+                packageX.AddFile("build/x.targets");
+                packageX.AddFile("build/x.props");
+                packageX.AddFile("contentFiles/any/any/_._");
+
+                packageY.AddFile("build/y.targets");
+                packageY.AddFile("build/y.props");
+                packageY.AddFile("contentFiles/any/any/_._");
+
+                SimpleTestPackageUtility.CreatePackages(pathContext.PackageSource, packageX, packageY);
+
+                var project = projects[0];
+
+                // First restore
+                var summaries = await RunRestore(pathContext, logger, sources, dgFile, cacheContext);
+                var success = summaries.All(s => s.Success);
+                Assert.True(success, "Failed: " + string.Join(Environment.NewLine, logger.Messages));
+
+                // Modify spec
+                spec.Dependencies.Add(new LibraryDependency()
+                {
+                    LibraryRange = new LibraryRange("y", LibraryDependencyTarget.Package)
+                });
+
+                // Act
+                summaries = await RunRestore(pathContext, logger, sources, dgFile, cacheContext);
+                success = summaries.All(s => s.Success);
+                Assert.True(success, "Failed: " + string.Join(Environment.NewLine, logger.Messages));
+
+                // Verify the file was rewritten
+                Assert.Contains("y.targets", File.ReadAllText(project.TargetsOutput));
+                Assert.Contains("y.props", File.ReadAllText(project.PropsOutput));
+            }
+        }
+
         private static List<SimpleTestProjectContext> CreateProjectsFromSpecs(SimpleTestPathContext pathContext, params PackageSpec[] specs)
         {
             var projects = new List<SimpleTestProjectContext>();

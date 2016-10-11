@@ -255,7 +255,9 @@ namespace NuGet.Commands
 
             if (existing != null)
             {
-                return XNode.DeepEquals(newFile, existing);
+                // Use a simple string compare to check if the files match
+                // This can be optimized in the future, but generally these are very small files.
+                return !newFile.ToString().Equals(existing.ToString(), StringComparison.Ordinal);
             }
 
             return true;
