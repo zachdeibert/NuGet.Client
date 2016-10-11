@@ -102,7 +102,6 @@ namespace NuGet.Commands
                     var crossProps = new MSBuildRestoreImportGroup();
                     crossProps.Position = 0;
                     crossProps.Conditions.Add(CrossTargetingCondition);
-                    crossProps.Conditions.Add(ExcludeAllCondition);
                     crossProps.Conditions.Add(ExcludeCrossCondition);
                     crossProps.Imports.AddRange(crossTargetingAssets.Props);
                     props.Add(crossProps);
@@ -110,7 +109,6 @@ namespace NuGet.Commands
                     var crossTargets = new MSBuildRestoreImportGroup();
                     crossTargets.Position = 0;
                     crossTargets.Conditions.Add(CrossTargetingCondition);
-                    crossTargets.Conditions.Add(ExcludeAllCondition);
                     crossTargets.Conditions.Add(ExcludeCrossCondition);
                     crossTargets.Imports.AddRange(crossTargetingAssets.Targets);
                     targets.Add(crossTargets);
@@ -127,16 +125,24 @@ namespace NuGet.Commands
                         // Add entries regardless of if imports exist,
                         // this is needed to trigger conditionals
                         var propsGroup = new MSBuildRestoreImportGroup();
-                        propsGroup.Conditions.Add(frameworkCondition);
-                        propsGroup.Conditions.Add(ExcludeAllCondition);
+
+                        if (isCrossTargeting)
+                        {
+                            propsGroup.Conditions.Add(frameworkCondition);
+                        }
+
                         propsGroup.Conditions.Add(ExcludeBuildCondition);
                         propsGroup.Imports.AddRange(pair.Value.Props);
                         propsGroup.Position = 2;
                         props.Add(propsGroup);
 
                         var targetsGroup = new MSBuildRestoreImportGroup();
-                        targetsGroup.Conditions.Add(frameworkCondition);
-                        targetsGroup.Conditions.Add(ExcludeAllCondition);
+
+                        if (isCrossTargeting)
+                        {
+                            targetsGroup.Conditions.Add(frameworkCondition);
+                        }
+
                         targetsGroup.Conditions.Add(ExcludeBuildCondition);
                         targetsGroup.Imports.AddRange(pair.Value.Targets);
                         targetsGroup.Position = 2;
@@ -157,6 +163,12 @@ namespace NuGet.Commands
                 var targetsGroup = new MSBuildRestoreImportGroup();
                 targetsGroup.Imports.AddRange(targetsAndProps.Value.Targets);
                 targets.Add(targetsGroup);
+            }
+
+            // Add exclude all condition to all groups
+            foreach (var group in props.Concat(targets))
+            {
+                group.Conditions.Add(ExcludeAllCondition);
             }
 
             // Targets files contain a macro for the repository root. If only the user package folder was used
