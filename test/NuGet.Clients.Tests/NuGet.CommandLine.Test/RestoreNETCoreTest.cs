@@ -67,6 +67,103 @@ namespace NuGet.CommandLine.Test
         }
 
         [Fact]
+        public async Task RestoreNetCore_RestoreWithRIDSingle()
+        {
+            // Arrange
+            using (var pathContext = new SimpleTestPathContext())
+            {
+                // Set up solution, project, and packages
+                var solution = new SimpleTestSolutionContext(pathContext.SolutionRoot);
+
+                var projectA = SimpleTestProjectContext.CreateNETCore(
+                    "a",
+                    pathContext.SolutionRoot,
+                    NuGetFramework.Parse("net45"));
+
+                projectA.Properties.Add("RuntimeIdentifier", "win7-x86");
+
+                var packageX = new SimpleTestPackageContext()
+                {
+                    Id = "x",
+                    Version = "1.0.0"
+                };
+
+                projectA.AddPackageToAllFrameworks(packageX);
+
+                solution.Projects.Add(projectA);
+                solution.Create(pathContext.SolutionRoot);
+
+                await SimpleTestPackageUtility.CreateFolderFeedV3(
+                    pathContext.PackageSource,
+                    PackageSaveMode.Defaultv3,
+                    packageX);
+
+                // Act
+                var r = RestoreSolution(pathContext);
+
+                // Assert
+                Assert.True(File.Exists(projectA.AssetsFileOutputPath), r.Item2);
+                Assert.True(File.Exists(projectA.TargetsOutput), r.Item2);
+                Assert.False(File.Exists(projectA.PropsOutput), r.Item2);
+
+                var assetsFile = projectA.AssetsFile;
+                Assert.Equal(2, assetsFile.Targets.Count);
+                Assert.Equal(NuGetFramework.Parse("net45"), assetsFile.Targets.Single(t => string.IsNullOrEmpty(t.RuntimeIdentifier)).TargetFramework);
+                Assert.Equal(NuGetFramework.Parse("net45"), assetsFile.Targets.Single(t => !string.IsNullOrEmpty(t.RuntimeIdentifier)).TargetFramework);
+                Assert.Equal("win7-x86", assetsFile.Targets.Single(t => !string.IsNullOrEmpty(t.RuntimeIdentifier)).RuntimeIdentifier);
+            }
+        }
+
+        [Fact]
+        public async Task RestoreNetCore_RestoreWithRIDDuplicates()
+        {
+            // Arrange
+            using (var pathContext = new SimpleTestPathContext())
+            {
+                // Set up solution, project, and packages
+                var solution = new SimpleTestSolutionContext(pathContext.SolutionRoot);
+
+                var projectA = SimpleTestProjectContext.CreateNETCore(
+                    "a",
+                    pathContext.SolutionRoot,
+                    NuGetFramework.Parse("net45"));
+
+                projectA.Properties.Add("RuntimeIdentifier", "win7-x86");
+                projectA.Properties.Add("RuntimeIdentifiers", "win7-x86;win7-x86;;");
+
+                var packageX = new SimpleTestPackageContext()
+                {
+                    Id = "x",
+                    Version = "1.0.0"
+                };
+
+                projectA.AddPackageToAllFrameworks(packageX);
+
+                solution.Projects.Add(projectA);
+                solution.Create(pathContext.SolutionRoot);
+
+                await SimpleTestPackageUtility.CreateFolderFeedV3(
+                    pathContext.PackageSource,
+                    PackageSaveMode.Defaultv3,
+                    packageX);
+
+                // Act
+                var r = RestoreSolution(pathContext);
+
+                // Assert
+                Assert.True(File.Exists(projectA.AssetsFileOutputPath), r.Item2);
+                Assert.True(File.Exists(projectA.TargetsOutput), r.Item2);
+                Assert.False(File.Exists(projectA.PropsOutput), r.Item2);
+
+                var assetsFile = projectA.AssetsFile;
+                Assert.Equal(2, assetsFile.Targets.Count);
+                Assert.Equal(NuGetFramework.Parse("net45"), assetsFile.Targets.Single(t => string.IsNullOrEmpty(t.RuntimeIdentifier)).TargetFramework);
+                Assert.Equal(NuGetFramework.Parse("net45"), assetsFile.Targets.Single(t => !string.IsNullOrEmpty(t.RuntimeIdentifier)).TargetFramework);
+                Assert.Equal("win7-x86", assetsFile.Targets.Single(t => !string.IsNullOrEmpty(t.RuntimeIdentifier)).RuntimeIdentifier);
+            }
+        }
+
+        [Fact]
         public async Task RestoreNetCore_RestoreWithSupports()
         {
             // Arrange
