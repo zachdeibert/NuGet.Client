@@ -31,7 +31,7 @@ namespace NuGet.Commands
         {
             get
             {
-                return string.Join(" AND ", Conditions);
+                return " " + string.Join(" AND ", Conditions.Select(s => s.Trim())) + " ";
             }
         }
     }

@@ -21,7 +21,7 @@ namespace NuGet.Commands
 {
     public static class BuildAssetsUtils
     {
-        internal static readonly string CrossTargetingCondition = " '$(IsCrossTargetingBuild)' == 'true' ";
+        internal static readonly string CrossTargetingCondition = "'$(IsCrossTargetingBuild)' == 'true'";
 
         internal static MSBuildRestoreResult RestoreMSBuildFiles(PackageSpec project,
             IEnumerable<RestoreTargetGraph> targetGraphs,
@@ -71,22 +71,40 @@ namespace NuGet.Commands
                 buildAssetsByFramework.Add(projectFramework, targetsAndProps);
             }
 
-            var props = new Dictionary<string, IList<string>>(StringComparer.OrdinalIgnoreCase);
-            var targets = new Dictionary<string, IList<string>>(StringComparer.OrdinalIgnoreCase);
+            var props = new List<MSBuildRestoreImportGroup>();
+            var targets = new List<MSBuildRestoreImportGroup>();
 
             // Conditionals for targets and props are only supported by NETCore
             if (project.RestoreMetadata?.OutputType == RestoreOutputType.NETCore)
             {
-                // Find all global targets from buildCrossTargeting
-                var crossTargetingAssets = GetTargetsAndPropsForCrossTargeting(
-                        targetGraphs,
-                        repositories,
-                        context,
-                        request,
-                        includeFlagGraphs);
+                var propsGroup = new MSBuildRestoreImportGroup();
+                var targetsGroup = new MSBuildRestoreImportGroup();
+
+                // Add conditionals for multi framework projects
+                var isMultiFramework = request.Project.TargetFrameworks.Count > 1;
+
+                if (isMultiFramework)
+                {
+                    // Find all global targets from buildCrossTargeting
+                    var crossTargetingAssets = GetTargetsAndPropsForCrossTargeting(
+                            targetGraphs,
+                            repositories,
+                            context,
+                            request,
+                            includeFlagGraphs);
+
+                    var crossTargetProps = new MSBuildRestoreImportGroup();
+                    var crossTargetTargets = new MSBuildRestoreImportGroup();
+
+                    // TODO: add props
+                }
 
                 // Add targets/props under the condition they need
-                props.Add(CrossTargetingCondition, crossTargetingAssets.Props);
+                var propsGroup = new MSBuildRestoreImportGroup();
+                propsGroup.Conditions.Add(CrossTargetingCondition)
+
+                props.Add();
+                    , crossTargetingAssets.Props);
                 targets.Add(CrossTargetingCondition, crossTargetingAssets.Targets);
 
                 // Find TFM specific assets from the build folder
