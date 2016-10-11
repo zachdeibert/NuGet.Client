@@ -86,7 +86,8 @@ namespace NuGet.Commands
                 var isCrossTargeting = request.Project.RestoreMetadata.CrossTargeting
                     || request.Project.TargetFrameworks.Count > 1;
 
-                Debug.Assert(request.Project.RestoreMetadata.CrossTargeting == (request.Project.TargetFrameworks.Count > 1),
+                Debug.Assert((!request.Project.RestoreMetadata.CrossTargeting && (request.Project.TargetFrameworks.Count < 2)
+                    || (request.Project.RestoreMetadata.CrossTargeting)),
                     "Invalid crosstargeting and framework count combination");
 
                 if (isCrossTargeting)
