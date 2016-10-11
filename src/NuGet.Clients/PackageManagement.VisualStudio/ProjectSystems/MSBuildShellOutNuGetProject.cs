@@ -50,6 +50,11 @@ namespace NuGet.PackageManagement.VisualStudio
         private const string TargetFrameworksName = "TargetFrameworks";
 
         /// <summary>
+        /// Single Framework
+        /// </summary>
+        private const string TargetFrameworkName = "TargetFramework";
+
+        /// <summary>
         /// The MSBuild property for the path to MSBuild.
         /// </summary>
         private const string MSBuildToolsPathName = "MSBuildToolsPath";
@@ -103,8 +108,9 @@ namespace NuGet.PackageManagement.VisualStudio
                 return null;
             }
 
-            // The project must have the "TargetFrameworks" property.
-            if (GetMSBuildProperty(buildPropertyStorage, TargetFrameworksName) == null)
+            // The project must have the "TargetFrameworks" or "TargetFramework" property.
+            if (GetMSBuildProperty(buildPropertyStorage, TargetFrameworksName) == null
+                && GetMSBuildProperty(buildPropertyStorage, TargetFrameworkName) == null)
             {
                 return null;
             }
