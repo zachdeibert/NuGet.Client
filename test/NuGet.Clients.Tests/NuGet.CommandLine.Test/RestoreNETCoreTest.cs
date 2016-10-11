@@ -914,6 +914,7 @@ namespace NuGet.CommandLine.Test
                     Version = "1.0.0"
                 };
 
+                packageX.AddFile("build/x.props", "<Project>This is a bad props file!!!!<");
                 packageX.AddFile("build/x.targets", "<Project>This is a bad target file!!!!<");
                 packageX.AddFile("lib/net45/test.dll");
 
@@ -970,6 +971,7 @@ namespace NuGet.CommandLine.Test
                     Version = "1.0.0"
                 };
 
+                packageX.AddFile("build/x.props", "<Project>This is a bad props file!!!!<");
                 packageX.AddFile("build/x.targets", "<Project>This is a bad target file!!!!<");
                 packageX.AddFile("lib/net45/test.dll");
 
