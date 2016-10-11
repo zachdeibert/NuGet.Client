@@ -72,11 +72,11 @@ namespace NuGet.Commands.Test
                 var propsXML = XDocument.Parse(File.ReadAllText(project.PropsOutput));
                 var propsItemGroups = propsXML.Root.Elements().Where(e => e.Name.LocalName == "ImportGroup").ToList();
 
-                Assert.Equal("'$(TargetFramework)' == 'net462' AND '$(ExcludeRestorePackageBuildImports)' != 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", targetItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
-                Assert.Equal("'$(TargetFramework)' == 'netstandard1.6' AND '$(ExcludeRestorePackageBuildImports)' != 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", targetItemGroups[1].Attribute(XName.Get("Condition")).Value.Trim());
+                Assert.Equal("'$(TargetFramework)' == 'net462' AND '$(ExcludeRestorePackageImports)' != 'true'", targetItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
+                Assert.Equal("'$(TargetFramework)' == 'netstandard1.6' AND '$(ExcludeRestorePackageImports)' != 'true'", targetItemGroups[1].Attribute(XName.Get("Condition")).Value.Trim());
 
-                Assert.Equal("'$(TargetFramework)' == 'net462' AND '$(ExcludeRestorePackageBuildImports)' != 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", propsItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
-                Assert.Equal("'$(TargetFramework)' == 'netstandard1.6' AND '$(ExcludeRestorePackageBuildImports)' != 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", propsItemGroups[1].Attribute(XName.Get("Condition")).Value.Trim());
+                Assert.Equal("'$(TargetFramework)' == 'net462' AND '$(ExcludeRestorePackageImports)' != 'true'", propsItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
+                Assert.Equal("'$(TargetFramework)' == 'netstandard1.6' AND '$(ExcludeRestorePackageImports)' != 'true'", propsItemGroups[1].Attribute(XName.Get("Condition")).Value.Trim());
             }
         }
 
@@ -135,8 +135,8 @@ namespace NuGet.Commands.Test
                 var propsXML = XDocument.Parse(File.ReadAllText(project.PropsOutput));
                 var propsItemGroups = propsXML.Root.Elements().Where(e => e.Name.LocalName == "ImportGroup").ToList();
 
-                Assert.Equal("'$(ExcludeRestorePackageBuildImports)' != 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", targetItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
-                Assert.Equal("'$(ExcludeRestorePackageBuildImports)' != 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", propsItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
+                Assert.Equal("'$(ExcludeRestorePackageImports)' != 'true'", targetItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
+                Assert.Equal("'$(ExcludeRestorePackageImports)' != 'true'", propsItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
             }
         }
 
@@ -195,8 +195,8 @@ namespace NuGet.Commands.Test
                 var propsXML = XDocument.Parse(File.ReadAllText(project.PropsOutput));
                 var propsItemGroups = propsXML.Root.Elements().Where(e => e.Name.LocalName == "ImportGroup").ToList();
 
-                Assert.Equal("'$(TargetFramework)' == 'net462' AND '$(ExcludeRestorePackageBuildImports)' != 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", targetItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
-                Assert.Equal("'$(TargetFramework)' == 'net462' AND '$(ExcludeRestorePackageBuildImports)' != 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", propsItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
+                Assert.Equal("'$(TargetFramework)' == 'net462' AND '$(ExcludeRestorePackageImports)' != 'true'", targetItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
+                Assert.Equal("'$(TargetFramework)' == 'net462' AND '$(ExcludeRestorePackageImports)' != 'true'", propsItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
             }
         }
 
@@ -255,8 +255,8 @@ namespace NuGet.Commands.Test
                 var propsXML = XDocument.Parse(File.ReadAllText(project.PropsOutput));
                 var propsItemGroups = propsXML.Root.Elements().Where(e => e.Name.LocalName == "ImportGroup").ToList();
 
-                Assert.Equal("'$(IsCrossTargetingBuild)' == 'true' AND '$(ExcludeRestorePackageBuildCrossTargetingImports)' != 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", targetItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
-                Assert.Equal("'$(IsCrossTargetingBuild)' == 'true' AND '$(ExcludeRestorePackageBuildCrossTargetingImports)' != 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", propsItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
+                Assert.Equal("'$(IsCrossTargetingBuild)' == 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", targetItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
+                Assert.Equal("'$(IsCrossTargetingBuild)' == 'true' AND '$(ExcludeRestorePackageImports)' != 'true'", propsItemGroups[0].Attribute(XName.Get("Condition")).Value.Trim());
             }
         }
 

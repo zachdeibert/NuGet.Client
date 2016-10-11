@@ -25,8 +25,6 @@ namespace NuGet.Commands
         internal static readonly string CrossTargetingCondition = "'$(IsCrossTargetingBuild)' == 'true'";
         internal static readonly string TargetFrameworkCondition = "'$(TargetFramework)' == '{0}'";
         internal static readonly string ExcludeAllCondition = "'$(ExcludeRestorePackageImports)' != 'true'";
-        internal static readonly string ExcludeBuildCondition = "'$(ExcludeRestorePackageBuildImports)' != 'true'";
-        internal static readonly string ExcludeCrossCondition = "'$(ExcludeRestorePackageBuildCrossTargetingImports)' != 'true'";
 
         internal static MSBuildRestoreResult RestoreMSBuildFiles(PackageSpec project,
             IEnumerable<RestoreTargetGraph> targetGraphs,
@@ -103,14 +101,12 @@ namespace NuGet.Commands
                     var crossProps = new MSBuildRestoreImportGroup();
                     crossProps.Position = 0;
                     crossProps.Conditions.Add(CrossTargetingCondition);
-                    crossProps.Conditions.Add(ExcludeCrossCondition);
                     crossProps.Imports.AddRange(crossTargetingAssets.Props);
                     props.Add(crossProps);
 
                     var crossTargets = new MSBuildRestoreImportGroup();
                     crossTargets.Position = 0;
                     crossTargets.Conditions.Add(CrossTargetingCondition);
-                    crossTargets.Conditions.Add(ExcludeCrossCondition);
                     crossTargets.Imports.AddRange(crossTargetingAssets.Targets);
                     targets.Add(crossTargets);
                 }
@@ -132,7 +128,6 @@ namespace NuGet.Commands
                             propsGroup.Conditions.Add(frameworkCondition);
                         }
 
-                        propsGroup.Conditions.Add(ExcludeBuildCondition);
                         propsGroup.Imports.AddRange(pair.Value.Props);
                         propsGroup.Position = 2;
                         props.Add(propsGroup);
@@ -144,7 +139,6 @@ namespace NuGet.Commands
                             targetsGroup.Conditions.Add(frameworkCondition);
                         }
 
-                        targetsGroup.Conditions.Add(ExcludeBuildCondition);
                         targetsGroup.Imports.AddRange(pair.Value.Targets);
                         targetsGroup.Position = 2;
                         targets.Add(targetsGroup);

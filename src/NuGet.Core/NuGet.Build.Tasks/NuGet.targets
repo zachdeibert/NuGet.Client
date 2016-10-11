@@ -36,8 +36,6 @@ Copyright (c) .NET Foundation. All rights reserved.
   <PropertyGroup>
     <!-- Mark that this target file has been loaded.  -->
     <IsRestoreTargetsFileLoaded>true</IsRestoreTargetsFileLoaded>
-    <!-- Block package imports from changing the project during restore. -->
-    <ExcludeRestorePackageImports>true</ExcludeRestorePackageImports>
     <!-- Load NuGet.Build.Tasks.dll, this can be overridden to use a different version with $(RestoreTaskAssemblyFile) -->
     <RestoreTaskAssemblyFile Condition=" '$(RestoreTaskAssemblyFile)' == '' ">NuGet.Build.Tasks.dll</RestoreTaskAssemblyFile>
   </PropertyGroup>
@@ -135,47 +133,36 @@ Copyright (c) .NET Foundation. All rights reserved.
     <Message Text="%(RestoreGraphProjectInputItems.Identity)" Importance="low" />
 
     <!-- Generate a restore graph for each entry point project -->
+    <PropertyGroup>
+      <_GenerateRestoreGraphProjectEntryInputProperties>
+        %(_MSBuildProjectReferenceExistent.SetConfiguration);
+        %(_MSBuildProjectReferenceExistent.SetPlatform);
+        RestoreUseCustomAfterTargets=$(RestoreUseCustomAfterTargets);
+        NuGetRestoreTargets=$(MSBuildThisFileFullPath);
+        BuildProjectReferences=false;
+        ExcludeRestorePackageImports=true;
+      </_GenerateRestoreGraphProjectEntryInputProperties>
+
+      <!-- Standalone mode
+        This is used by NuGet.exe or to directly override NuGet.targets with the current file.
+        Override the ImportAfter targets with NuGetRestoreTargets if they exist.
+        Set CustomAfterMicrosoftCommonCrossTargetingTargets and CustomAfterMicrosoftCommonTargets
+        for both the inner and outer builds.
+      -->
+      <_GenerateRestoreGraphProjectEntryInputProperties Condition=" '$(RestoreUseCustomAfterTargets)' == 'true' ">
+        $(_GenerateRestoreGraphProjectEntryInputProperties);
+        CustomAfterMicrosoftCommonCrossTargetingTargets=$(MSBuildThisFileFullPath);
+        CustomAfterMicrosoftCommonTargets=$(MSBuildThisFileFullPath);
+      </_GenerateRestoreGraphProjectEntryInputProperties>
+    </PropertyGroup>
 
     <!-- Using targets imported with ImportsAfter -->
     <MsBuild
-        Condition=" '$(RestoreUseCustomAfterTargets)' != 'true' "
         Projects="@(RestoreGraphProjectInputItems)"
         Targets="_GenerateRestoreGraphProjectEntry"
         BuildInParallel="false"
-        Properties="
-                %(_MSBuildProjectReferenceExistent.SetConfiguration);
-                %(_MSBuildProjectReferenceExistent.SetPlatform);
-                RestoreUseCustomAfterTargets=$(RestoreUseCustomAfterTargets);
-                NuGetRestoreTargets=$(MSBuildThisFileFullPath);
-                BuildProjectReferences=false;"
+        Properties="$(_GenerateRestoreGraphProjectEntryInputProperties)"
         RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
-
-      <Output
-          TaskParameter="TargetOutputs"
-          ItemName="_RestoreGraphEntry" />
-    </MsBuild>
-
-    <!-- Standalone mode
-      This is used by NuGet.exe or to directly override NuGet.targets with the current file.
-      Override the ImportAfter targets with NuGetRestoreTargets if they exist.
-      Set CustomAfterMicrosoftCommonCrossTargetingTargets and CustomAfterMicrosoftCommonTargets
-      for both the inner and outer builds.
-    -->
-    <MsBuild
-        Condition=" '$(RestoreUseCustomAfterTargets)' == 'true' "
-        Projects="@(RestoreGraphProjectInputItems)"
-        Targets="_GenerateRestoreGraphProjectEntry"
-        BuildInParallel="false"
-        Properties="
-                %(_MSBuildProjectReferenceExistent.SetConfiguration);
-                %(_MSBuildProjectReferenceExistent.SetPlatform);
-                CustomAfterMicrosoftCommonCrossTargetingTargets=$(MSBuildThisFileFullPath);
-                CustomAfterMicrosoftCommonTargets=$(MSBuildThisFileFullPath);
-                RestoreUseCustomAfterTargets=$(RestoreUseCustomAfterTargets);
-                NuGetRestoreTargets=$(MSBuildThisFileFullPath);
-                BuildProjectReferences=false;"
-        RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
-
       <Output
           TaskParameter="TargetOutputs"
           ItemName="_RestoreGraphEntry" />
@@ -407,7 +394,8 @@ Copyright (c) .NET Foundation. All rights reserved.
       Properties="TargetFramework=%(_RestoreTargetFrameworksOutputFiltered.Identity);
               %(_MSBuildProjectReferenceExistent.SetConfiguration);
               %(_MSBuildProjectReferenceExistent.SetPlatform);
-              BuildProjectReferences=false;"
+              BuildProjectReferences=false;
+              ExcludeRestorePackageImports=true;"
       RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
 
       <Output
@@ -435,7 +423,8 @@ Copyright (c) .NET Foundation. All rights reserved.
               %(_MSBuildProjectReferenceExistent.SetPlatform);
               RestoreUseCustomAfterTargets=$(RestoreUseCustomAfterTargets);
               NuGetRestoreTargets=$(MSBuildThisFileFullPath);
-              BuildProjectReferences=false;"
+              BuildProjectReferences=false;
+              ExcludeRestorePackageImports=true;"
       RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
 
       <Output
@@ -462,7 +451,8 @@ Copyright (c) .NET Foundation. All rights reserved.
             %(_MSBuildProjectReferenceExistent.SetPlatform);
             RestoreUseCustomAfterTargets=$(RestoreUseCustomAfterTargets);
             NuGetRestoreTargets=$(MSBuildThisFileFullPath);
-            BuildProjectReferences=false"
+            BuildProjectReferences=false;
+            ExcludeRestorePackageImports=true;"
       RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
 
       <Output
