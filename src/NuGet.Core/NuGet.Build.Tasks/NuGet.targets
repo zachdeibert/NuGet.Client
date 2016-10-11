@@ -348,8 +348,9 @@ Copyright (c) .NET Foundation. All rights reserved.
         <OutputType>$(_ProjectRestoreType)</OutputType>
         <OutputPath>$(RestoreOutputAbsolutePath)</OutputPath>
         <TargetFrameworks>@(_RestoreTargetFrameworksOutputFiltered)</TargetFrameworks>
-        <RuntimeIdentifiers>$(RuntimeIdentifiers)</RuntimeIdentifiers>
+        <RuntimeIdentifiers>$(RuntimeIdentifiers);$(RuntimeIdentifier)</RuntimeIdentifiers>
         <RuntimeSupports>$(RuntimeSupports)</RuntimeSupports>
+        <CrossTargeting Condition=" '$(TargetFrameworks)' != '' ">true</CrossTargeting>
       </_RestoreGraphEntry>
     </ItemGroup>
 
