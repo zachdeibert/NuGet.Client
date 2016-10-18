@@ -94,8 +94,8 @@ namespace NuGet.Protocol
 
         [JsonProperty(PropertyName = JsonProperties.Versions)]
         [JsonConverter(typeof(OnDemandParsedVersionsConverter))]
-        public Lazy<VersionInfo[]> OnDemandParsedVersions { get; private set; }
+        public VersionInfo[] OnDemandParsedVersions { get; private set; }
 
-        public Task<IEnumerable<VersionInfo>> GetVersionsAsync() => Task.FromResult<IEnumerable<VersionInfo>>(OnDemandParsedVersions.Value);
+        public Task<IEnumerable<VersionInfo>> GetVersionsAsync() => Task.FromResult<IEnumerable<VersionInfo>>(OnDemandParsedVersions);
     }
 }

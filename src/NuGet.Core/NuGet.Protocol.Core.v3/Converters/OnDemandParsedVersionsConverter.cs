@@ -14,7 +14,7 @@ namespace NuGet.Protocol
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             var array = JArray.Load(reader);
-            return new Lazy<VersionInfo[]>(() => ParseVersionArray(array));
+            return ParseVersionArray(array);
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

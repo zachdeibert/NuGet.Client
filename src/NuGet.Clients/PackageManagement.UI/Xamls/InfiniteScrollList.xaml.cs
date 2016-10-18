@@ -92,7 +92,8 @@ namespace NuGet.PackageManagement.UI
             IPackageItemLoader loader,
             string loadingMessage,
             INuGetUILogger logger,
-            Task<SearchResult<IPackageSearchMetadata>> searchResultTask)
+            Task<SearchResult<IPackageSearchMetadata>> searchResultTask,
+            CancellationTokenSource loadCts)
         {
             _loader = loader;
             _logger = logger;
@@ -117,7 +118,7 @@ namespace NuGet.PackageManagement.UI
             _selectedCount = 0;
 
             // triggers the package list loader
-            LoadItems(selectedPackageItem);
+            LoadItems(selectedPackageItem, loadCts);
         }
 
         private void UpdateSelectedItem(PackageItemListViewModel selectedItem)
@@ -133,9 +134,8 @@ namespace NuGet.PackageManagement.UI
             _list.SelectedItem = selectedItem ?? PackageItems.FirstOrDefault();
         }
 
-        private void LoadItems(PackageItemListViewModel selectedPackageItem)
+        private void LoadItems(PackageItemListViewModel selectedPackageItem, CancellationTokenSource loadCts)
         {
-            var loadCts = new CancellationTokenSource();
             // If there is another async loading process - cancel it.
             Interlocked.Exchange(ref _loadCts, loadCts)?.Cancel();
 
@@ -245,11 +245,15 @@ namespace NuGet.PackageManagement.UI
             // without creating new load task
             if (_initialSearchResultTask != null)
             {
+                token.ThrowIfCancellationRequested();
+
                 // update initial progress
                 var cleanState = SearchResult.Empty<IPackageSearchMetadata>();
                 await currentLoader.UpdateStateAndReportAsync(cleanState, progress, token);
 
                 var results = await _initialSearchResultTask;
+
+                token.ThrowIfCancellationRequested();
 
                 // update state and progress
                 await currentLoader.UpdateStateAndReportAsync(results, progress, token);
@@ -530,7 +534,7 @@ namespace NuGet.PackageManagement.UI
                 var last = _scrollViewer.ViewportHeight + first;
                 if (_scrollViewer.ViewportHeight > 0 && last >= Items.Count)
                 {
-                    LoadItems(selectedPackageItem: null);
+                    LoadItems(selectedPackageItem: null, loadCts: new CancellationTokenSource());
                 }
             }
         }
