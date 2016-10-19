@@ -215,9 +215,13 @@ Copyright (c) .NET Foundation. All rights reserved.
       DependsOnTargets="_GetRestoreOutputPath"
       Returns="@(_RestoreGraphEntry)">
 
+    <PropertyGroup>
+      <_RestoreDotnetCliTools Condition=" '$(RestoreDotnetCliToolReferences)' == '' OR '$(_RestoreDotnetCliTools)' == 'true' ">true</_RestoreDotnetCliTools>
+    </PropertyGroup>
+
     <!-- Write out tool references -->
     <GetRestoreDotnetCliToolsTask
-      Condition=" '$(RestoreDotnetCliToolReferences)' == '' OR '$(RestoreDotnetCliToolReferences)' == 'true' "
+      Condition=" @(DotnetCliToolReference) != '' OR '$(_RestoreDotnetCliTools)' == 'true' "
       ProjectPath="$(MSBuildProjectFullPath)"
       OutputPath="$(RestoreOutputPath)"
       DotnetCliToolReferences="@(DotnetCliToolReference)">
@@ -501,6 +505,7 @@ Copyright (c) .NET Foundation. All rights reserved.
 
     <!-- Write out project references -->
     <GetRestoreProjectReferencesTask
+      Condition=" @(RestoreGraphProjectFullPathForOutput) != '' "
       ProjectUniqueName="$(MSBuildProjectFullPath)"
       ProjectReferences="@(RestoreGraphProjectFullPathForOutput)"
       TargetFrameworks="$(TargetFramework)">
@@ -512,7 +517,7 @@ Copyright (c) .NET Foundation. All rights reserved.
 
     <!-- Write out package references for NETCore -->
     <GetRestorePackageReferencesTask
-      Condition=" '$(_ProjectRestoreType)' == 'NETCore' "
+      Condition=" '$(_ProjectRestoreType)' == 'NETCore' AND @(PackageReference) != '' "
       ProjectUniqueName="$(MSBuildProjectFullPath)"
       PackageReferences="@(PackageReference)"
       TargetFrameworks="$(TargetFramework)">
