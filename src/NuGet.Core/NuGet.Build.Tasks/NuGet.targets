@@ -221,7 +221,7 @@ Copyright (c) .NET Foundation. All rights reserved.
 
     <!-- Write out tool references -->
     <GetRestoreDotnetCliToolsTask
-      Condition=" @(DotnetCliToolReference) != '' OR '$(_RestoreDotnetCliTools)' == 'true' "
+      Condition=" @(DotnetCliToolReference) != '' AND '$(_RestoreDotnetCliTools)' == 'true' "
       ProjectPath="$(MSBuildProjectFullPath)"
       OutputPath="$(RestoreOutputPath)"
       DotnetCliToolReferences="@(DotnetCliToolReference)">
