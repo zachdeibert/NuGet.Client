@@ -254,7 +254,7 @@ namespace NuGet.Commands
 
             if (packageDependencies.Count != 1
                 || packageDependencies.All(e => e.LibraryRange.TypeConstraint != LibraryDependencyTarget.Package)
-                || spec.TargetFrameworks.Count != 1)
+                || spec.TargetFrameworks.Count != 0)
             {
                 var message = string.Format(
                     CultureInfo.CurrentCulture,
