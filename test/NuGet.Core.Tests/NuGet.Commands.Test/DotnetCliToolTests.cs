@@ -30,11 +30,10 @@ namespace NuGet.Commands.Test
                 var logger = new TestLogger();
                 var dgFile = new DependencyGraphSpec();
 
-                var spec = ToolRestoreUtility.GetSpec(
+                var spec = GetSpec(
                     Path.Combine(pathContext.SolutionRoot, "tool", "fake.csproj"),
                     "a",
-                    VersionRange.Parse("1.0.0"),
-                    NuGetFramework.Parse("netcoreapp1.0"));
+                    VersionRange.Parse("1.0.0"));
 
                 spec.RestoreMetadata.OutputPath = Path.Combine(pathContext.SolutionRoot, "project", "obj");
 
@@ -100,11 +99,10 @@ namespace NuGet.Commands.Test
                 var logger = new TestLogger();
                 var dgFile = new DependencyGraphSpec();
 
-                var spec = ToolRestoreUtility.GetSpec(
+                var spec = GetSpec(
                     Path.Combine(pathContext.SolutionRoot, "project", "fake.csproj"),
                     "a",
-                    VersionRange.Parse("1.0.0"),
-                    NuGetFramework.Parse("netcoreapp1.0"));
+                    VersionRange.Parse("1.0.0"));
 
                 spec.RestoreMetadata.OutputPath = Path.Combine(pathContext.SolutionRoot, "project", "obj");
 
@@ -159,11 +157,10 @@ namespace NuGet.Commands.Test
                 var logger = new TestLogger();
                 var dgFile = new DependencyGraphSpec();
 
-                var spec = ToolRestoreUtility.GetSpec(
+                var spec = GetSpec(
                     Path.Combine(pathContext.SolutionRoot, "project", "fake.csproj"),
                     "myTool",
-                    VersionRange.Parse("1.0.0"),
-                    NuGetFramework.Parse("netcoreapp1.0"));
+                    VersionRange.Parse("1.0.0"));
 
                 spec.RestoreMetadata.OutputPath = Path.Combine(pathContext.SolutionRoot, "project", "obj");
 
@@ -215,11 +212,10 @@ namespace NuGet.Commands.Test
                 var logger = new TestLogger();
                 var dgFile = new DependencyGraphSpec();
 
-                var spec = ToolRestoreUtility.GetSpec(
+                var spec = GetSpec(
                     Path.Combine(pathContext.SolutionRoot, "project", "fake.csproj"),
                     "a",
-                    VersionRange.Parse("1.0.0"),
-                    NuGetFramework.Parse("netcoreapp1.0"));
+                    VersionRange.Parse("1.0.0"));
 
                 spec.RestoreMetadata.OutputPath = Path.Combine(pathContext.SolutionRoot, "project", "obj");
 
@@ -275,11 +271,10 @@ namespace NuGet.Commands.Test
                 var logger = new TestLogger();
                 var dgFile = new DependencyGraphSpec();
 
-                var spec = ToolRestoreUtility.GetSpec(
+                var spec = GetSpec(
                     Path.Combine(pathContext.SolutionRoot, "project", "fake.csproj"),
                     "a",
-                    VersionRange.Parse("1.0.0"),
-                    NuGetFramework.Parse("netcoreapp1.0"));
+                    VersionRange.Parse("1.0.0"));
 
                 spec.RestoreMetadata.OutputPath = Path.Combine(pathContext.SolutionRoot, "project", "obj");
 
@@ -331,11 +326,10 @@ namespace NuGet.Commands.Test
 
                 for (int i = 0; i < 10; i++)
                 {
-                    var spec = ToolRestoreUtility.GetSpec(
+                    var spec = GetSpec(
                         Path.Combine(pathContext.SolutionRoot, "fake.csproj"),
                         "a",
-                        VersionRange.Parse("1.0.0"),
-                        NuGetFramework.Parse("netcoreapp1.0"));
+                        VersionRange.Parse("1.0.0"));
 
                     spec.RestoreMetadata.OutputPath = Path.Combine(pathContext.SolutionRoot, $"project{i}", "obj");
 
@@ -398,11 +392,10 @@ namespace NuGet.Commands.Test
                     var version = VersionRange.Parse($"{i + 1}.0.0");
                     versions.Add(version);
 
-                    var spec = ToolRestoreUtility.GetSpec(
+                    var spec = GetSpec(
                         Path.Combine(pathContext.SolutionRoot, $"fake{i}.csproj"),
                         "a",
-                        version,
-                        NuGetFramework.Parse("netcoreapp1.0"));
+                        version);
 
                     spec.RestoreMetadata.OutputPath = Path.Combine(pathContext.SolutionRoot, $"project{i}", "obj");
 
@@ -454,6 +447,32 @@ namespace NuGet.Commands.Test
                     Assert.Equal($"{i + 1}.0.0", file.ToolVersion.ToString());
                 }
             }
+        }
+
+        public static PackageSpec GetSpec(string projectFilePath, string id, VersionRange versionRange)
+        {
+            var name = $"{id}-{Guid.NewGuid().ToString()}";
+
+            return new PackageSpec(new List<TargetFrameworkInformation>())
+            {
+                Name = name, // make sure this package never collides with a dependency
+                FilePath = projectFilePath,
+                Tools = new List<ToolDependency>(),
+                Dependencies = new List<LibraryDependency>
+                {
+                    new LibraryDependency
+                    {
+                        LibraryRange = new LibraryRange(id, versionRange, LibraryDependencyTarget.Package)
+                    }
+                },
+                RestoreMetadata = new ProjectRestoreMetadata()
+                {
+                    OutputType = RestoreOutputType.DotnetCliTool,
+                    ProjectName = name,
+                    ProjectUniqueName = name,
+                    ProjectPath = projectFilePath
+                }
+            };
         }
 
         private static string GetDepsJson(string name="a", string dependencyName="b")
