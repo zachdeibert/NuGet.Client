@@ -68,17 +68,19 @@ namespace NuGet.Commands
 
                 await InstallPackagesAsync(toolOnlyGraphs, allInstalledPackages, token);
 
+                userPackageFolder.ClearCacheForIds(allInstalledPackages.Select(e => e.Name));
+
                 // Deps files is populated by reference
-                var depsFiles = new List<KeyValuePair<NuGetFramework, string>>();
+                var depsFiles = new List<KeyValuePair<NuGetFramework, List<string>>>();
 
                 var nodes = GetNodesByFramework(userPackageFolder, fallbackPackageFolders, toolNode, toolLibrary, depsFiles);
                  
                 // Populate dependencies and download packages
-                await remoteWalker.WalkAsync(nodes.Values, token);
+                await remoteWalker.WalkAsync(nodes.Values.SelectMany(e => e), token);
 
                 // Create graphs from populated nodes
                 graphs.AddRange(nodes.Select(pair =>
-                    RestoreTargetGraph.Create(new[] { pair.Value }, context, _request.Log, pair.Key)));
+                    RestoreTargetGraph.Create(pair.Value, context, _request.Log, pair.Key)));
 
                 // Validate package graphs
                 success = ResolutionSucceeded(graphs);
@@ -87,6 +89,8 @@ namespace NuGet.Commands
                 // This happens regardless of success to avoid downloading the packages
                 // again on the next restore.
                 await InstallPackagesAsync(graphs, allInstalledPackages, token);
+
+                userPackageFolder.ClearCacheForIds(allInstalledPackages.Select(e => e.Name));
 
                 // Add deps file paths
                 foreach (var pair in depsFiles)
@@ -107,7 +111,6 @@ namespace NuGet.Commands
                 toolFile.PackageFolders.Add(fallback.RepositoryRoot);
             }
 
-            // TODO: improve this logging
             var collectorLogger = _request.Log as CollectorLogger;
 
             if (collectorLogger != null)
@@ -121,14 +124,14 @@ namespace NuGet.Commands
             return new Tuple<DotnetCliToolFile, List<RestoreTargetGraph>>(toolFile, graphs);
         }
 
-        private static Dictionary<NuGetFramework, GraphNode<RemoteResolveResult>> GetNodesByFramework(
+        private static Dictionary<NuGetFramework, List<GraphNode<RemoteResolveResult>>> GetNodesByFramework(
             NuGetv3LocalRepository userPackageFolder,
             IReadOnlyList<NuGetv3LocalRepository> fallbackPackageFolders,
             GraphNode<RemoteResolveResult> toolNode,
             LibraryIdentity toolLibrary,
-            List<KeyValuePair<NuGetFramework, string>> depsFiles)
+            List<KeyValuePair<NuGetFramework, List<string>>> depsFiles)
         {
-            var nodes = new Dictionary<NuGetFramework, GraphNode<RemoteResolveResult>>();
+            var nodes = new Dictionary<NuGetFramework, List<GraphNode<RemoteResolveResult>>>();
 
             var localRepositories = new List<NuGetv3LocalRepository>();
             localRepositories.Add(userPackageFolder);
@@ -136,9 +139,15 @@ namespace NuGet.Commands
 
             // Read the package, this is expected to be there.
             // A missing package will error out before this.
-            var packageInfo = NuGetv3LocalRepositoryUtility
-                .GetPackage(localRepositories, toolLibrary.Name, toolLibrary.Version)
-                .Package;
+            var packageSourceInfo = NuGetv3LocalRepositoryUtility
+                .GetPackage(localRepositories, toolLibrary.Name, toolLibrary.Version);
+
+            var packageInfo = packageSourceInfo?.Package;
+
+            if (packageInfo == null)
+            {
+                throw new InvalidDataException($"Package not found: {toolLibrary}");
+            }
 
             var package = packageInfo.GetPackage();
 
@@ -148,9 +157,9 @@ namespace NuGet.Commands
             }
 
             var depsFileItems = package.GetLibItems()
-                .Select(group => new KeyValuePair<NuGetFramework, string>(
+                .Select(group => new KeyValuePair<NuGetFramework, List<string>>(
                     group.TargetFramework,
-                    GetDepsFilePath(group, toolLibrary.Name, packageInfo.ExpandedPath)))
+                    GetDepsFilePaths(group, toolLibrary.Name, packageInfo.ExpandedPath).ToList()))
                 .Where(pair => pair.Value != null)
                 .ToList();
 
@@ -159,7 +168,13 @@ namespace NuGet.Commands
             {
                 if (!nodes.ContainsKey(pair.Key))
                 {
-                    nodes.Add(pair.Key, CopyNodeAndAddDeps(toolNode, pair.Value));
+                    var nodeList = new List<GraphNode<RemoteResolveResult>>();
+                    nodes.Add(pair.Key, nodeList);
+
+                    foreach (var depsPath in pair.Value)
+                    {
+                        nodeList.Add(CopyNodeAndAddDeps(toolNode, depsPath));
+                    }
 
                     depsFiles.Add(pair);
                 }
@@ -240,7 +255,7 @@ namespace NuGet.Commands
             };
         }
 
-        private static string GetDepsFilePath(FrameworkSpecificGroup group, string packageId, string packageRoot)
+        private static IEnumerable<string> GetDepsFilePaths(FrameworkSpecificGroup group, string packageId, string packageRoot)
         {
             if (StringComparer.OrdinalIgnoreCase.Equals(
                 FrameworkConstants.FrameworkIdentifiers.NetCoreApp,
@@ -253,15 +268,12 @@ namespace NuGet.Commands
                     var parts = path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 
                     if (parts.Length == 3
-                        && parts[2].Equals($"{packageId}.deps.json", StringComparison.OrdinalIgnoreCase))
+                        && parts[2].EndsWith(".deps.json", StringComparison.OrdinalIgnoreCase))
                     {
-                        return Path.GetFullPath(Path.Combine(packageRoot, path));
+                        yield return Path.GetFullPath(Path.Combine(packageRoot, path));
                     }
                 }
             }
-
-            // not found
-            return null;
         }
 
         private async Task InstallPackagesAsync(IEnumerable<RestoreTargetGraph> graphs,

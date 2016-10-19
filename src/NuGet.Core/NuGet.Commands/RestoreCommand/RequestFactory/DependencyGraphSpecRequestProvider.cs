@@ -64,7 +64,6 @@ namespace NuGet.Commands
 
             // Create requests
             var requests = new List<RestoreSummaryRequest>();
-            var toolRequests = new List<RestoreSummaryRequest>();
 
             foreach (var projectNameToRestore in dgFile.Restore)
             {
@@ -77,19 +76,8 @@ namespace NuGet.Commands
 
                 var request = Create(rootProject, externalClosure, restoreContext, settingsOverride: _providerSettingsOverride);
 
-                if (request.Request.RestoreOutputType == RestoreOutputType.DotnetCliTool)
-                {
-                    // Store tool requests to be filtered later
-                    toolRequests.Add(request);
-                }
-                else
-                {
-                    requests.Add(request);
-                }
+                requests.Add(request);
             }
-
-            // Filter out duplicate tool restore requests
-            requests.AddRange(ToolRestoreUtility.GetSubSetRequests(toolRequests));
 
             return requests;
         }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NuGet.Frameworks;
@@ -10,12 +9,16 @@ using NuGet.Versioning;
 
 namespace NuGet.ProjectModel
 {
+    /// <summary>
+    /// RestoreCommand creates DotnetCliToolFile objects when restoring a tool.
+    /// These are written to the project's obj folder and consumed by the CLI.
+    /// </summary>
     public class DotnetCliToolFile
     {
         /// <summary>
         /// File json.
         /// </summary>
-        public JObject Json { get; }
+        internal JObject Json { get; }
 
         /// <summary>
         /// File version.
@@ -51,7 +54,7 @@ namespace NuGet.ProjectModel
         /// <summary>
         /// Framework -> Lib folder path
         /// </summary>
-        public IDictionary<NuGetFramework, string> DepsFiles { get; set; } = new Dictionary<NuGetFramework, string>();
+        public IDictionary<NuGetFramework, IList<string>> DepsFiles { get; set; } = new Dictionary<NuGetFramework, IList<string>>();
 
         /// <summary>
         /// Restore errors and warnings.
@@ -113,9 +116,15 @@ namespace NuGet.ProjectModel
             var targetsObj = new JObject();
             json.Add("depsFiles", targetsObj);
 
-            foreach (var target in spec.DepsFiles)
+            foreach (var pair in spec.DepsFiles.OrderBy(e => e.Key.ToString(), StringComparer.Ordinal))
             {
-                targetsObj.Add(target.Key.ToString(), target.Value);
+                var targetObj = new JObject();
+                targetsObj.Add(pair.Key.ToString(), targetObj);
+
+                foreach (var entry in pair.Value.OrderBy(e => e, StringComparer.Ordinal))
+                {
+                    targetObj.Add(entry, new JObject());
+                }
             }
 
             var packageFoldersObj = new JObject();
@@ -146,32 +155,39 @@ namespace NuGet.ProjectModel
             FormatVersion = json.GetValue<int>("formatVersion");
             Success = json.GetValue<bool>("success");
             ToolId = json.GetValue<string>("toolId");
-            ToolVersion = NuGetVersion.Parse(json.GetValue<string>("toolVersion"));
-            DependencyRange = VersionRange.Parse(json.GetValue<string>("dependencyRange"));
+            ToolVersion = GetItem(json, "toolVersion", NuGetVersion.Parse);
+            DependencyRange = GetItem(json, "dependencyRange", VersionRange.Parse);
 
-            foreach (var prop in json.GetValue<JObject>("depsFiles").Properties())
+            foreach (var prop in GetProperties(json, "depsFiles"))
             {
                 var framework = NuGetFramework.Parse(prop.Name);
 
                 if (!DepsFiles.ContainsKey(framework)
                     && framework.IsSpecificFramework)
                 {
-                    DepsFiles.Add(framework, prop.Value.ToObject<string>());
+                    var files = prop.Value.ToObject<JObject>()?.Properties().Select(e => e.Name)
+                        ?? Enumerable.Empty<string>();
+
+                    DepsFiles.Add(framework, files.ToList());
                 }
             }
 
-            foreach (var prop in json.GetValue<JObject>("packageFolders").Properties())
+            foreach (var prop in GetProperties(json, "packageFolders"))
             {
                 PackageFolders.Add(prop.Name);
             }
 
-            foreach (var entry in json.GetValue<JArray>("log"))
+            var logArray = json.GetValue<JArray>("log");
+            if (logArray != null)
             {
-                FileLogEntryType entryType;
-                var typeString = entry.GetValue<string>("type");
-                Enum.TryParse<FileLogEntryType>(typeString, ignoreCase: true, result: out entryType);
+                foreach (var entry in logArray)
+                {
+                    FileLogEntryType entryType;
+                    var typeString = entry.GetValue<string>("type");
+                    Enum.TryParse(typeString, ignoreCase: true, result: out entryType);
 
-                Log.Add(new FileLogEntry(entryType, entry.GetValue<string>("message")));
+                    Log.Add(new FileLogEntry(entryType, entry.GetValue<string>("message")));
+                }
             }
         }
 
@@ -193,6 +209,37 @@ namespace NuGet.ProjectModel
             }
 
             return json;
+        }
+
+        private static T GetItem<T>(JToken token, string propertyName, Func<string, T> convert)
+        {
+            var obj = token as JObject;
+            var value = obj?.GetValue<string>(propertyName);
+
+            if (value != null)
+            {
+                return convert(value);
+            }
+
+            return default(T);
+        }
+
+        private static IEnumerable<JProperty> GetProperties(JToken token, string parentName)
+        {
+            var obj = token as JObject;
+
+            JToken child;
+            if (obj.TryGetValue(parentName, out child))
+            {
+                var childObj = child as JObject;
+
+                if (childObj != null)
+                {
+                    return childObj.Properties();
+                }
+            }
+
+            return Enumerable.Empty<JProperty>();
         }
     }
 }
