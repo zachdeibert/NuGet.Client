@@ -151,6 +151,62 @@ namespace NuGet.Commands.Test
         }
 
         [Fact]
+        public async Task DotnetCliTool_VerifyToolIsIgnoredAsDependency()
+        {
+            // Arrange
+            using (var pathContext = new SimpleTestPathContext())
+            {
+                var logger = new TestLogger();
+                var dgFile = new DependencyGraphSpec();
+
+                var spec = ToolRestoreUtility.GetSpec(
+                    Path.Combine(pathContext.SolutionRoot, "project", "fake.csproj"),
+                    "myTool",
+                    VersionRange.Parse("1.0.0"),
+                    NuGetFramework.Parse("netcoreapp1.0"));
+
+                spec.RestoreMetadata.OutputPath = Path.Combine(pathContext.SolutionRoot, "project", "obj");
+
+                dgFile.AddProject(spec);
+                dgFile.AddRestore(spec.Name);
+
+                var toolContext = new SimpleTestPackageContext()
+                {
+                    Id = "myTool",
+                    Version = "1.0.0"
+                };
+
+                toolContext.PackageTypes.Add(PackageType.DotnetCliTool);
+                toolContext.AddFile("lib/netcoreapp1.0/a.dll");
+                toolContext.AddFile("lib/netcoreapp1.0/a.deps.json", GetDepsJson("a"));
+
+                var bContext = new SimpleTestPackageContext()
+                {
+                    Id = "b",
+                    Version = "1.0.0"
+                };
+
+                await SimpleTestPackageUtility.CreateFolderFeedV3(
+                    pathContext.PackageSource,
+                    PackageSaveMode.Defaultv3,
+                    toolContext,
+                    bContext);
+
+                // Act
+                var result = await CommandsTestUtility.RunSingleRestore(dgFile, pathContext, logger);
+
+                var outputPath = DotnetCliToolPathResolver.GetFilePath(spec.RestoreMetadata.OutputPath, "myTool");
+                var outputFile = DotnetCliToolFile.Load(outputPath);
+
+                // Assert
+                Assert.True(result.Success, "Failed: " + string.Join(Environment.NewLine, logger.Messages));
+                Assert.True(File.Exists(outputPath));
+                Assert.True(outputFile.Success);
+                Assert.Equal("myTool", outputFile.ToolId);
+            }
+        }
+
+        [Fact]
         public async Task DotnetCliTool_BasicToolRestore_MultipleToolsInPackage()
         {
             // Arrange
@@ -260,7 +316,7 @@ namespace NuGet.Commands.Test
                 Assert.Equal(NuGetVersion.Parse("1.0.0"), outputFile.ToolVersion);
                 Assert.Equal("a", outputFile.ToolId);
                 Assert.Equal(FileLogEntryType.Error, outputFile.Log.Single().Type);
-                Assert.Equal("Unable to resolve 'b (= 1.0.0)' for '.NETCoreApp,Version=v1.0'.", outputFile.Log.Single().Message);
+                Assert.Contains("b (= 1.0.0)", outputFile.Log.Single().Message);
             }
         }
 

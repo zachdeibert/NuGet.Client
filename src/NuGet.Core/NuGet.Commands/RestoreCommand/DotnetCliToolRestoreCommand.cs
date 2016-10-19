@@ -59,7 +59,7 @@ namespace NuGet.Commands
             if (!ResolutionSucceeded(toolOnlyGraphs))
             {
                 success = false;
-                toolFile.ToolVersion = NuGetVersion.Parse("0.0.0");
+                toolFile.ToolVersion = toolRange.VersionRange?.MinVersion ?? new NuGetVersion(0, 0, 0);
             }
             else
             {
@@ -74,7 +74,7 @@ namespace NuGet.Commands
                 var depsFiles = new List<KeyValuePair<NuGetFramework, List<string>>>();
 
                 var nodes = GetNodesByFramework(userPackageFolder, fallbackPackageFolders, toolNode, toolLibrary, depsFiles);
-                 
+
                 // Populate dependencies and download packages
                 await remoteWalker.WalkAsync(nodes.Values.SelectMany(e => e), token);
 
@@ -201,9 +201,8 @@ namespace NuGet.Commands
                         var packageDisplayName = $"{unresolved.Name} {displayVersionRange}";
 
                         var message = string.Format(CultureInfo.CurrentCulture,
-                            Strings.Log_UnresolvedDependency,
-                            packageDisplayName,
-                            graph.Name);
+                            "Unable to resolve DotnetCliTool dependency '{0}'.",
+                            packageDisplayName);
 
                         _logger.LogError(message);
                     }
@@ -217,10 +216,19 @@ namespace NuGet.Commands
         {
             var depsContent = LockFileFormat.Load(depsPath);
 
-            var dependencies = depsContent.Libraries.Where(lib =>
-                    StringComparer.OrdinalIgnoreCase.Equals(lib.Type, LibraryType.Package)
-                    && !StringComparer.OrdinalIgnoreCase.Equals(toolNode.Item.Data.Match.Library.Name, lib.Name))
-                .Select(lib => new LibraryIdentity(lib.Name, lib.Version, LibraryType.Package))
+            // Find all ids listed as dependencies by a library
+            // Things outside of this set are part of the package.
+            var childIds = new HashSet<string>(depsContent.Targets
+                .SelectMany(target => target.Libraries)
+                .SelectMany(lib => lib.Dependencies)
+                .Select(d => d.Id), StringComparer.OrdinalIgnoreCase);
+
+            // Find all non-top level libraries, this will exclude the tool package itself
+            // which may have a name different from the package.
+            var dependencies = depsContent.Libraries
+                .Where(lib =>
+                    childIds.Contains(lib.Name)
+                    && IsAllowedType(lib))
                 .Select(ToToolDependency)
                 .ToList();
 
@@ -240,7 +248,7 @@ namespace NuGet.Commands
         /// <summary>
         /// Identity -> Dependency with a range allowing a single version.
         /// </summary>
-        private static LibraryDependency ToToolDependency(LibraryIdentity library)
+        private static LibraryDependency ToToolDependency(LockFileLibrary library)
         {
             return new LibraryDependency()
             {
@@ -253,6 +261,14 @@ namespace NuGet.Commands
                                 includeMaxVersion: true),
                             typeConstraint: LibraryDependencyTarget.Package)
             };
+        }
+
+        // CoreHost does not use the type, but to ensure that we do not accidently
+        // reference a new type of entry filter down to package and project.
+        private static bool IsAllowedType(LockFileLibrary library)
+        {
+            return StringComparer.OrdinalIgnoreCase.Equals(library.Type, LibraryType.Package)
+                      || StringComparer.OrdinalIgnoreCase.Equals(library.Type, LibraryType.Project);
         }
 
         private static IEnumerable<string> GetDepsFilePaths(FrameworkSpecificGroup group, string packageId, string packageRoot)
