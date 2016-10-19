@@ -156,7 +156,14 @@ namespace NuGet.Commands
             {
                 request.LockFilePath = Path.Combine(request.RestoreOutputPath, LockFileFormat.AssetsFileName);
             }
-            else if (request.RestoreOutputType != RestoreOutputType.DotnetCliTool)
+            else if (request.RestoreOutputType == RestoreOutputType.DotnetCliTool)
+            {
+                var toolName = ToolRestoreUtility.GetToolIdOrNullFromSpec(request.Project);
+                var outputPath = request.Project.RestoreMetadata.OutputPath;
+
+                request.LockFilePath = DotnetCliToolPathResolver.GetFilePath(outputPath, toolName);
+            }
+            else
             {
                 request.LockFilePath = ProjectJsonPathUtilities.GetLockFilePath(request.Project.FilePath);
             }
