@@ -558,7 +558,7 @@ namespace NuGet.PackageManagement.UI
                 var searchResultTask = loader.SearchAsync(continuationToken:null, cancellationToken: _loadCts.Token);
 
                 // this will wait for searchResultTask to complete instead of creating a new task
-                _packageList.LoadItems(loader, loadingMessage, _uiLogger, searchResultTask, _loadCts);
+                _packageList.LoadItems(loader, loadingMessage, _uiLogger, searchResultTask, _loadCts.Token);
 
                 // We only refresh update count, when we don't use cache so check it it's false
                 if (!useCache)
@@ -916,6 +916,10 @@ namespace NuGet.PackageManagement.UI
             // make sure to cancel currently running load or refresh tasks
             _loadCts?.Cancel();
             _refreshCts?.Cancel();
+
+            // make sure to dispose cancellation token source
+            _loadCts?.Dispose();
+            _refreshCts?.Dispose();
 
             _detailModel.CleanUp();
             _packageList.SelectionChanged -= PackageList_SelectionChanged;

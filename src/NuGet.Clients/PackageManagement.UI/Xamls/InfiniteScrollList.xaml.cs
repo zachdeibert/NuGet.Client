@@ -93,7 +93,7 @@ namespace NuGet.PackageManagement.UI
             string loadingMessage,
             INuGetUILogger logger,
             Task<SearchResult<IPackageSearchMetadata>> searchResultTask,
-            CancellationTokenSource loadCts)
+            CancellationToken token)
         {
             _loader = loader;
             _logger = logger;
@@ -118,7 +118,7 @@ namespace NuGet.PackageManagement.UI
             _selectedCount = 0;
 
             // triggers the package list loader
-            LoadItems(selectedPackageItem, loadCts);
+            LoadItems(selectedPackageItem, token);
         }
 
         private void UpdateSelectedItem(PackageItemListViewModel selectedItem)
@@ -134,9 +134,10 @@ namespace NuGet.PackageManagement.UI
             _list.SelectedItem = selectedItem ?? PackageItems.FirstOrDefault();
         }
 
-        private void LoadItems(PackageItemListViewModel selectedPackageItem, CancellationTokenSource loadCts)
+        private void LoadItems(PackageItemListViewModel selectedPackageItem, CancellationToken token)
         {
             // If there is another async loading process - cancel it.
+            var loadCts = CancellationTokenSource.CreateLinkedTokenSource(token);
             Interlocked.Exchange(ref _loadCts, loadCts)?.Cancel();
 
             var currentLoader = _loader;
@@ -159,6 +160,7 @@ namespace NuGet.PackageManagement.UI
                 catch (OperationCanceledException) when (!loadCts.IsCancellationRequested)
                 {
                     loadCts.Cancel();
+                    loadCts.Dispose();
                     currentLoader.Reset();
 
                     await NuGetUIThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -176,6 +178,7 @@ namespace NuGet.PackageManagement.UI
                 catch (Exception ex) when (!loadCts.IsCancellationRequested)
                 {
                     loadCts.Cancel();
+                    loadCts.Dispose();
                     currentLoader.Reset();
 
                     // Write stack to activity log
@@ -534,7 +537,7 @@ namespace NuGet.PackageManagement.UI
                 var last = _scrollViewer.ViewportHeight + first;
                 if (_scrollViewer.ViewportHeight > 0 && last >= Items.Count)
                 {
-                    LoadItems(selectedPackageItem: null, loadCts: new CancellationTokenSource());
+                    LoadItems(selectedPackageItem: null, token: CancellationToken.None);
                 }
             }
         }
