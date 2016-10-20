@@ -64,6 +64,7 @@ namespace NuGet.PackageManagement.Test
                     sources,
                     packagesFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 JsonConfigUtility.AddDependency(json, new PackageDependency("nuget.core", VersionRange.Parse("2.8.3")));
@@ -126,6 +127,7 @@ namespace NuGet.PackageManagement.Test
                     sources,
                     packagesFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 var resolver = new VersionFolderPathResolver(packagesFolder);
@@ -189,6 +191,7 @@ namespace NuGet.PackageManagement.Test
                     sources,
                     packagesFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 var resolver = new VersionFolderPathResolver(packagesFolder);
@@ -249,6 +252,7 @@ namespace NuGet.PackageManagement.Test
                     sources,
                     effectiveGlobalPackagesFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 var context = BuildIntegrationTestUtility.GetExternalProjectReferenceContext();
@@ -304,6 +308,7 @@ namespace NuGet.PackageManagement.Test
                     sources,
                     effectiveGlobalPackagesFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 var context = BuildIntegrationTestUtility.GetExternalProjectReferenceContext();
@@ -360,6 +365,7 @@ namespace NuGet.PackageManagement.Test
                     sources,
                     fallbackFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 var packageFolders = new List<string> { globalFolder, fallbackFolder };
@@ -418,6 +424,7 @@ namespace NuGet.PackageManagement.Test
                     sources,
                     fallbackFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 // Restore to global folder
@@ -426,6 +433,7 @@ namespace NuGet.PackageManagement.Test
                     sources,
                     globalFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 var resolver = new VersionFolderPathResolver(fallbackFolder);

@@ -54,12 +54,33 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
 
         protected override void ProcessRecordCore()
         {
+            var startTime = DateTimeOffset.Now;
+            _packageCount = 1;
+            var telemetryHelper = TelemetryServiceHelper.Instance;
+
+            // Enable granular level events for this uninstall operation
+            telemetryHelper.EnableTelemetryEvents();
+            telemetryHelper.StartorResumeTimer();
+
             Preprocess();
 
             SubscribeToProgressEvents();
             Task.Run(() => UnInstallPackage());
             WaitAndLogPackageActions();
             UnsubscribeFromProgressEvents();
+
+            telemetryHelper.StopTimer();
+            var actionTelemetryEvent = TelemetryUtility.GetActionTelemetryEvent(
+                new[] { Project },
+                NuGetOperationType.Uninstall,
+                OperationSource.PMC,
+                startTime,
+                _status,
+                _packageCount,
+                telemetryHelper.GetTimerElapsedTimeInSeconds());
+
+            // emit telemetry event with granular level events
+            ActionsTelemetryService.Instance.EmitActionEvent(actionTelemetryEvent);
         }
 
         protected override void EndProcessing()
@@ -88,6 +109,7 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
             }
             catch (Exception ex)
             {
+                _status = NuGetOperationStatus.Failed;
                 Log(MessageLevel.Error, ExceptionUtilities.DisplayMessage(ex));
             }
             finally

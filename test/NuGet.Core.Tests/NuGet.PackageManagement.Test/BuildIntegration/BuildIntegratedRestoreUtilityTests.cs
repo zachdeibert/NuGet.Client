@@ -56,6 +56,7 @@ namespace NuGet.Test
                     sources,
                     effectiveGlobalPackagesFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 // Assert
@@ -98,6 +99,7 @@ namespace NuGet.Test
                     sources,
                     effectiveGlobalPackagesFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 // Assert
@@ -161,6 +163,7 @@ namespace NuGet.Test
                     sources,
                     effectiveGlobalPackagesFolder,
                     Enumerable.Empty<string>(),
+                    null,
                     CancellationToken.None);
 
                 // Assert
