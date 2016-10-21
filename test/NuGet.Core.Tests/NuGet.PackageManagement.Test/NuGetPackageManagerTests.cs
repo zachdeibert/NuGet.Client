@@ -5844,8 +5844,9 @@ namespace NuGet.Test
 
                 // Assert
                 var telemetryEvents = TelemetryServiceHelper.Instance.GetTelemetryEvents();
-                Assert.Equal(3, telemetryEvents.Count);
-                var projectId = nugetProject.GetMetadata<string>(NuGetProjectMetadataKeys.ProjectId);
+                Assert.True(telemetryEvents.Count >= 3);
+                var projectId = string.Empty;
+                nugetProject.TryGetMetadata<string>(NuGetProjectMetadataKeys.ProjectId, out projectId);
                 VerifyPreviewActionsTelemetryEvents_PackagesConfig(projectId, telemetryEvents);
             }
         }
@@ -5884,8 +5885,9 @@ namespace NuGet.Test
 
                 // Assert
                 var telemetryEvents = TelemetryServiceHelper.Instance.GetTelemetryEvents();
-                Assert.Equal(1, telemetryEvents.Count);
-                var projectId = buildIntegratedProject.GetMetadata<string>(NuGetProjectMetadataKeys.ProjectId);
+                Assert.True(telemetryEvents.Count >= 1);
+                var projectId = string.Empty;
+                buildIntegratedProject.TryGetMetadata<string>(NuGetProjectMetadataKeys.ProjectId, out projectId);
                 Assert.True(telemetryEvents.ContainsKey(
                     string.Format(TelemetryConstants.PreviewBuildIntegratedStepName, projectId)));
             }
@@ -5945,8 +5947,9 @@ namespace NuGet.Test
 
                 // Assert
                 var telemetryEvents = TelemetryServiceHelper.Instance.GetTelemetryEvents();
-                Assert.Equal(3, telemetryEvents.Count);
-                var projectId = nuGetProject.GetMetadata<string>(NuGetProjectMetadataKeys.ProjectId);
+                Assert.True(telemetryEvents.Count >= 3);
+                var projectId = string.Empty;
+                nuGetProject.TryGetMetadata<string>(NuGetProjectMetadataKeys.ProjectId, out projectId);
                 VerifyPreviewActionsTelemetryEvents_PackagesConfig(projectId, telemetryEvents);
             }
         }        
@@ -5988,9 +5991,10 @@ namespace NuGet.Test
 
                 // Assert
                 var telemetryEvents = TelemetryServiceHelper.Instance.GetTelemetryEvents();
-                var projectId = nugetProject.GetMetadata<string>(NuGetProjectMetadataKeys.ProjectId);
+                var projectId = string.Empty;
+                nugetProject.TryGetMetadata<string>(NuGetProjectMetadataKeys.ProjectId, out projectId);
 
-                Assert.Equal(1, telemetryEvents.Count);
+                Assert.True(telemetryEvents.Count >= 1);
                 Assert.True(telemetryEvents.ContainsKey(
                     string.Format(TelemetryConstants.ExecuteActionStepName, projectId)));
             }
@@ -6039,8 +6043,10 @@ namespace NuGet.Test
 
                 // Assert
                 var telemetryEvents = TelemetryServiceHelper.Instance.GetTelemetryEvents();
-                var projectId = buildIntegratedProject.GetMetadata<string>(NuGetProjectMetadataKeys.ProjectId);
+                var projectId = string.Empty;
+                buildIntegratedProject.TryGetMetadata<string>(NuGetProjectMetadataKeys.ProjectId, out projectId);
 
+                Assert.True(telemetryEvents.Count >= 2);
                 Assert.True(telemetryEvents.ContainsKey(
                     string.Format(TelemetryConstants.PreviewBuildIntegratedStepName, projectId)));
                 Assert.True(telemetryEvents.ContainsKey(

@@ -2661,7 +2661,7 @@ namespace NuGet.PackageManagement
 
                     if (!string.IsNullOrEmpty(packageFolderPath))
                     {
-                        readmeFilePath = Path.Combine(packageFolderPath, ProjectManagement.Constants.ReadmeFileName);
+                        readmeFilePath = Path.Combine(packageFolderPath, Constants.ReadmeFileName);
                     }
                 }
                 else
@@ -2670,7 +2670,7 @@ namespace NuGet.PackageManagement
 
                     if (!string.IsNullOrEmpty(packagePath))
                     {
-                        readmeFilePath = Path.Combine(Path.GetDirectoryName(packagePath), ProjectManagement.Constants.ReadmeFileName);
+                        readmeFilePath = Path.Combine(Path.GetDirectoryName(packagePath), Constants.ReadmeFileName);
                     }
                 }
 

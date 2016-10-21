@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -16,13 +17,11 @@ namespace NuGet.Common
     {
         private bool _shouldMeasureEvents;
 
-        private IDictionary<string, double> _telemetryEvents;
+        private ConcurrentDictionary<string, double> _telemetryEvents;
 
         private Stopwatch _stopWatch;
 
         public static TelemetryServiceHelper Instance = new TelemetryServiceHelper();
-
-        private readonly object _lockObject = new object();
 
         private TelemetryServiceHelper() { }
 
@@ -101,10 +100,7 @@ namespace NuGet.Common
                 return;
             }
 
-            lock(_lockObject)
-            {
-                _telemetryEvents.Add(eventName, duration);
-            }
+            _telemetryEvents.TryAdd(eventName, duration);
         }
 
         /// <summary>
@@ -113,7 +109,7 @@ namespace NuGet.Common
         public void EnableTelemetryEvents()
         {
             _shouldMeasureEvents = true;
-            _telemetryEvents = new Dictionary<string, double>();
+            _telemetryEvents = new ConcurrentDictionary<string, double>();
         }
 
         /// <summary>
