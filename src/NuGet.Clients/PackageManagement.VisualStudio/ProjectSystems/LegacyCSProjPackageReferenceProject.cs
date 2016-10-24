@@ -30,6 +30,7 @@ namespace NuGet.PackageManagement.VisualStudio
         private const string _privateAssets = "PrivateAssets";
 
         private static Array _desiredPackageReferenceMetadata;
+        private static Array _desiredProjectReferenceMetadata;
 
         private readonly IEnvDTEProjectAdapter _project;
 
@@ -44,6 +45,11 @@ namespace NuGet.PackageManagement.VisualStudio
             _desiredPackageReferenceMetadata.SetValue(_includeAssets, 0);
             _desiredPackageReferenceMetadata.SetValue(_excludeAssets, 1);
             _desiredPackageReferenceMetadata.SetValue(_privateAssets, 2);
+
+            _desiredProjectReferenceMetadata = Array.CreateInstance(typeof(string), 3);
+            _desiredProjectReferenceMetadata.SetValue(_includeAssets, 0);
+            _desiredProjectReferenceMetadata.SetValue(_excludeAssets, 1);
+            _desiredProjectReferenceMetadata.SetValue(_privateAssets, 2);
         }
 
         public LegacyCSProjPackageReferenceProject(
@@ -251,7 +257,7 @@ namespace NuGet.PackageManagement.VisualStudio
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            var projectReferences = _project.GetLegacyCSProjProjectReferences(_desiredPackageReferenceMetadata)
+            var projectReferences = _project.GetLegacyCSProjProjectReferences(_desiredProjectReferenceMetadata)
                 .Select(ToProjectRestoreReference);
 
             var packageReferences = _project.GetLegacyCSProjPackageReferences(_desiredPackageReferenceMetadata)

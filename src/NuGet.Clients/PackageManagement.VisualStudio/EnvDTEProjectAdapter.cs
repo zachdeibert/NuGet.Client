@@ -4,15 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 using EnvDTE;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using NuGet.Frameworks;
-using NuGet.ProjectManagement;
 using VSLangProj;
 using VSLangProj150;
-using Task = System.Threading.Tasks.Task;
 
 namespace NuGet.PackageManagement.VisualStudio
 {
@@ -214,15 +211,19 @@ namespace NuGet.PackageManagement.VisualStudio
 
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            foreach (Reference reference in AsVSProject.References)
+            foreach (Reference reference in AsVSProject4.References)
             {
-                if (reference.SourceProject != null)
+                var reference6 = reference as Reference6;
+                if (reference6 != null && reference.SourceProject != null)  // If there is a SourceProject, this must be a P2P reference
                 {
-                    // When metadata API is available, each project's metadata can be inserted into this instance
+                    Array metadataElements;
+                    Array metadataValues;
+                    reference6.GetMetadata(desiredMetadata, out metadataElements, out metadataValues);
+
                     yield return new LegacyCSProjProjectReference(
                         uniqueName: reference.SourceProject.FullName, 
-                        metadataElements: null, 
-                        metadataValues: null);
+                        metadataElements: metadataElements,
+                        metadataValues: metadataValues);
                 }
             }
         }
