@@ -88,7 +88,9 @@ namespace NuGet.PackageManagement
                         dgSpec,
                         userPackagesPath);
 
-                    var restoreSummaries = await RestoreRunner.Run(restoreContext);
+                    var projectLocks = await GetLocksFromSolution(solutionManager);
+
+                    var restoreSummaries = await RestoreRunner.Run(restoreContext, projectLocks);
 
                     RestoreSummary.Log(log, restoreSummaries);
 
@@ -103,6 +105,7 @@ namespace NuGet.PackageManagement
         /// Restore a dg spec. This will not update the context cache.
         /// </summary>
         public static async Task<IReadOnlyList<RestoreSummary>> RestoreAsync(
+            ISolutionManager solutionManager,
             DependencyGraphSpec dgSpec,
             DependencyGraphCacheContext context,
             RestoreCommandProvidersCache providerCache,
@@ -129,7 +132,9 @@ namespace NuGet.PackageManagement
                         dgSpec,
                         userPackagesPath: null);
 
-                    var restoreSummaries = await RestoreRunner.Run(restoreContext);
+                    var projectLocks = await GetLocksFromSolution(solutionManager);
+
+                    var restoreSummaries = await RestoreRunner.Run(restoreContext, projectLocks);
 
                     RestoreSummary.Log(log, restoreSummaries);
 
@@ -245,7 +250,8 @@ namespace NuGet.PackageManagement
             token.ThrowIfCancellationRequested();
 
             // Write out the lock file and msbuild files
-            var summary = await RestoreRunner.Commit(result);
+            var locks = new[] { await project.GetProjectLockAsync() };
+            var summary = await RestoreRunner.CommitInLock(result, locks);
 
             RestoreSummary.Log(log, new[] { summary });
 
@@ -364,6 +370,18 @@ namespace NuGet.PackageManagement
             };
 
             return restoreContext;
+        }
+
+        private static async Task<List<INuGetLock>> GetLocksFromSolution(ISolutionManager solutionManager)
+        {
+            var allLocks = new List<INuGetLock>();
+
+            foreach (var project in solutionManager.GetNuGetProjects().OfType<BuildIntegratedNuGetProject>())
+            {
+                allLocks.Add(await project.GetProjectLockAsync());
+            }
+
+            return allLocks;
         }
     }
 }

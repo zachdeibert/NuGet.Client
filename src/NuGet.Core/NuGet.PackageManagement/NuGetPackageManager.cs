@@ -2575,7 +2575,17 @@ namespace NuGet.PackageManagement
                 else
                 {
                     // Write out the lock file
-                    await RestoreRunner.Commit(projectAction.RestoreResultPair);
+                    var buildIntProject = (BuildIntegratedNuGetProject)projectAction.Project;
+                    var projectLock = await buildIntProject.GetProjectLockAsync();
+
+                    try
+                    {
+                        await RestoreRunner.Commit(projectAction.RestoreResultPair);
+                    }
+                    finally
+                    {
+                        await projectLock.ReleaseAsync();
+                    }
                 }
 
                 // Write out a message for each action
@@ -2653,6 +2663,7 @@ namespace NuGet.PackageManagement
                     // Restore and commit the lock file to disk regardless of the result
                     // This will restore all parents in a single restore
                     await DependencyGraphRestoreUtility.RestoreAsync(
+                        SolutionManager,
                         dgSpecForParents,
                         referenceContext,
                         GetRestoreProviderCache(),
