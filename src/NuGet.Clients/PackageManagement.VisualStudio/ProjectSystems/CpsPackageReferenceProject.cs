@@ -9,6 +9,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.ProjectSystem;
 using Microsoft.VisualStudio.ProjectSystem.References;
+using Microsoft.VisualStudio.Shell;
+using NuGet.Common;
 using NuGet.Frameworks;
 using NuGet.LibraryModel;
 using NuGet.Packaging.Core;
@@ -257,11 +259,9 @@ namespace NuGet.PackageManagement.VisualStudio
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                var hierarchy = VsHierarchyUtility.ToVsHierarchy(EnvDTEProject);
+                var hierarchy = VsHierarchyUtility.ToVsHierarchy(_envDTEProject);
 
-                var projectLock = ProjectHelper.GetProjectLock(_envDTEProject, hierarchy, _projectFullPath);
-
-                return Task.FromResult<INuGetLock>(projectLock);
+                return ProjectHelper.GetProjectLock(_envDTEProject, hierarchy, _projectFullPath);
             });
         }
 
