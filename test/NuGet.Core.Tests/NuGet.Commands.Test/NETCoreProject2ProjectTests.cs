@@ -160,8 +160,10 @@ namespace NuGet.Commands.Test
 
                 Assert.Equal("projectB", libraryLib.Name);
                 Assert.Equal("project", libraryLib.Type);
-                Assert.Equal("../projectB/projectB.csproj", libraryLib.MSBuildProject);
-                Assert.Equal("../projectB/projectB.csproj", libraryLib.Path);
+
+                // Verify paths are relative from the assets file, not the project
+                Assert.Equal("../../projectB/projectB.csproj", libraryLib.MSBuildProject);
+                Assert.Equal("../../projectB/projectB.csproj", libraryLib.Path);
                 Assert.Equal("1.0.0", libraryLib.Version.ToNormalizedString());
             }
         }

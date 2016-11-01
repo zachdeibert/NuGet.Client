@@ -75,12 +75,14 @@ namespace NuGet.Commands
                         Type = LibraryType.Project,
                     };
 
+                    var projectOutputDirectory = GetProjectOutputDirectory(project);
+
                     // Set the relative path if a path exists
                     // For projects without project.json this will be empty
                     if (!string.IsNullOrEmpty(localMatch.LocalLibrary.Path))
                     {
                         projectLib.Path = PathUtility.GetRelativePath(
-                            project.FilePath,
+                            projectOutputDirectory,
                             localMatch.LocalLibrary.Path,
                             '/');
                     }
@@ -90,7 +92,7 @@ namespace NuGet.Commands
                     if (localMatch.LocalLibrary.Items.TryGetValue(KnownLibraryProperties.MSBuildProjectPath, out msbuildPath))
                     {
                         var msbuildRelativePath = PathUtility.GetRelativePath(
-                            project.FilePath,
+                            projectOutputDirectory,
                             (string)msbuildPath,
                             '/');
 
@@ -306,6 +308,25 @@ namespace NuGet.Commands
             PopulatePackageFolders(localRepositories.Select(repo => repo.RepositoryRoot).Distinct(), lockFile);
 
             return lockFile;
+        }
+
+        private static string GetProjectOutputDirectory(PackageSpec project)
+        {
+            // Use the output path if set
+            var outputDir = project.RestoreMetadata?.OutputPath;
+
+            // Fallback to using the project.json file path
+            if (string.IsNullOrEmpty(outputDir))
+            {
+                outputDir = Path.GetDirectoryName(project.FilePath);
+            }
+
+            // Ensure directory separator at the end so that the relative path util
+            // understands that this is a directory
+            outputDir = outputDir.TrimEnd(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar });
+            outputDir += Path.DirectorySeparatorChar;
+
+            return Path.GetFullPath(outputDir);
         }
 
         private static void AddProjectFileDependenciesForSpec(PackageSpec project, LockFile lockFile)
