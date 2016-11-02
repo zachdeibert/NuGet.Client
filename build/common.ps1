@@ -1081,9 +1081,6 @@ Function Invoke-ILMerge {
         [string]$KeyFile
     )
 
-    $nugetIntermediateExe='NuGet.intermediate.exe'
-    $nugetIntermediatePdb='NuGet.intermediate.pdb'
-    $nugetCore='NuGet.Core.dll'
     $ignoreList = Read-FileList (Join-Path $InputDir '.mergeignore')
     $buildArtifacts = Get-ChildItem $InputDir -Exclude $ignoreList | %{ $_.Name }
 
@@ -1097,14 +1094,24 @@ Function Invoke-ILMerge {
         Error-Log "Missing build artifacts listed in include list: $($notFound -join ', ')"
     }
 
-    $nugetIntermediateExePath="$OutputDir\$nugetIntermediateExe"
+    $allowDupList = Read-FileList (Join-Path $InputDir '.mergeallowdup')
 
-    Trace-Log 'Creating the intermediate ilmerged nuget.exe'
+    Trace-Log 'Creating the ilmerged nuget.exe'
     $opts = , "$InputDir\NuGet.exe"
     $opts += "/lib:$InputDir"
     $opts += $buildArtifacts
-    $opts += "/out:$nugetIntermediateExePath"
-    $opts += "/internalize"
+    if ($KeyFile) {
+        $opts += "/delaysign"
+        $opts += "/keyfile:$KeyFile"
+    }
+
+    $opts += "/out:$OutputDir\NuGet.exe"
+
+    foreach ($allowDup in $allowDupList) {
+        # /allowDup operates on type name, not namespace and type name
+        $typeName = $allowDup.Split('.')[-1]
+        $opts += "/allowDup:$typeName"
+    }
 
     if ($VerbosePreference) {
         $opts += '/log'
@@ -1114,30 +1121,6 @@ Function Invoke-ILMerge {
     & $ILMerge $opts 2>&1
 
     if (-not $?) {
-        Error-Log "ILMerge has failed during the intermediate stage. Code: $LASTEXITCODE"
-    }
-
-    $opts2 = , "$nugetIntermediateExePath"
-    $opts2 += "/lib:$InputDir"
-    $opts2 += $nugetCore
-    if ($KeyFile) {
-        $opts2 += "/delaysign"
-        $opts2 += "/keyfile:$KeyFile"
-    }
-
-    $opts2 += "/out:$OutputDir\NuGet.exe"
-
-    if ($VerbosePreference) {
-        $opts2 += '/log'
-    }
-
-    Trace-Log "$ILMerge $opts2"
-    & $ILMerge $opts2 2>&1
-
-    if (-not $?) {
         Error-Log "ILMerge has failed. Code: $LASTEXITCODE"
     }
-
-    Remove-Item $nugetIntermediateExePath
-    Remove-Item $OutputDir\$nugetIntermediatePdb
 }
