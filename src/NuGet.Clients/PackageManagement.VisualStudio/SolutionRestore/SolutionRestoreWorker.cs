@@ -59,7 +59,7 @@ namespace NuGet.PackageManagement.VisualStudio
             _serviceProvider = serviceProvider;
 
             _componentModel = _serviceProvider.GetService<SComponentModel, IComponentModel>();
-
+#if VS15
             _solutionManager = _componentModel.GetService<IVsSolutionManager>();
 
             if (_solutionManager == null)
@@ -80,7 +80,7 @@ namespace NuGet.PackageManagement.VisualStudio
                     _cookie = 0;
                 }
             }
-
+#endif
             var dte = _serviceProvider.GetDTE();
             _solutionEvents = dte.Events.SolutionEvents;
             _solutionEvents.AfterClosing += SolutionEvents_AfterClosing;
@@ -295,7 +295,7 @@ namespace NuGet.PackageManagement.VisualStudio
             }
         }
 
-        #region IVsSolutionEvents (mandatory but unused implementation)
+#region IVsSolutionEvents (mandatory but unused implementation)
         public int OnAfterOpenProject(IVsHierarchy pHierarchy, int fAdded)
         {
             return VSConstants.S_OK;
@@ -345,9 +345,9 @@ namespace NuGet.PackageManagement.VisualStudio
         {
             return VSConstants.S_OK;
         }
-        #endregion
+#endregion
 
-        #region IVsSolutionLoadEvents (Only useful implementation is OnAfterBackgroundSolutionLoadComplete)
+#region IVsSolutionLoadEvents (Only useful implementation is OnAfterBackgroundSolutionLoadComplete)
         public int OnBeforeOpenSolution(string pszSolutionFilename)
         {
             return VSConstants.S_OK;
